@@ -23,11 +23,13 @@ subsequent commits.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 
-from apeiron.symmetry import Vec3
+from apeiron.symmetry import Rotation, Vec3
 from apeiron.zphi import ZPhi
 
 __all__ = [
+    "Polyhedron",
     "check_euler",
     "exact_orientation",
     "is_in_hull",
@@ -151,3 +153,135 @@ def _inward_reference_orientation(
         "No off-plane hull vertex for face {}; hull is degenerate "
         "(not full-dimensional).".format(skip)
     )
+
+
+# -- canonical form helpers -------------------------------------------
+
+
+_Vec3Key = tuple[int, int, int, int, int, int]
+
+
+def _vec3_key(v: Vec3) -> _Vec3Key:
+    """Total order on Vec3 by raw (a, b) coefficient tuples.
+
+    This is a deterministic lexicographic key, not the real-value
+    ordering — either works for canonicalisation, and raw coefficients
+    are cheaper and avoid invoking the ZPhi sign algorithm.
+    """
+    return (v.x.a, v.x.b, v.y.a, v.y.b, v.z.a, v.z.b)
+
+
+def _canonical_cycle(cycle: Sequence[int]) -> tuple[int, ...]:
+    """Rotate ``cycle`` to start at its minimum index, preserving direction.
+
+    A face cycle is a *directed* sequence — reversing it inverts the
+    outward-normal orientation of the face. So canonicalisation only
+    rotates, never reflects.
+    """
+    c = tuple(cycle)
+    n = len(c)
+    start = min(range(n), key=lambda i: c[i])
+    return c[start:] + c[:start]
+
+
+# -- Polyhedron -------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class Polyhedron:
+    """A convex polyhedron with Z[phi]^3 vertices (×2 stored per §3.2).
+
+    Invariants (enforced by ``__post_init__``):
+
+    - ``vertices`` is a tuple of ``Vec3`` in canonical order — sorted
+      ascending by ``_vec3_key``, pairwise distinct, with at least 4
+      entries.
+    - Each face is a tuple of vertex indices forming a closed ordered
+      cycle (a directed polygon boundary). Triangular and polygonal
+      faces are both representable; the merged-pentagonal-face case of
+      the rhombic triacontahedron motivates polygonal support
+      (CLAUDE.md §5.2).
+    - Each face cycle is in canonical rotation (starts at its smallest
+      index; direction preserved).
+    - ``faces`` itself is sorted lexicographically.
+
+    Construct via ``Polyhedron.from_raw`` unless you are deliberately
+    providing already-canonical data.
+    """
+
+    vertices: tuple[Vec3, ...]
+    faces: tuple[tuple[int, ...], ...]
+
+    def __post_init__(self) -> None:
+        if len(self.vertices) < 4:
+            raise ValueError(
+                f"Polyhedron requires at least 4 vertices; got {len(self.vertices)}."
+            )
+        if len(set(self.vertices)) != len(self.vertices):
+            raise ValueError("Polyhedron vertices must be pairwise distinct.")
+        keys = [_vec3_key(v) for v in self.vertices]
+        if keys != sorted(keys):
+            raise ValueError(
+                "Polyhedron.vertices must be in canonical order; use "
+                "Polyhedron.from_raw to build from an unsorted vertex list."
+            )
+        n = len(self.vertices)
+        seen_faces: set[tuple[int, ...]] = set()
+        for face in self.faces:
+            if len(face) < 3:
+                raise ValueError(f"Face has fewer than 3 vertices: {face}.")
+            if len(set(face)) != len(face):
+                raise ValueError(f"Face has repeated vertex indices: {face}.")
+            for idx in face:
+                if not 0 <= idx < n:
+                    raise ValueError(
+                        f"Face index {idx} out of range [0, {n}) in {face}."
+                    )
+            if _canonical_cycle(face) != face:
+                raise ValueError(
+                    f"Face {face} is not in canonical cycle order; use "
+                    "Polyhedron.from_raw."
+                )
+            if face in seen_faces:
+                raise ValueError(f"Duplicate face: {face}.")
+            seen_faces.add(face)
+        if tuple(self.faces) != tuple(sorted(self.faces)):
+            raise ValueError(
+                "Polyhedron.faces must be sorted; use Polyhedron.from_raw."
+            )
+
+    @classmethod
+    def from_raw(
+        cls,
+        vertices: Sequence[Vec3],
+        faces: Sequence[Sequence[int]],
+    ) -> Polyhedron:
+        """Construct a canonical Polyhedron from possibly-unordered input.
+
+        Sorts the vertex list by ``_vec3_key``, remaps face indices
+        through the sort permutation, rotates each face cycle to start
+        at its smallest index (direction preserved), and sorts the face
+        list lexicographically. The result satisfies every invariant
+        checked by ``__post_init__``.
+
+        Face winding is the caller's responsibility — this method does
+        not reorient faces, because reversing a cycle inverts the
+        outward normal and changes the polyhedron's "inside" half-space.
+        """
+        order = sorted(range(len(vertices)), key=lambda i: _vec3_key(vertices[i]))
+        sorted_vertices = tuple(vertices[i] for i in order)
+        remap = {old: new for new, old in enumerate(order)}
+        remapped = [tuple(remap[i] for i in face) for face in faces]
+        canonical = tuple(sorted(_canonical_cycle(f) for f in remapped))
+        return cls(vertices=sorted_vertices, faces=canonical)
+
+    def apply(self, g: Rotation) -> Polyhedron:
+        """Return the polyhedron rotated by ``g``.
+
+        Rotation generally permutes canonical vertex order, so the
+        result is re-canonicalised via ``from_raw``. Face combinatorics
+        are preserved (the rotation is an orientation-preserving
+        isometry).
+        """
+        rotated = [g.apply(v) for v in self.vertices]
+        return Polyhedron.from_raw(rotated, self.faces)

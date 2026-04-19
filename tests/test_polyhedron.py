@@ -17,8 +17,13 @@ from __future__ import annotations
 
 import pytest
 
-from apeiron.polyhedron import check_euler, exact_orientation, is_in_hull
-from apeiron.symmetry import Vec3
+from apeiron.polyhedron import (
+    Polyhedron,
+    check_euler,
+    exact_orientation,
+    is_in_hull,
+)
+from apeiron.symmetry import ICOSAHEDRAL, ROT_2, ROT_3, ROT_5, Rotation, Vec3
 from apeiron.zphi import ZPhi
 
 
@@ -256,3 +261,235 @@ class TestCheckEuler:
         # answers the relation as-asked, not the validity of the
         # complex; that's a separate check if ever needed.
         assert check_euler(3, faces)
+
+
+# -- Polyhedron fixtures -----------------------------------------------
+
+
+def _raw_tetrahedron() -> tuple[list[Vec3], list[tuple[int, int, int]]]:
+    """Right-angled tetrahedron at the origin, stored ×2.
+
+    Real vertices: (0, 0, 0), (1, 0, 0), (0, 1, 0), (0, 0, 1); stored
+    as Vec3 with components doubled. Face cycles are oriented with
+    outward-pointing normals (each cycle is CCW as viewed from
+    outside the tetrahedron).
+    """
+    vs = [
+        _v((0, 0), (0, 0), (0, 0)),   # v0 origin
+        _v((2, 0), (0, 0), (0, 0)),   # v1 +x
+        _v((0, 0), (2, 0), (0, 0)),   # v2 +y
+        _v((0, 0), (0, 0), (2, 0)),   # v3 +z
+    ]
+    faces = [
+        (1, 2, 3),   # opposite v0; normal +x+y+z
+        (0, 2, 3),   # opposite v1; normal -x
+        (0, 3, 2),   # opposite v2; normal -y
+        (0, 2, 1),   # opposite v3; normal -z
+    ]
+    return vs, faces
+
+
+def _canonical_tetra_vertices() -> tuple[Vec3, ...]:
+    """Canonical-order vertex tuple for the tetrahedron fixture.
+
+    Sorted by the raw-coefficient lex key used inside ``Polyhedron``,
+    suitable for direct ``Polyhedron(...)`` construction in tests that
+    need to bypass ``from_raw``.
+    """
+    return (
+        _v((0, 0), (0, 0), (0, 0)),   # origin
+        _v((0, 0), (0, 0), (2, 0)),   # +z
+        _v((0, 0), (2, 0), (0, 0)),   # +y
+        _v((2, 0), (0, 0), (0, 0)),   # +x
+    )
+
+
+# -- Polyhedron construction and canonical form ------------------------
+
+
+class TestPolyhedronConstruction:
+    def test_from_raw_sorts_vertices(self) -> None:
+        # Reverse the raw vertex order; from_raw must sort back.
+        vs, fs = _raw_tetrahedron()
+        reversed_vs = list(reversed(vs))
+        # Remap faces to match the reversed indexing.
+        n = len(vs)
+        reversed_fs = [tuple(n - 1 - i for i in f) for f in fs]
+        P = Polyhedron.from_raw(reversed_vs, reversed_fs)
+        Q = Polyhedron.from_raw(vs, fs)
+        assert P == Q
+        assert hash(P) == hash(Q)
+
+    def test_from_raw_remaps_face_indices(self) -> None:
+        vs, fs = _raw_tetrahedron()
+        P = Polyhedron.from_raw(vs, fs)
+        # Every face index stays within range after remap.
+        for face in P.faces:
+            for idx in face:
+                assert 0 <= idx < len(P.vertices)
+
+    def test_vertices_in_canonical_order(self) -> None:
+        vs, fs = _raw_tetrahedron()
+        P = Polyhedron.from_raw(vs, fs)
+        # Raw coefficients in ascending lexicographic order.
+        keys = [(v.x.a, v.x.b, v.y.a, v.y.b, v.z.a, v.z.b) for v in P.vertices]
+        assert keys == sorted(keys)
+
+    def test_face_cycles_start_at_min_index(self) -> None:
+        vs, fs = _raw_tetrahedron()
+        P = Polyhedron.from_raw(vs, fs)
+        for face in P.faces:
+            assert face[0] == min(face)
+
+    def test_faces_sorted(self) -> None:
+        vs, fs = _raw_tetrahedron()
+        P = Polyhedron.from_raw(vs, fs)
+        assert list(P.faces) == sorted(P.faces)
+
+    def test_rejects_fewer_than_four_vertices(self) -> None:
+        with pytest.raises(ValueError, match="at least 4 vertices"):
+            Polyhedron(
+                vertices=(
+                    _v((0, 0), (0, 0), (0, 0)),
+                    _v((2, 0), (0, 0), (0, 0)),
+                    _v((0, 0), (2, 0), (0, 0)),
+                ),
+                faces=((0, 1, 2),),
+            )
+
+    def test_rejects_duplicate_vertices(self) -> None:
+        with pytest.raises(ValueError, match="pairwise distinct"):
+            Polyhedron(
+                vertices=(
+                    _v((0, 0), (0, 0), (0, 0)),
+                    _v((0, 0), (0, 0), (0, 0)),
+                    _v((0, 0), (2, 0), (0, 0)),
+                    _v((2, 0), (0, 0), (0, 0)),
+                ),
+                faces=((0, 1, 2),),
+            )
+
+    def test_rejects_unsorted_vertices(self) -> None:
+        # Largest vertex first — not canonical.
+        with pytest.raises(ValueError, match="canonical order"):
+            Polyhedron(
+                vertices=(
+                    _v((2, 0), (0, 0), (0, 0)),
+                    _v((0, 0), (0, 0), (0, 0)),
+                    _v((0, 0), (0, 0), (2, 0)),
+                    _v((0, 0), (2, 0), (0, 0)),
+                ),
+                faces=((0, 1, 2),),
+            )
+
+    def test_rejects_degenerate_face(self) -> None:
+        vs = _canonical_tetra_vertices()
+        with pytest.raises(ValueError, match="fewer than 3"):
+            Polyhedron(vertices=vs, faces=((0, 1),))
+
+    def test_rejects_repeated_face_indices(self) -> None:
+        vs = _canonical_tetra_vertices()
+        with pytest.raises(ValueError, match="repeated vertex indices"):
+            Polyhedron(vertices=vs, faces=((0, 1, 1),))
+
+    def test_rejects_out_of_range_face_index(self) -> None:
+        vs = _canonical_tetra_vertices()
+        with pytest.raises(ValueError, match="out of range"):
+            Polyhedron(vertices=vs, faces=((0, 1, 99),))
+
+    def test_rejects_non_canonical_cycle(self) -> None:
+        # (1, 2, 0) — valid cycle rotation but doesn't start at min.
+        vs, fs = _raw_tetrahedron()
+        canonical = Polyhedron.from_raw(vs, fs)
+        bad_face = tuple(reversed(canonical.faces[0]))  # also not canonical
+        with pytest.raises(ValueError, match="canonical cycle order"):
+            Polyhedron(vertices=canonical.vertices, faces=(bad_face,))
+
+    def test_rejects_duplicate_faces(self) -> None:
+        vs = _canonical_tetra_vertices()
+        with pytest.raises(ValueError, match="Duplicate face"):
+            Polyhedron(vertices=vs, faces=((0, 1, 2), (0, 1, 2)))
+
+    def test_rejects_unsorted_faces(self) -> None:
+        vs = _canonical_tetra_vertices()
+        with pytest.raises(ValueError, match="must be sorted"):
+            Polyhedron(vertices=vs, faces=((1, 2, 3), (0, 1, 2)))
+
+
+# -- Polyhedron equality and hashability ------------------------------
+
+
+class TestPolyhedronEquality:
+    def test_from_raw_is_canonical_regardless_of_vertex_order(self) -> None:
+        vs, fs = _raw_tetrahedron()
+        A = Polyhedron.from_raw(vs, fs)
+        # Scramble vertex order differently; remap faces accordingly.
+        perm = [2, 0, 3, 1]
+        inv = {old: new for new, old in enumerate(perm)}
+        scrambled_vs = [vs[p] for p in perm]
+        scrambled_fs = [tuple(inv[i] for i in f) for f in fs]
+        B = Polyhedron.from_raw(scrambled_vs, scrambled_fs)
+        assert A == B
+        assert hash(A) == hash(B)
+
+    def test_different_polyhedra_distinct(self) -> None:
+        vs, fs = _raw_tetrahedron()
+        T = Polyhedron.from_raw(vs, fs)
+        # Translate one vertex; different polyhedron.
+        moved_vs = list(vs)
+        moved_vs[3] = _v((0, 0), (0, 0), (4, 0))  # +z moved further
+        moved = Polyhedron.from_raw(moved_vs, fs)
+        assert T != moved
+
+    def test_hashable_in_set(self) -> None:
+        vs, fs = _raw_tetrahedron()
+        T = Polyhedron.from_raw(vs, fs)
+        assert {T, T} == {T}
+
+
+# -- Polyhedron isometry action ---------------------------------------
+
+
+class TestPolyhedronApply:
+    def test_identity_fixes_polyhedron(self) -> None:
+        vs, fs = _raw_tetrahedron()
+        T = Polyhedron.from_raw(vs, fs)
+        assert T.apply(Rotation.identity()) == T
+
+    def test_apply_preserves_vertex_and_face_counts(self) -> None:
+        vs, fs = _raw_tetrahedron()
+        T = Polyhedron.from_raw(vs, fs)
+        for g in (ROT_2, ROT_3, ROT_5):
+            R = T.apply(g)
+            assert len(R.vertices) == len(T.vertices)
+            assert len(R.faces) == len(T.faces)
+
+    def test_apply_then_inverse_returns_original(self) -> None:
+        vs, fs = _raw_tetrahedron()
+        T = Polyhedron.from_raw(vs, fs)
+        # Sample a subset of I for speed; the full group is exercised
+        # in the RTH integration test.
+        for g in ICOSAHEDRAL[:12]:
+            assert T.apply(g).apply(g.inverse()) == T
+
+    def test_apply_composes_as_hg_on_positions(self) -> None:
+        """Applying g then h equals applying h ∘ g to positions.
+
+        ``Rotation.compose(self, other)`` returns ``self ∘ other``
+        (function composition). So ``T.apply(g).apply(h)`` applies g
+        then h to each position, which is ``h ∘ g`` applied once.
+        """
+        vs, fs = _raw_tetrahedron()
+        T = Polyhedron.from_raw(vs, fs)
+        g, h = ROT_2, ROT_3
+        assert T.apply(g).apply(h) == T.apply(h.compose(g))
+
+    def test_apply_generically_permutes_vertices(self) -> None:
+        """A generic rotation should permute the canonical vertex
+        ordering (the rotated polyhedron's canonical vertex list is
+        not the same tuple as the original's, element-wise)."""
+        vs, fs = _raw_tetrahedron()
+        T = Polyhedron.from_raw(vs, fs)
+        R = T.apply(ROT_5)
+        # Tetrahedron is not symmetric under ROT_5, so positions change:
+        assert R.vertices != T.vertices
