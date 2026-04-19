@@ -119,36 +119,93 @@ The seven core modules (`zphi`, `symmetry`, `polyhedron`, `substitution`, `coron
 
 ---
 
-## 5. Current state and known blockers
+## 5. Implementation order and known pitfalls
 
-As of the last research session, the following has been built and verified:
+This repo is greenfield. The seven-module layout in §4 is implemented in a specific order, and each module has defined acceptance criteria. A module "ships" when all criteria are met and its tests pass — not when the code compiles.
 
-- **`zphi.py`** — exact arithmetic over ℤ[φ], full pytest coverage, canonical form enforced. Stable.
-- **`symmetry.py`** — 60 icosahedral rotation matrices over ℤ[φ], group closure verified, action on ℤ[φ]³ tested. Stable.
-- **`polyhedron.py`** — Polyhedron class with ℤ[φ]³ vertices, face/edge data structures, basic isometry application. **Contains a known bug — see below.**
+### 5.1 Implementation order and acceptance criteria
 
-### 5.1 Known blocker: coplanar face merging in the convex hull step
+Implement strictly in this order. Each module depends on the previous ones being stable.
 
-When constructing a Polyhedron from a vertex set via convex hull, the current implementation emits **triangulated** faces from the underlying hull algorithm. For tiles whose natural faces are non-triangular (which is almost all of them — icosahedral-compatible tiles routinely have pentagonal and rhombic faces), this means adjacent coplanar triangles that should be *one face* are left as separate faces.
+**1. `zphi.py`** — exact arithmetic over ℤ[φ].
 
-**Downstream effect:** the CoronaEngine BFS in `corona.py` cannot run correctly because face-to-face adjacency is ill-defined when "faces" are really triangulation artefacts. Two tiles sharing a pentagonal face appear as sharing three triangular sub-faces, breaking adjacency counts, corona completion tests, and the eventual supertile recognisability checks.
+Acceptance:
 
-**The fix** is a coplanar-face merging pass that runs after hull construction:
+- `ZPhi(a: int, b: int)` dataclass representing a + bφ, frozen and hashable.
+- Operators: `+`, `-`, `*`, unary `-`, equality. Division is explicitly not supported.
+- `.conjugate()` method (Galois conjugation: a + bφ ↦ a + b(1−φ) = (a+b) − bφ).
+- `.norm()` method for debugging (integer-valued).
+- Tests: ring axioms (associativity, distributivity), φ² = 1 + φ, conjugation involution, closure under arithmetic, hash stability.
+- `mypy --strict` passes. 100% line coverage.
 
-1. Group triangles whose supporting planes agree exactly (exact plane equality in ℤ[φ], not a float tolerance — this is non-negotiable).
+**2. `symmetry.py`** — icosahedral rotation group I.
+
+Acceptance:
+
+- 60 rotation matrices, each a 3×3 matrix over ZPhi, constructed from generators (rotations of orders 2, 3, 5).
+- Group closure verified in a test (the set is closed under composition).
+- Identity present; every element has its inverse in the set.
+- Action on ZPhi³ preserves the standard quadratic form (norm-preserving).
+- Tests: |I| = 60, closure under composition, inverse closure, no floating-point entries anywhere.
+
+**3. `polyhedron.py`** — polyhedra with ℤ[φ]³ vertices. **This is where the known pitfall lives — see §5.2.**
+
+Acceptance:
+
+- `Polyhedron` dataclass: frozen vertex list, frozen face list (each face an ordered vertex-index cycle).
+- Construction from a vertex set via convex hull, followed by a coplanar-face-merge pass (see §5.2).
+- Face-merge uses exact ZPhi plane equality, never a float tolerance.
+- Isometry action: `apply(g: Rotation) → Polyhedron`.
+- Canonical form for hash/equality (vertex ordering normalised).
+- Tests: rhombic triacontahedron fixture with 32 vertices, 60 edges, 30 rhombic faces, Euler χ = 2; rhombic dodecahedron fixture as a secondary check.
+
+**4. `substitution.py`** — substitution rules and their matrices.
+
+Acceptance:
+
+- `SubstitutionRule` dataclass: linear map (ZPhi-valued 3×3 matrix) plus a dissection specification mapping the inflated prototile to a multiset of positioned copies.
+- `substitution_matrix(rule) → np.ndarray` returning the n×n non-negative integer matrix.
+- `is_primitive(M)` check (some power of M has all-positive entries).
+- Perron-Frobenius eigenvalue extraction (as an algebraic number in ℚ(√5) where possible).
+- Tests: a known 2D Penrose-style rule as an oracle (primitive, PF eigenvalue φ²).
+
+**5. `corona.py`** — corona BFS engine.
+
+Acceptance:
+
+- `CoronaConfig` dataclass: central tile plus a set of positioned neighbour tiles.
+- `corona_1(P)`: enumerate all complete first-shell configurations modulo I.
+- `corona_2(config)`: extend to second shell.
+- Canonical hashing of configurations for BFS deduplication.
+- Tests: cube has a unique `corona_1` (itself, face-to-face); rhombic dodecahedron has a unique `corona_1`. Both are sanity-check oracles from periodic tilings — not proof obligations for the Einstein problem.
+
+**6. `hierarchy.py`** — supertile construction and recognisability.
+
+Acceptance:
+
+- Supertile construction from a substitution rule.
+- Recognisability test: given a tile, determine its supertile membership from a bounded local neighbourhood.
+- Every function tagged with which of the four pillars (§6.3) it establishes.
+- Tests: oracle checks against known 2D hierarchies where recognisability is established in the literature.
+
+### 5.2 Predicted pitfall: coplanar face merging in `polyhedron.py`
+
+When constructing a Polyhedron from a vertex set via convex hull, standard hull algorithms emit **triangulated** faces. For tiles whose natural faces are non-triangular — which is almost all icosahedral-compatible tiles (pentagons, rhombi, decagons) — adjacent coplanar triangles that should be *one face* arrive as separate faces.
+
+**Why this is predicted, not observed:** prior (un-persisted) implementations of similar code ran into this exact failure mode. Nothing in the current repo has been attempted yet.
+
+**Downstream effect if unfixed:** the CoronaEngine BFS in `corona.py` cannot run correctly — face-to-face adjacency is ill-defined when "faces" are triangulation artefacts. Two tiles sharing a pentagonal face appear as sharing three triangular sub-faces, breaking adjacency counts, corona completion tests, and the eventual supertile recognisability checks.
+
+**Required approach:** run a coplanar-face-merge pass immediately after hull construction:
+
+1. Group triangles whose supporting planes agree exactly (exact ZPhi plane equality, not a float tolerance — non-negotiable).
 2. Within each group, compute the union polygon by edge-matching — triangles sharing an edge with the same pair of vertices collapse that edge.
 3. Recover the ordered vertex cycle of the merged face.
 4. Verify the merged face is a simple polygon (no self-intersections, single connected boundary).
 
-This is the **first thing to fix**. Nothing downstream works until it does. The test fixture should be a known polyhedron — the rhombic triacontahedron is ideal — where the expected face structure is independently knowable.
+The rhombic triacontahedron fixture is the acceptance test: 30 rhombic faces, not 60 triangulated sub-faces.
 
-### 5.2 Not yet built
-
-- **`substitution.py`** — the substitution rule formalism. Skeleton only. Needs the Polyhedron class stable (i.e. the hull merge fixed) before it can be meaningfully implemented.
-- **`corona.py`** — BFS over corona configurations. Blocked on the hull merge.
-- **`hierarchy.py`** — supertile construction, border forcing / recognisability tests. Blocked on substitution.
-
-### 5.3 Prior work that informs this (do not reimplement)
+### 5.3 Prior work that informs this
 
 There is prior 2D work on Ammann-Beenker (ℤ[ζ₈]) and an SD-14 candidate tile from a separate project. **That code lives elsewhere and is not part of Apeiron.** Reference it only for algorithmic patterns, not for import. The 3D framework is a clean re-architecture.
 
