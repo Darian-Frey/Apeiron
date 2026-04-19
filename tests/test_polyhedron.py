@@ -19,6 +19,11 @@ import pytest
 
 from apeiron.polyhedron import (
     Polyhedron,
+    _merge_coplanar_faces,
+    _orient_simplices_outward,
+    _reconstruct_polygon_cycle,
+    _same_oriented_plane,
+    _triangle_plane,
     check_euler,
     exact_orientation,
     is_in_hull,
@@ -493,3 +498,269 @@ class TestPolyhedronApply:
         R = T.apply(ROT_5)
         # Tetrahedron is not symmetric under ROT_5, so positions change:
         assert R.vertices != T.vertices
+
+
+# -- _same_oriented_plane ---------------------------------------------
+
+
+class TestSameOrientedPlane:
+    def test_identical_plane(self) -> None:
+        n = Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(4, 0))
+        d = ZPhi(0, 0)
+        assert _same_oriented_plane(n, d, n, d)
+
+    def test_positive_scalar_multiple(self) -> None:
+        # Both planes are z = 0 with same-direction +z normal.
+        n1 = Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(2, 0))
+        d1 = ZPhi(0, 0)
+        n2 = Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(6, 0))  # 3x n1
+        d2 = ZPhi(0, 0)
+        assert _same_oriented_plane(n1, d1, n2, d2)
+
+    def test_antiparallel_normals_rejected(self) -> None:
+        n1 = Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(4, 0))
+        n2 = Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(-4, 0))
+        d1 = d2 = ZPhi(0, 0)
+        assert not _same_oriented_plane(n1, d1, n2, d2)
+
+    def test_parallel_different_offset_rejected(self) -> None:
+        # z = 0 vs z = 2, both +z normals: different planes.
+        n = Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(4, 0))
+        d1 = ZPhi(0, 0)
+        d2 = ZPhi(8, 0)
+        assert not _same_oriented_plane(n, d1, n, d2)
+
+    def test_nonparallel_rejected(self) -> None:
+        n1 = Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(4, 0))    # +z
+        n2 = Vec3(ZPhi(4, 0), ZPhi(0, 0), ZPhi(0, 0))    # +x
+        d = ZPhi(0, 0)
+        assert not _same_oriented_plane(n1, d, n2, d)
+
+
+# -- _reconstruct_polygon_cycle --------------------------------------
+
+
+class TestReconstructPolygon:
+    def test_single_triangle_passthrough(self) -> None:
+        # A one-triangle "group" has no interior edges; its boundary
+        # is the triangle itself.
+        cycle = _reconstruct_polygon_cycle([(0, 1, 2)])
+        assert cycle == (0, 1, 2)
+
+    def test_two_triangles_to_quad(self) -> None:
+        # Triangles (0, 1, 2) and (0, 2, 3) share edge (0, 2) ↔ (2, 0);
+        # interior edge cancels; boundary is the quad 0-1-2-3.
+        cycle = _reconstruct_polygon_cycle([(0, 1, 2), (0, 2, 3)])
+        assert cycle == (0, 1, 2, 3)
+
+    def test_three_triangles_to_pentagon(self) -> None:
+        # Fan-triangulated pentagon from vertex 0:
+        # (0, 1, 2), (0, 2, 3), (0, 3, 4).
+        # Interior edges (0, 2) and (0, 3) cancel; boundary is
+        # 0-1-2-3-4.
+        cycle = _reconstruct_polygon_cycle([(0, 1, 2), (0, 2, 3), (0, 3, 4)])
+        assert cycle == (0, 1, 2, 3, 4)
+
+    def test_duplicate_oriented_edge_raises(self) -> None:
+        # Same directed edge (0, 1) in two triangles — non-manifold.
+        with pytest.raises(ValueError, match="Duplicate oriented edge"):
+            _reconstruct_polygon_cycle([(0, 1, 2), (0, 1, 3)])
+
+
+# -- _orient_simplices_outward ---------------------------------------
+
+
+class TestOrientSimplicesOutward:
+    def test_fixes_inward_normal(self) -> None:
+        # Flat square base at z=0 of a pyramid; the two simplices on
+        # it should reorient consistently to outward (-z for z=0).
+        # Construct 5 vertices: 4 base corners + 1 apex.
+        hull_vs = [
+            _v((0, 0), (0, 0), (0, 0)),    # 0
+            _v((2, 0), (0, 0), (0, 0)),    # 1
+            _v((0, 0), (2, 0), (0, 0)),    # 2
+            _v((2, 0), (2, 0), (0, 0)),    # 3
+            _v((1, 0), (1, 0), (2, 0)),    # 4 apex
+        ]
+        # Two base simplices, one inward-oriented, one outward.
+        simplices = [
+            (0, 1, 3),   # (b-a)×(c-a) gives +z — INWARD for z=0 face
+            (0, 3, 2),   # gives -z — OUTWARD
+        ]
+        oriented = _orient_simplices_outward(hull_vs, simplices)
+        # Both should have outward (-z) normals after re-orientation:
+        for (i, j, k) in oriented:
+            n, _ = _triangle_plane(hull_vs[i], hull_vs[j], hull_vs[k])
+            # For base simplices, outward normal has negative z.
+            assert n.z < ZPhi(0, 0)
+
+    def test_keeps_already_outward(self) -> None:
+        hull_vs = [
+            _v((0, 0), (0, 0), (0, 0)),
+            _v((2, 0), (0, 0), (0, 0)),
+            _v((0, 0), (2, 0), (0, 0)),
+            _v((1, 0), (1, 0), (2, 0)),
+        ]
+        # Apex simplex (0, 1, 2) has +z normal; this is INWARD for the
+        # base of the tet, since the apex is above z=0. Reorient keeps
+        # outward, which means swapping.
+        oriented = _orient_simplices_outward(hull_vs, [(0, 1, 2)])
+        # The resulting triangle's outward normal should be -z.
+        (i, j, k) = oriented[0]
+        n, _ = _triangle_plane(hull_vs[i], hull_vs[j], hull_vs[k])
+        assert n.z < ZPhi(0, 0)
+
+
+# -- Polyhedron.from_vertices ----------------------------------------
+
+
+def _stored_cube_vertices() -> list[Vec3]:
+    """Stored-×2 unit cube vertex list (8 vertices)."""
+    return [
+        _v((2 * i, 0), (2 * j, 0), (2 * k, 0))
+        for i in (0, 1) for j in (0, 1) for k in (0, 1)
+    ]
+
+
+def _stored_rhombic_dodec_vertices() -> list[Vec3]:
+    """Stored-×2 rhombic dodecahedron: 14 vertices.
+
+    Real vertices: 8 cube corners at (±1, ±1, ±1) (degree-3), plus 6
+    face centres at (±2, 0, 0) and cyclic permutations (degree-4).
+    Stored form multiplies every component by 2.
+    """
+    vs: list[Vec3] = []
+    for x in (-1, 1):
+        for y in (-1, 1):
+            for z in (-1, 1):
+                vs.append(_v((2 * x, 0), (2 * y, 0), (2 * z, 0)))
+    for sign in (-1, 1):
+        for pos in range(3):
+            coords = [0, 0, 0]
+            coords[pos] = 4 * sign   # real ±2 → stored ±4
+            vs.append(_v((coords[0], 0), (coords[1], 0), (coords[2], 0)))
+    return vs
+
+
+class TestPolyhedronFromVertices:
+    def test_tetrahedron(self) -> None:
+        vs = list(_canonical_tetra_vertices())
+        P = Polyhedron.from_vertices(vs)
+        assert len(P.vertices) == 4
+        assert len(P.faces) == 4
+        for face in P.faces:
+            assert len(face) == 3   # all triangular
+
+    def test_cube_merges_to_six_quadrilaterals(self) -> None:
+        P = Polyhedron.from_vertices(_stored_cube_vertices())
+        assert len(P.vertices) == 8
+        assert len(P.faces) == 6
+        for face in P.faces:
+            assert len(face) == 4   # every face is a quadrilateral
+
+    def test_cube_euler_relation(self) -> None:
+        # Polygonal Euler: V - E + F = 2, with edge count derived from
+        # the polygonal face list.
+        P = Polyhedron.from_vertices(_stored_cube_vertices())
+        edges: set[tuple[int, int]] = set()
+        for face in P.faces:
+            n = len(face)
+            for idx in range(n):
+                u, v = face[idx], face[(idx + 1) % n]
+                edges.add((min(u, v), max(u, v)))
+        # Cube: V = 8, E = 12, F = 6.
+        assert len(P.vertices) == 8
+        assert len(edges) == 12
+        assert len(P.faces) == 6
+        assert len(P.vertices) - len(edges) + len(P.faces) == 2
+
+    def test_rhombic_dodecahedron_counts(self) -> None:
+        # RD: 14 vertices, 24 edges, 12 rhombic faces; V - E + F = 2.
+        P = Polyhedron.from_vertices(_stored_rhombic_dodec_vertices())
+        assert len(P.vertices) == 14
+        assert len(P.faces) == 12
+        for face in P.faces:
+            assert len(face) == 4   # rhombic
+        edges: set[tuple[int, int]] = set()
+        for face in P.faces:
+            n = len(face)
+            for idx in range(n):
+                u, v = face[idx], face[(idx + 1) % n]
+                edges.add((min(u, v), max(u, v)))
+        assert len(edges) == 24
+        assert len(P.vertices) - len(edges) + len(P.faces) == 2
+
+    def test_filters_interior_vertex(self) -> None:
+        cube = _stored_cube_vertices()
+        interior = _v((1, 0), (1, 0), (1, 0))   # real (0.5, 0.5, 0.5)
+        P = Polyhedron.from_vertices(cube + [interior])
+        assert len(P.vertices) == 8
+        assert interior not in P.vertices
+
+    def test_rejects_fewer_than_four_vertices(self) -> None:
+        vs = [
+            _v((0, 0), (0, 0), (0, 0)),
+            _v((2, 0), (0, 0), (0, 0)),
+            _v((0, 0), (2, 0), (0, 0)),
+        ]
+        with pytest.raises(ValueError, match="at least 4"):
+            Polyhedron.from_vertices(vs)
+
+    def test_hull_result_is_canonical(self) -> None:
+        # Shuffled input order should not affect the output.
+        cube = _stored_cube_vertices()
+        shuffled = [cube[i] for i in (7, 2, 4, 0, 3, 5, 1, 6)]
+        A = Polyhedron.from_vertices(cube)
+        B = Polyhedron.from_vertices(shuffled)
+        assert A == B
+
+    def test_merge_round_trip_via_from_vertices(self) -> None:
+        # End-to-end: every cube face has 4 distinct vertex indices,
+        # and every pair of adjacent indices in a face cycle shares
+        # an edge in the polytope (consecutive face cycle ⇒ edge).
+        P = Polyhedron.from_vertices(_stored_cube_vertices())
+        for face in P.faces:
+            assert len(set(face)) == len(face)
+            for idx in range(len(face)):
+                u, v = face[idx], face[(idx + 1) % len(face)]
+                assert u != v
+
+    def test_rotation_action_commutes_with_hull(self) -> None:
+        # from_vertices(rotated) == from_vertices(original).apply(g)
+        # for g in the icosahedral group. Rotation preserves which
+        # points are on the hull.
+        cube = _stored_cube_vertices()
+        P = Polyhedron.from_vertices(cube)
+        g = ROT_3
+        rotated_inputs = [g.apply(v) for v in cube]
+        Q = Polyhedron.from_vertices(rotated_inputs)
+        assert Q == P.apply(g)
+
+
+# -- _merge_coplanar_faces end-to-end --------------------------------
+
+
+class TestMergeCoplanarFaces:
+    def test_trivial_single_triangle(self) -> None:
+        # Four tetrahedron vertices; one triangle → stays one triangle.
+        hull_vs = list(_canonical_tetra_vertices())
+        merged = _merge_coplanar_faces(hull_vs, [(0, 1, 2)])
+        assert merged == [(0, 1, 2)]
+
+    def test_two_coplanar_triangles_merge(self) -> None:
+        # Square base of a pyramid triangulated as two triangles;
+        # they share a diagonal and merge.
+        hull_vs = [
+            _v((0, 0), (0, 0), (0, 0)),
+            _v((2, 0), (0, 0), (0, 0)),
+            _v((2, 0), (2, 0), (0, 0)),
+            _v((0, 0), (2, 0), (0, 0)),
+            _v((1, 0), (1, 0), (2, 0)),   # apex; off-plane for merge test
+        ]
+        # Both base triangles outward-oriented (-z):
+        tris = [(0, 3, 2), (0, 2, 1)]
+        merged = _merge_coplanar_faces(hull_vs, tris)
+        # One merged quadrilateral face.
+        assert len(merged) == 1
+        assert len(merged[0]) == 4
+        assert set(merged[0]) == {0, 1, 2, 3}

@@ -14,9 +14,8 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-Commit C of the `polyhedron.py` plan: the hull-then-merge constructor
-(`Polyhedron.from_vertices`). scipy is installed and the venv is in
-use; ready to implement.
+Commit D of the `polyhedron.py` plan: `load_candidate(path) -> Polyhedron`
+in `util.py`, with the on-disk JSON schema that carries `scale_denom`.
 
 ---
 
@@ -43,32 +42,44 @@ use; ready to implement.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-| # | SHA | Scope |
-|---|------|-------|
-| 8 | `6c9e6e0` | `feat(polyhedron)` — Polyhedron dataclass, canonical form, isometry action |
-| 7 | `2848146` | `feat(polyhedron)` — validation predicates (orientation, interiority, Euler) |
-| 6 | `1d0d0fa` | `feat(symmetry)` — icosahedral group I over ℤ[φ] with ×2 storage |
-| 5 | `eb8c537` | `docs` — CLAUDE.md §3 matrix/vertex entries in (½)ℤ[φ] under ×2 storage |
-| 4 | `10524d9` | `docs(tests)` — integration test convention |
-| 3 | `ca66913` | `docs` — CLAUDE.md §5 acceptance criteria rewrite |
-| 2 | `a472a5e` | `feat(zphi)` — exact ℤ[φ] arithmetic |
-| 1 | `a678272` | `chore` — scaffold repo layout |
+Reverse-chronological. Authoritative log is `git log`; this list is for
+quick orientation.
 
-Test totals (as of `6c9e6e0`): 173 passing in 0.27 s.
+- **10** (pending) — `feat(polyhedron)`: hull-then-merge constructor
+  via scipy oracle + exact ZPhi validation + coplanar face merge.
+- **9** `1c1e22a` — `docs`: add STATUS.md project status file.
+- **8** `6c9e6e0` — `feat(polyhedron)`: Polyhedron dataclass, canonical
+  form, isometry action.
+- **7** `2848146` — `feat(polyhedron)`: validation predicates
+  (orientation, interiority, Euler).
+- **6** `1d0d0fa` — `feat(symmetry)`: icosahedral group I over ℤ[φ]
+  with ×2 storage.
+- **5** `eb8c537` — `docs`: CLAUDE.md §3 — matrix/vertex entries in
+  (½)ℤ[φ] under ×2 storage.
+- **4** `10524d9` — `docs(tests)`: integration test convention.
+- **3** `ca66913` — `docs`: CLAUDE.md §5 acceptance criteria rewrite.
+- **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
+- **1** `a678272` — `chore`: scaffold repo layout.
+
+Test totals (pre-commit-10 working tree): 195 passing in 0.50 s under
+venv pytest 9.0.3.
 
 ---
 
 ## Implementation plan — `polyhedron.py`
 
-Five-commit breakdown, decided 2026-04-19, in progress:
+Five-sub-commit breakdown, decided 2026-04-19:
 
-| Sub-commit | Scope | Status |
-|------------|-------|--------|
-| A | Validation predicates (`exact_orientation`, `is_in_hull`, `check_euler`) | **Done** (`2848146`) |
-| B | `Polyhedron` dataclass, canonical form, isometry action | **Done** (`6c9e6e0`) |
-| C | Hull-then-merge constructor (scipy oracle + exact validation + coplanar merge) | **In progress** — blocked on scipy install |
-| D | `load_candidate(path) -> Polyhedron` in `util.py` (JSON schema with `scale_denom`) | Not started |
-| E | Integration test: rhombic triacontahedron fixture + I-transitivity on faces | Not started |
+- **A** — validation predicates (`exact_orientation`, `is_in_hull`,
+  `check_euler`). **Done** in `2848146`.
+- **B** — `Polyhedron` dataclass, canonical form, isometry action.
+  **Done** in `6c9e6e0`.
+- **C** — hull-then-merge constructor: scipy oracle, exact validation,
+  coplanar face merge. **Done** in commit 10 (pending).
+- **D** — `load_candidate(path) -> Polyhedron` in `util.py` with JSON
+  schema carrying `scale_denom`. Not started.
+- **E** — integration test: rhombic triacontahedron fixture and
+  I-transitivity on faces. Not started.
 
 ---
 
@@ -78,16 +89,38 @@ Claude (web) authors `CLAUDE.md` and is the architectural upstream;
 Shane relays Q&A. See the collab-relay memory in
 `~/.claude/projects/-home-azathoth-Apeiron/memory/`.
 
-| Date | Topic | Resolution |
-|------|-------|------------|
-| 2026-04-19 | Is the repo greenfield? (§5 of CLAUDE.md claimed partially-built code; disk was empty.) | **Resolved** — §5 was forward-looking; rewritten as acceptance criteria in commit `ca66913`. |
-| 2026-04-19 | Build backend (hatchling vs uv vs poetry) | **Resolved** — hatchling as PEP-517 backend, uv for env/dep management. |
-| 2026-04-19 | Rhombic triacontahedron vertex convention | **Resolved** — 8 cube + 12 dodec + 12 icos cyclic perms, 32 vertices / 60 edges / 30 rhombi. |
-| 2026-04-19 | Where does the RTH I-transitivity test live? | **Resolved** — `tests/integration/` per the ≥-2-core-imports rule (codified in `tests/integration/README.md`, commit `10524d9`). |
-| 2026-04-19 | Icosahedral group matrices: ℤ[φ] or (½)ℤ[φ]? | **Resolved** — (½)ℤ[φ]; denominator globally bounded by 2 via the I-invariant lattice L. Stored as 2·g numerators under implicit denom 2. CLAUDE.md §3 rewritten in commit `eb8c537`. |
-| 2026-04-20 | Generator choice for `symmetry.py` | Non-blocking, flagged for later relay if Claude (web) has a preferred canonical triple. Current choice: ROT_5 about (0, 1, φ), ROT_3 about (1, 1, 1), ROT_2 about x-axis. |
-| 2026-04-20 | Convex-hull strategy: scipy or from-scratch? | **Resolved** — scipy as a *combinatorial* oracle (index triples only, floats discarded at the boundary), followed by three exact ZPhi validation predicates: orientation, interiority, Euler. Fallback to exact hull required if validation fires; currently a stub (`NotImplementedError`). |
-| 2026-04-20 | On-disk vertex convention for candidate tile files | **Resolved** — ℤ[φ] author-form on disk (vertices as `[[a, b], [a, b], [a, b]]` triples), with `scale_denom` (1 default; 2 only other permitted value) handled at load time. Loader named `load_candidate(path) -> Polyhedron` and lives in `util.py`, not `polyhedron.py` — the latter stays pure geometry. |
+- **2026-04-19 — Is the repo greenfield?** (§5 of CLAUDE.md claimed
+  partially-built code; disk was empty.) **Resolved** — §5 was
+  forward-looking; rewritten as acceptance criteria in `ca66913`.
+- **2026-04-19 — Build backend** (hatchling vs uv vs poetry).
+  **Resolved** — hatchling as PEP-517 backend, uv for env/dep
+  management.
+- **2026-04-19 — Rhombic triacontahedron vertex convention.**
+  **Resolved** — 8 cube vertices, 12 dodecahedral cyclic perms,
+  12 icosahedral cyclic perms; 32 vertices / 60 edges / 30 rhombi.
+- **2026-04-19 — Where does the RTH I-transitivity test live?**
+  **Resolved** — `tests/integration/` per the ≥-2-core-imports rule,
+  codified in `tests/integration/README.md` (`10524d9`).
+- **2026-04-19 — Icosahedral group matrices: ℤ[φ] or (½)ℤ[φ]?**
+  **Resolved** — (½)ℤ[φ]; denominator globally bounded by 2 via the
+  I-invariant lattice L. Stored as 2·g numerators under implicit
+  denom 2. CLAUDE.md §3 rewritten in `eb8c537`.
+- **2026-04-20 — Generator choice for `symmetry.py`.** Non-blocking,
+  flagged for later relay if Claude (web) has a preferred canonical
+  triple. Current choice: ROT_5 about (0, 1, φ), ROT_3 about
+  (1, 1, 1), ROT_2 about the x-axis.
+- **2026-04-20 — Convex-hull strategy: scipy or from-scratch?**
+  **Resolved** — scipy as a *combinatorial* oracle (index triples
+  only, floats discarded at the boundary), followed by three exact
+  ZPhi validation predicates: orientation, interiority, Euler.
+  Fallback to exact hull required if validation fires; currently a
+  stub (`NotImplementedError`).
+- **2026-04-20 — On-disk vertex convention for candidate files.**
+  **Resolved** — ℤ[φ] author-form on disk (vertices as
+  `[[a, b], [a, b], [a, b]]` triples), with `scale_denom` (default 1;
+  only 2 otherwise permitted) handled at load time. Loader
+  `load_candidate(path) -> Polyhedron` lives in `util.py`, not
+  `polyhedron.py` — the latter stays pure geometry.
 
 ---
 
@@ -130,6 +163,30 @@ hit their intended branch — they all raised the wrong error first.
 returning vertices pre-sorted by the canonical key; the face-rejection
 tests use this helper so they bypass the vertex-order gate and hit
 the face-level gates as intended.
+
+### Trusting scipy's simplex vertex order to be outward-oriented
+
+**Tried** (2026-04-20, commit C development): use the simplex index
+triples returned by `scipy.spatial.ConvexHull` directly — under the
+assumption that `(b - a) × (c - a)` applied to each simplex gives the
+outward normal consistently.
+
+**Failed** on the stored-×2 unit cube: `from_vertices` produced 12
+triangular faces instead of 6 quadrilaterals. Diagnosis — scipy
+returns simplices with mixed orientations (some outward-facing, some
+inward-facing) even within a single hull face. scipy's `hull.equations`
+attribute is the authoritative outward normal per simplex, but it's
+float metadata that we deliberately don't consume.
+
+**Doing instead:** added `_orient_simplices_outward`, a pure-Z[φ]
+reorientation pass that runs immediately after scipy and flips any
+simplex whose exact normal points toward the hull centroid. Uses the
+unscaled centroid direction `sum_v - n_count * a` (positive-scalar
+multiple of `centroid - a`) to avoid division, and raises
+`ValueError` if the centroid happens to be coplanar with a face
+(which is impossible for a valid convex hull). After reorientation,
+`_same_oriented_plane` correctly groups same-face simplices and the
+coplanar-merge produces one quadrilateral per cube face.
 
 ### Claiming matrices of I have entries in ℤ[φ] (Cartesian)
 
