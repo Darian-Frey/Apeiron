@@ -253,3 +253,76 @@ class TestSchemaRejections:
         p = _write_json(tmp_path, payload)
         with pytest.raises(ValueError, match="at least 4"):
             load_candidate(p)
+
+
+# -- allow_interior_inputs flag ----------------------------------------
+
+
+class TestAllowInteriorInputs:
+    def _cube_plus_interior_payload(self) -> dict[str, Any]:
+        """Unit cube plus the centroid (0.5, 0.5, 0.5). Under
+        ``scale_denom=1`` that last point is genuinely interior to the
+        hull of the cube corners (and lies on no face since the hull
+        centroid is strictly inside).
+
+        We bump the outer coordinates to 2 and add an interior point
+        at (1, 1, 1) — real coord 1, stored 2, strictly inside the
+        cube from 0..2.
+        """
+        corners = [
+            [[i, 0], [j, 0], [k, 0]]
+            for i in (0, 2) for j in (0, 2) for k in (0, 2)
+        ]
+        interior = [[[1, 0], [1, 0], [1, 0]]]
+        return {
+            "name": "cube_plus_interior",
+            "scale_denom": 1,
+            "vertices": corners + interior,
+        }
+
+    def test_default_rejects_interior_input(self, tmp_path: Path) -> None:
+        payload = self._cube_plus_interior_payload()
+        p = _write_json(tmp_path, payload)
+        with pytest.raises(ValueError, match="interior to the convex hull"):
+            load_candidate(p)
+
+    def test_allow_flag_accepts_interior_input(self, tmp_path: Path) -> None:
+        payload = self._cube_plus_interior_payload()
+        p = _write_json(tmp_path, payload)
+        P = load_candidate(p, allow_interior_inputs=True)
+        # Interior point is silently filtered out; hull is the cube.
+        assert len(P.vertices) == 8
+        assert len(P.faces) == 6
+
+    def test_error_message_includes_interior_index(self, tmp_path: Path) -> None:
+        payload = self._cube_plus_interior_payload()
+        p = _write_json(tmp_path, payload)
+        with pytest.raises(ValueError, match=r"indices: \[8\]"):
+            load_candidate(p)
+
+    def test_error_message_counts_multiple_interiors(self, tmp_path: Path) -> None:
+        payload = self._cube_plus_interior_payload()
+        # Append a second interior point — duplicate of the first is
+        # fine for this test, since both input-list occurrences appear
+        # in interior_idx when they're not extreme.
+        payload["vertices"].append([[1, 0], [1, 0], [1, 0]])
+        p = _write_json(tmp_path, payload)
+        with pytest.raises(ValueError, match=r"2 of 10 input vertices"):
+            load_candidate(p)
+
+    def test_no_interior_no_error(self, tmp_path: Path) -> None:
+        # Plain cube, no interior points.
+        payload = _cube_payload(1)
+        p = _write_json(tmp_path, payload)
+        # Default strict mode, no error.
+        P = load_candidate(p)
+        assert len(P.vertices) == 8
+
+    def test_allow_flag_keyword_only(self, tmp_path: Path) -> None:
+        # Positional-argument form must not accept the flag, preventing
+        # accidental mis-use where a caller passes a Path-like str and
+        # then a truthy second positional.
+        payload = _cube_payload(1)
+        p = _write_json(tmp_path, payload)
+        with pytest.raises(TypeError):
+            load_candidate(p, True)   # type: ignore[misc]

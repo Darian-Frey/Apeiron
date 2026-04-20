@@ -19,7 +19,11 @@ __all__ = ["load_candidate"]
 _VALID_SCALE_DENOMS: tuple[int, ...] = (1, 2)
 
 
-def load_candidate(path: Path | str) -> Polyhedron:
+def load_candidate(
+    path: Path | str,
+    *,
+    allow_interior_inputs: bool = False,
+) -> Polyhedron:
     """Load a candidate tile JSON file and return its ``Polyhedron``.
 
     **Author-facing JSON schema.** Vertex coordinates are written as
@@ -58,14 +62,32 @@ def load_candidate(path: Path | str) -> Polyhedron:
     track, aperiodicity claim) can appear in candidate files and be
     consumed by future tooling without breaking this loader.
 
+    Parameters
+    ----------
+    path : Path or str
+        File path to the candidate JSON.
+    allow_interior_inputs : bool, keyword-only, default False
+        If ``False`` (default), raise ``ValueError`` when any input
+        vertex ends up classified as interior to the convex hull of
+        the others. This catches silent coordinate-spec errors — the
+        RTH-era bug where four intended vertices turned out to be
+        collinear with two others, dropping them as non-extreme and
+        producing a 20-vertex polytope from a 32-vertex input. For
+        vertex-set specs this is always a spec error, so default-on
+        is correct. Set ``True`` for legitimate cases where the input
+        deliberately includes interior points (e.g., an
+        over-generated substitution-rule output with pending pruning).
+
     Raises
     ------
     FileNotFoundError
         If ``path`` does not exist.
     ValueError
         If the JSON schema is malformed, ``scale_denom`` is outside
-        ``{1, 2}``, or the vertex set does not form a valid convex
-        polytope (propagated from ``Polyhedron.from_vertices``).
+        ``{1, 2}``, the vertex set does not form a valid convex
+        polytope (propagated from ``Polyhedron.from_vertices``), or
+        ``allow_interior_inputs`` is ``False`` and any input vertex
+        is classified as interior.
     """
     p = Path(path)
     with p.open("r", encoding="utf-8") as f:
@@ -105,7 +127,23 @@ def load_candidate(path: Path | str) -> Polyhedron:
         _parse_vertex(raw_v, scale_denom, p, i)
         for i, raw_v in enumerate(raw_vertices)
     ]
-    return Polyhedron.from_vertices(vertices)
+    polyhedron = Polyhedron.from_vertices(vertices)
+
+    if not allow_interior_inputs:
+        hull_set = set(polyhedron.vertices)
+        interior_idx = [i for i, v in enumerate(vertices) if v not in hull_set]
+        if interior_idx:
+            raise ValueError(
+                f"{p}: {len(interior_idx)} of {len(vertices)} input vertices "
+                f"were classified as interior to the convex hull of the others "
+                f"(indices: {interior_idx}). For a vertex-set spec this is "
+                "always a coordinate error — intended hull vertices should be "
+                "extreme. Pass allow_interior_inputs=True if the interior "
+                "points are deliberate (e.g. an over-generated substitution-"
+                "rule output to be pruned)."
+            )
+
+    return polyhedron
 
 
 def _parse_vertex(
