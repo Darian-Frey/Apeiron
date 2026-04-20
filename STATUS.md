@@ -14,8 +14,9 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-Commit D of the `polyhedron.py` plan: `load_candidate(path) -> Polyhedron`
-in `util.py`, with the on-disk JSON schema that carries `scale_denom`.
+Commit E of the `polyhedron.py` plan: the rhombic triacontahedron
+integration test — first cross-module test, spanning `polyhedron.py`
+× `symmetry.py` × `util.py`.
 
 ---
 
@@ -45,8 +46,10 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **10** (pending) — `feat(polyhedron)`: hull-then-merge constructor
-  via scipy oracle + exact ZPhi validation + coplanar face merge.
+- **11** (pending) — `feat(util)`: `load_candidate` JSON loader with
+  `scale_denom` schema.
+- **10** `7b07848` — `feat(polyhedron)`: hull-then-merge constructor
+  via scipy oracle, exact ZPhi validation, coplanar face merge.
 - **9** `1c1e22a` — `docs`: add STATUS.md project status file.
 - **8** `6c9e6e0` — `feat(polyhedron)`: Polyhedron dataclass, canonical
   form, isometry action.
@@ -61,7 +64,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-10 working tree): 195 passing in 0.50 s under
+Test totals (pre-commit-11 working tree): 224 passing in 0.61 s under
 venv pytest 9.0.3.
 
 ---
@@ -75,9 +78,9 @@ Five-sub-commit breakdown, decided 2026-04-19:
 - **B** — `Polyhedron` dataclass, canonical form, isometry action.
   **Done** in `6c9e6e0`.
 - **C** — hull-then-merge constructor: scipy oracle, exact validation,
-  coplanar face merge. **Done** in commit 10 (pending).
+  coplanar face merge. **Done** in `7b07848`.
 - **D** — `load_candidate(path) -> Polyhedron` in `util.py` with JSON
-  schema carrying `scale_denom`. Not started.
+  schema carrying `scale_denom`. **Done** in commit 11 (pending).
 - **E** — integration test: rhombic triacontahedron fixture and
   I-transitivity on faces. Not started.
 
