@@ -14,9 +14,11 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-Commit E of the `polyhedron.py` plan: the rhombic triacontahedron
-integration test — first cross-module test, spanning `polyhedron.py`
-× `symmetry.py` × `util.py`.
+Module 4 of the CLAUDE.md §5.1 sequence: `substitution.py`. The
+`polyhedron.py` stack (modules 1–3) is complete and validated
+end-to-end by the RTH integration test. Next: the `SubstitutionRule`
+dataclass, substitution-matrix extraction, primitivity detection,
+and Perron–Frobenius eigenvalue in ℚ(√5).
 
 ---
 
@@ -46,7 +48,12 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **11** (pending) — `feat(util)`: `load_candidate` JSON loader with
+- **14** (pending) — `docs`: decisions log + post-E STATUS update.
+- **13** `fba7ae7` — `test(integration)`: rhombic triacontahedron
+  fixture and I-transitivity.
+- **12** `dd36f96` — `feat(util)`: reject interior input vertices by
+  default in `load_candidate`.
+- **11** `2847b34` — `feat(util)`: `load_candidate` JSON loader with
   `scale_denom` schema.
 - **10** `7b07848` — `feat(polyhedron)`: hull-then-merge constructor
   via scipy oracle, exact ZPhi validation, coplanar face merge.
@@ -64,7 +71,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-11 working tree): 224 passing in 0.61 s under
+Test totals (pre-commit-14 working tree): 244 passing in 1.57 s under
 venv pytest 9.0.3.
 
 ---
@@ -80,9 +87,13 @@ Five-sub-commit breakdown, decided 2026-04-19:
 - **C** — hull-then-merge constructor: scipy oracle, exact validation,
   coplanar face merge. **Done** in `7b07848`.
 - **D** — `load_candidate(path) -> Polyhedron` in `util.py` with JSON
-  schema carrying `scale_denom`. **Done** in commit 11 (pending).
+  schema carrying `scale_denom`. **Done** in `2847b34`; strict-mode
+  flag added in `dd36f96` (rejects interior input vertices by default
+  to catch vertex-set spec errors at load time).
 - **E** — integration test: rhombic triacontahedron fixture and
-  I-transitivity on faces. Not started.
+  I-transitivity on faces. **Done** in `fba7ae7`, 14 tests across
+  four classes (combinatorics, rhombus shape, icosahedral symmetry,
+  face transitivity, ring correctness).
 
 ---
 
@@ -124,6 +135,18 @@ Shane relays Q&A. See the collab-relay memory in
   only 2 otherwise permitted) handled at load time. Loader
   `load_candidate(path) -> Polyhedron` lives in `util.py`, not
   `polyhedron.py` — the latter stays pure geometry.
+- **2026-04-20 — RTH vertex coordinates.** First draft (cube ×φ /
+  dodec ×φ / icos ×φ all sharing cyclic-perm axes at z = ±φ²) gave a
+  20-vertex convex hull, not 32 — the dodec vertices were strictly
+  interior to edges between icos vertices. **Resolved** — corrected
+  spec uses `(0, ±φ, ±1/φ)` for non-cube dodec positions (different
+  z-levels from the icos set), landing all 32 intended vertices as
+  hull extreme points. Full rationale in `docs/decisions.md`.
+- **2026-04-20 — Strict-mode flag on the candidate loader.** Should
+  `load_candidate` reject inputs that scipy drops as interior?
+  **Resolved** — yes, default-on (`allow_interior_inputs=False`).
+  The RTH-first-draft failure is exactly the silent-wrong-polyhedron
+  case that needs loud surfacing at load time.
 
 ---
 
