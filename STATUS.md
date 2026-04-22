@@ -14,12 +14,12 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-Module 5 of the CLAUDE.md §5.1 sequence: `corona.py`. The algebraic
-substitution layer is done (`SubstitutionRule`, `substitution_matrix`,
-`is_primitive`, `perron_frobenius_in_zphi`) and oracle-tested against
-Penrose P3 (PF = φ²) and Fibonacci (PF = φ). Next: the `CoronaConfig`
-dataclass, `corona_1`, `corona_2`, and canonical hashing for BFS
-deduplication.
+Module 5 of the CLAUDE.md §5.1 sequence: `corona.py`, split into four
+sub-commits following the polyhedron-module A–E pattern. Sub-commit A
+(data model: `PlacedTile`, `CoronaConfig`, canonical neighbour order,
+equality + hashing) is done. Next: **sub-commit B** — geometric
+primitives (face-to-face placement enumeration, interior-overlap
+predicate, exact-ℤ[φ] `angular_defect`).
 
 ---
 
@@ -49,7 +49,10 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **15** (pending) — `feat(substitution)`: SubstitutionRule,
+- **16** (pending) — `feat(corona)`: data model (PlacedTile,
+  CoronaConfig, canonical neighbour order) — sub-commit A of the
+  corona.py plan.
+- **15** `2cd904d` — `feat(substitution)`: SubstitutionRule,
   substitution_matrix, is_primitive, perron_frobenius_in_zphi.
 - **14** `3822783` — `docs`: decisions log + post-E STATUS update.
 - **13** `fba7ae7` — `test(integration)`: rhombic triacontahedron
@@ -74,7 +77,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-15 working tree): 277 passing in 1.89 s under
+Test totals (pre-commit-16 working tree): 297 passing in 1.83 s under
 venv pytest 9.0.3.
 
 ---
@@ -86,7 +89,10 @@ venv pytest 9.0.3.
 - **3 `polyhedron.py`** — done via five sub-commits A–E, details below.
 - **4 `substitution.py`** — done in commit 15 (pending). Penrose P3
   and Fibonacci acceptance oracles both pass.
-- **5 `corona.py`** — current focus.
+- **5 `corona.py`** — in progress, split A–D. Sub-commit A (data
+  model) done in commit 16 (pending). B (geometric primitives), C
+  (`corona_1` BFS + cube test), D (`corona_2` + rhombic-dodec test)
+  still to come.
 - **6 `hierarchy.py`** — not started.
 
 ## Implementation plan — `polyhedron.py`
