@@ -51,11 +51,13 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from apeiron.polyhedron import Polyhedron
-from apeiron.symmetry import Rotation, Vec3
+from apeiron.symmetry import ICOSAHEDRAL, Mat3, Rotation, Vec3
 
 __all__ = [
     "CoronaConfig",
     "PlacedTile",
+    "face_to_face_placements",
+    "find_rotation",
 ]
 
 
@@ -172,3 +174,151 @@ class CoronaConfig:
         """
         ordered = sorted(set(neighbours), key=_placed_tile_key)
         return cls(central=central, neighbours=tuple(ordered))
+
+
+# -- geometric primitives (sub-commit B) ------------------------------
+
+
+def find_rotation(target: Mat3) -> Rotation | None:
+    """Return the ``Rotation`` in ``ICOSAHEDRAL`` whose matrix equals
+    ``target``, or ``None`` if the target matrix is not in ``I``.
+
+    ``target`` is a ``Mat3`` of ZPhi entries in the ×2 storage
+    convention of CLAUDE.md §3.3 — i.e. the numerator of ``2·g`` for
+    the sought rotation ``g``. This helper exists so that the eventual
+    optimisation (a precomputed index over orbit representatives of
+    the tile's faces under I, per the 2026-04-20 Claude (web) relay)
+    is a one-function swap with no call-site changes. The current
+    implementation is an O(60) linear scan, which is more than fast
+    enough for BFS-era usage and wrong to optimise before the
+    pipeline runs end-to-end.
+    """
+    for g in ICOSAHEDRAL:
+        if g.matrix == target:
+            return g
+    return None
+
+
+def _reversed_face_cycle(cycle: tuple[Vec3, ...]) -> tuple[Vec3, ...]:
+    """Return the cycle seen from the opposite side.
+
+    For a face cycle ``(v_0, v_1, ..., v_{n-1})`` traversed CCW from
+    outside the owning polyhedron, the face-to-face neighbour's
+    matching face has the same vertex positions but traversed CCW
+    from outside the *neighbour* — which is the reversal
+    ``(v_0, v_{n-1}, v_{n-2}, ..., v_1)``. Starting vertex preserved
+    so callers can canonicalise directly.
+    """
+    if len(cycle) < 2:
+        return cycle
+    return (cycle[0],) + tuple(reversed(cycle[1:]))
+
+
+def _find_face_isometry(
+    source_pts: tuple[Vec3, ...],
+    target_pts: tuple[Vec3, ...],
+) -> tuple[Rotation, Vec3] | None:
+    """Find ``(g, t)`` with ``g ∈ ICOSAHEDRAL`` such that
+    ``g.apply(source_pts[i]) + t == target_pts[i]`` for every ``i``,
+    or ``None`` if no such isometry exists.
+
+    Requires ``len(source_pts) == len(target_pts) >= 3`` and the first
+    three source points non-collinear. For each ``g ∈ I`` the
+    algorithm checks that ``g`` rotates the first two edge-vectors
+    ``a_1 - a_0`` and ``a_2 - a_0`` to the matching target edges; if
+    both hold, ``t`` is solved from ``a_0 ↦ b_0`` and the remaining
+    correspondences (for ``n > 3`` faces) are verified.
+
+    Inputs and outputs are in the ×2 storage convention of CLAUDE.md
+    §3.2: differences of ×2-stored ``Vec3`` values are themselves
+    ×2-stored, so ``Rotation.apply`` consumes and produces the right
+    thing with no conversion.
+    """
+    n = len(source_pts)
+    if n < 3 or n != len(target_pts):
+        return None
+    a0, a1, a2 = source_pts[0], source_pts[1], source_pts[2]
+    b0, b1, b2 = target_pts[0], target_pts[1], target_pts[2]
+    u0 = a1 - a0
+    u1 = a2 - a0
+    v0 = b1 - b0
+    v1 = b2 - b0
+    for g in ICOSAHEDRAL:
+        if g.apply(u0) != v0:
+            continue
+        if g.apply(u1) != v1:
+            continue
+        t = b0 - g.apply(a0)
+        # Verify remaining correspondences (triangular faces have
+        # none; polygonal faces have one check per vertex beyond the
+        # first three).
+        ok = True
+        for a_i, b_i in zip(source_pts[3:], target_pts[3:], strict=True):
+            if g.apply(a_i) + t != b_i:
+                ok = False
+                break
+        if ok:
+            return g, t
+    return None
+
+
+def face_to_face_placements(
+    central: Polyhedron,
+    central_face_index: int,
+) -> list[PlacedTile]:
+    """Enumerate all face-to-face placements of a copy of ``central``
+    against ``central.faces[central_face_index]``.
+
+    A face-to-face placement ``(t, g)`` is one where some face of
+    ``g·central + t`` coincides with the central face at
+    ``central_face_index`` *with opposite orientation* — the two
+    polyhedra are on opposite sides of their shared face plane, which
+    is the standard face-to-face tiling condition.
+
+    Algorithm
+    ---------
+    Let the central face be ``f_c`` with vertex cycle
+    ``(v_0, v_1, ..., v_{n-1})`` (CCW from outside central). The
+    face-to-face target cycle is the reversal
+    ``(v_0, v_{n-1}, ..., v_1)``. For each face ``f_j`` of ``central``
+    with the same vertex count and each cyclic rotation ``s`` of
+    ``f_j``'s cycle, compute the unique rigid isometry mapping the
+    rotated ``f_j`` cycle to the reversed target, via
+    ``_find_face_isometry``. Keep only those isometries whose rotation
+    lies in ``ICOSAHEDRAL`` (all others are rejected by that helper).
+    Deduplicate across cyclic rotations.
+
+    Complexity for a polyhedron with ``F`` faces of size ``n`` is
+    ``O(F · n · |I|)`` = ``O(60 F n)``. For the rhombic
+    triacontahedron (``F = 30``, ``n = 4``) that's ``7200`` rotation
+    tries per central face — sub-millisecond in Python.
+
+    Returns a list of distinct ``PlacedTile`` in canonical order (by
+    ``_placed_tile_key``). The caller decides which placements to
+    admit into a corona — this function only determines which
+    ``(t, g)`` are geometrically valid as face-to-face with the given
+    central face.
+    """
+    if not 0 <= central_face_index < len(central.faces):
+        raise IndexError(
+            f"central_face_index {central_face_index} out of range "
+            f"[0, {len(central.faces)})."
+        )
+    c_face = central.faces[central_face_index]
+    c_pts = tuple(central.vertices[i] for i in c_face)
+    target_cycle = _reversed_face_cycle(c_pts)
+    n = len(target_cycle)
+
+    placements: set[PlacedTile] = set()
+    for face in central.faces:
+        if len(face) != n:
+            continue
+        source_base = tuple(central.vertices[i] for i in face)
+        for shift in range(n):
+            rotated_source = tuple(source_base[(shift + i) % n] for i in range(n))
+            isometry = _find_face_isometry(rotated_source, target_cycle)
+            if isometry is None:
+                continue
+            g, t = isometry
+            placements.add(PlacedTile(translation=t, rotation=g))
+    return sorted(placements, key=_placed_tile_key)

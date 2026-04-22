@@ -14,14 +14,14 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-Resuming `corona.py` sub-commit B (geometric primitives: face-to-face
-placement enumeration, interior-overlap predicate, exact-ℤ[φ]
-`angular_defect`). Paused after sub-commit A to build out the
-visualisation stack first — `apeiron/viz.py` + `notebooks/rth_demo.py`
-now render the RTH and the 60-element icosahedral orbit to
-click-and-drag HTML. Visual output is the main tool for eyeballing
-corona correctness in 16B–D; having it in place first pays for
-itself immediately.
+`corona.py` sub-commit C — the `corona_1(P)` BFS engine with
+constraint propagation. Sub-commits A (data model) and B (face-to-
+face placement enumeration + `find_rotation` helper) are in; next
+work is the BFS that uses B's primitives to assemble a complete
+closed-neighbourhood corona, with cube as the acceptance oracle. B's
+placement enumerator needs the companion `interior_overlap` and
+`angular_defect` predicates before the BFS can prune; those land
+alongside the BFS in sub-commit C rather than in their own commit.
 
 ---
 
@@ -51,7 +51,10 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **17** (pending) — `feat(viz)`: polyhedron rendering via plotly,
+- **18** (pending) — `feat(corona)`: face-to-face placement
+  enumeration and `find_rotation` helper — sub-commit B of the
+  corona.py plan.
+- **17** `ec11ba8` — `feat(viz)`: polyhedron rendering via plotly,
   with RTH demo (single view and 60-rotation I-orbit grid).
 - **16** `944f589` — `feat(corona)`: data model (PlacedTile,
   CoronaConfig, canonical neighbour order) — sub-commit A of the
@@ -81,7 +84,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-17 working tree): 308 passing in 1.99 s under
+Test totals (pre-commit-18 working tree): 320 passing in 3.96 s under
 venv pytest 9.0.3.
 
 ---
@@ -93,10 +96,11 @@ venv pytest 9.0.3.
 - **3 `polyhedron.py`** — done via five sub-commits A–E, details below.
 - **4 `substitution.py`** — done in commit 15 (pending). Penrose P3
   and Fibonacci acceptance oracles both pass.
-- **5 `corona.py`** — in progress, split A–D. Sub-commit A (data
-  model) done in commit 16 (pending). B (geometric primitives), C
-  (`corona_1` BFS + cube test), D (`corona_2` + rhombic-dodec test)
-  still to come.
+- **5 `corona.py`** — in progress, split A–D. A (data model) done in
+  `944f589`. B (face-to-face placement + `find_rotation`) done in
+  commit 18 (pending). C (`corona_1` BFS + cube test; plus
+  `interior_overlap` / `angular_defect` as companions to the BFS)
+  and D (`corona_2` + rhombic-dodec test) still to come.
 - **6 `hierarchy.py`** — not started.
 
 ## Implementation plan — `polyhedron.py`
@@ -176,6 +180,16 @@ Shane relays Q&A. See the collab-relay memory in
   for structural similarity to the 3D target (rhombic faces, φ-edge
   ratios); Fibonacci (PF = φ) as secondary diagnostic specifically to
   catch any code that hard-codes φ² as "the" canonical PF.
+- **2026-04-22 — Face-to-face placement enumeration strategy.**
+  Naive O(60 · F · n) scan with `find_rotation(target)` wrapping the
+  `g ∈ I` lookup, or precomputed index over face-orbit
+  representatives? **Resolved** — naive scan. The numbers don't
+  justify the index yet (~65k int ops per corona-1 root, sub-second
+  even for deep BFS). The correct precomputation once this becomes
+  hot is orbit representatives of the tile's faces under I, not a
+  face-pair index; committing to a specific index shape now would
+  bake in the wrong abstraction. `find_rotation` is named so any
+  future optimisation is a single-function swap.
 
 ---
 

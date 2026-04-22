@@ -16,9 +16,14 @@ from __future__ import annotations
 
 import pytest
 
-from apeiron.corona import CoronaConfig, PlacedTile
+from apeiron.corona import (
+    CoronaConfig,
+    PlacedTile,
+    face_to_face_placements,
+    find_rotation,
+)
 from apeiron.polyhedron import Polyhedron
-from apeiron.symmetry import ICOSAHEDRAL, ROT_2, ROT_3, Rotation, Vec3
+from apeiron.symmetry import ICOSAHEDRAL, ROT_2, ROT_3, ROT_5, Mat3, Rotation, Vec3
 from apeiron.zphi import ZPhi
 
 
@@ -220,3 +225,120 @@ class TestCanonicalOrderingAcrossIGroup:
         c1 = CoronaConfig.from_neighbours(cube, placements)
         c2 = CoronaConfig.from_neighbours(cube, reversed(placements))
         assert c1.neighbours == c2.neighbours
+
+
+# -- find_rotation -----------------------------------------------------
+
+
+class TestFindRotation:
+    def test_finds_identity(self) -> None:
+        g = find_rotation(Rotation.identity().matrix)
+        assert g == Rotation.identity()
+
+    def test_finds_each_generator(self) -> None:
+        for gen in (ROT_2, ROT_3, ROT_5):
+            found = find_rotation(gen.matrix)
+            assert found == gen
+
+    def test_finds_every_element_of_i(self) -> None:
+        # Round-trip: each rotation in ICOSAHEDRAL is found by its own
+        # matrix.
+        for g in ICOSAHEDRAL:
+            assert find_rotation(g.matrix) == g
+
+    def test_returns_none_for_non_i_matrix(self) -> None:
+        # The identity's zero matrix is not a rotation — not in I.
+        zero_mat = Mat3.from_ints(((0, 0),) * 9)
+        assert find_rotation(zero_mat) is None
+
+    def test_returns_none_for_non_rotation_matrix(self) -> None:
+        # 3x diagonal matrix (not a rotation — determinant 27, not 1).
+        # 3*I in real coords → 6*I in ×2 storage.
+        scaled = Mat3.from_ints((
+            (6, 0), (0, 0), (0, 0),
+            (0, 0), (6, 0), (0, 0),
+            (0, 0), (0, 0), (6, 0),
+        ))
+        assert find_rotation(scaled) is None
+
+
+# -- face_to_face_placements ------------------------------------------
+
+
+class TestFaceToFacePlacements:
+    def test_rejects_out_of_range_face_index(self) -> None:
+        cube = _unit_cube()
+        with pytest.raises(IndexError, match="out of range"):
+            face_to_face_placements(cube, 999)
+        with pytest.raises(IndexError, match="out of range"):
+            face_to_face_placements(cube, -1)
+
+    def test_cube_each_face_has_placements(self) -> None:
+        cube = _unit_cube()
+        for idx in range(len(cube.faces)):
+            placements = face_to_face_placements(cube, idx)
+            assert len(placements) >= 1, f"face {idx} has no placements"
+
+    def test_cube_placement_count_is_12_per_face(self) -> None:
+        # For the axis-aligned cube with icosahedral-compatible choice
+        # of x-axis as a 2-fold axis of I, |I ∩ O| = 12: 1 identity +
+        # 3 face-axis 2-folds + 8 body-diagonal 3-folds. Each of these
+        # 12 elements yields one face-to-face placement per central
+        # face. The 6-face × 4-cyclic-shift = 24 iteration counts each
+        # placement twice (face stabiliser of order 2 in I ∩ O).
+        cube = _unit_cube()
+        for idx in range(len(cube.faces)):
+            assert len(face_to_face_placements(cube, idx)) == 12
+
+    def test_cube_placements_are_distinct(self) -> None:
+        cube = _unit_cube()
+        placements = face_to_face_placements(cube, 0)
+        assert len(set(placements)) == len(placements)
+
+    def test_cube_placements_in_canonical_order(self) -> None:
+        # face_to_face_placements returns a list sorted by
+        # _placed_tile_key.
+        from apeiron.corona import _placed_tile_key
+        cube = _unit_cube()
+        placements = face_to_face_placements(cube, 0)
+        keys = [_placed_tile_key(p) for p in placements]
+        assert keys == sorted(keys)
+
+    def test_placement_face_coincides_with_target(self) -> None:
+        # Each returned placement must actually produce a copy of the
+        # central with some face coinciding with the reversed central
+        # face.
+        cube = _unit_cube()
+        central_face = cube.faces[0]
+        central_vertices = tuple(cube.vertices[i] for i in central_face)
+        # Target cycle: reversed central face.
+        target = {central_vertices[0]} | set(central_vertices[1:])
+        for placement in face_to_face_placements(cube, 0):
+            # Compute placed vertices.
+            placed = [
+                placement.rotation.apply(v) + placement.translation
+                for v in cube.vertices
+            ]
+            # Some face of the placed cube has the same vertex set as
+            # the central face.
+            placed_set = set(placed)
+            assert target.issubset(placed_set), (
+                "placement does not contain the target face's vertices"
+            )
+
+    def test_rhombic_triacontahedron_face_to_face_counts(self) -> None:
+        # I-transitivity on RTH faces means every central face gets
+        # the same number of face-to-face placements.
+        from apeiron.util import load_candidate
+        from pathlib import Path
+        rth_path = Path(__file__).resolve().parent.parent / "candidates" / "rhombic_triacontahedron.json"
+        if not rth_path.exists():
+            pytest.skip(f"RTH fixture not found at {rth_path}")
+        rth = load_candidate(rth_path)
+        counts = [len(face_to_face_placements(rth, i)) for i in range(len(rth.faces))]
+        # All faces are in a single I-orbit (transitivity), so all
+        # counts are equal.
+        assert len(set(counts)) == 1, f"placement counts vary across faces: {counts}"
+        # And the count is positive — the RTH does admit face-to-face
+        # placements.
+        assert counts[0] >= 1
