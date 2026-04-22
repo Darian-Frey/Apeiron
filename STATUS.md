@@ -14,11 +14,12 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-Module 4 of the CLAUDE.md §5.1 sequence: `substitution.py`. The
-`polyhedron.py` stack (modules 1–3) is complete and validated
-end-to-end by the RTH integration test. Next: the `SubstitutionRule`
-dataclass, substitution-matrix extraction, primitivity detection,
-and Perron–Frobenius eigenvalue in ℚ(√5).
+Module 5 of the CLAUDE.md §5.1 sequence: `corona.py`. The algebraic
+substitution layer is done (`SubstitutionRule`, `substitution_matrix`,
+`is_primitive`, `perron_frobenius_in_zphi`) and oracle-tested against
+Penrose P3 (PF = φ²) and Fibonacci (PF = φ). Next: the `CoronaConfig`
+dataclass, `corona_1`, `corona_2`, and canonical hashing for BFS
+deduplication.
 
 ---
 
@@ -48,7 +49,9 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **14** (pending) — `docs`: decisions log + post-E STATUS update.
+- **15** (pending) — `feat(substitution)`: SubstitutionRule,
+  substitution_matrix, is_primitive, perron_frobenius_in_zphi.
+- **14** `3822783` — `docs`: decisions log + post-E STATUS update.
 - **13** `fba7ae7` — `test(integration)`: rhombic triacontahedron
   fixture and I-transitivity.
 - **12** `dd36f96` — `feat(util)`: reject interior input vertices by
@@ -71,10 +74,20 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-14 working tree): 244 passing in 1.57 s under
+Test totals (pre-commit-15 working tree): 277 passing in 1.89 s under
 venv pytest 9.0.3.
 
 ---
+
+## Module sequence (CLAUDE.md §5.1)
+
+- **1 `zphi.py`** — done in `a472a5e`.
+- **2 `symmetry.py`** — done in `1d0d0fa`.
+- **3 `polyhedron.py`** — done via five sub-commits A–E, details below.
+- **4 `substitution.py`** — done in commit 15 (pending). Penrose P3
+  and Fibonacci acceptance oracles both pass.
+- **5 `corona.py`** — current focus.
+- **6 `hierarchy.py`** — not started.
 
 ## Implementation plan — `polyhedron.py`
 
@@ -147,6 +160,12 @@ Shane relays Q&A. See the collab-relay memory in
   **Resolved** — yes, default-on (`allow_interior_inputs=False`).
   The RTH-first-draft failure is exactly the silent-wrong-polyhedron
   case that needs loud surfacing at load time.
+- **2026-04-20 — Acceptance oracle for `substitution.py`.** Which 2D
+  Penrose-style rule to use as the PF / primitivity oracle?
+  **Resolved** — Penrose P3 (thick/thin rhombus, PF = φ²) as primary
+  for structural similarity to the 3D target (rhombic faces, φ-edge
+  ratios); Fibonacci (PF = φ) as secondary diagnostic specifically to
+  catch any code that hard-codes φ² as "the" canonical PF.
 
 ---
 
