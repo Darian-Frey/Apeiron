@@ -18,9 +18,14 @@ import pytest
 
 from apeiron.corona import (
     CoronaConfig,
+    Edge,
     PlacedTile,
+    Vertex,
+    _edges_of,
     face_to_face_placements,
     find_rotation,
+    has_interior_overlap,
+    incidence_defect,
 )
 from apeiron.polyhedron import Polyhedron
 from apeiron.symmetry import ICOSAHEDRAL, ROT_2, ROT_3, ROT_5, Mat3, Rotation, Vec3
@@ -342,3 +347,287 @@ class TestFaceToFacePlacements:
         # And the count is positive — the RTH does admit face-to-face
         # placements.
         assert counts[0] >= 1
+
+
+# -- Vertex and Edge feature types ------------------------------------
+
+
+class TestVertexAndEdge:
+    def test_vertex_construction(self) -> None:
+        assert Vertex(index=0).index == 0
+        assert Vertex(index=31).index == 31
+
+    def test_vertex_rejects_negative(self) -> None:
+        with pytest.raises(ValueError, match="non-negative"):
+            Vertex(index=-1)
+
+    def test_vertex_equality_and_hash(self) -> None:
+        assert Vertex(3) == Vertex(3)
+        assert hash(Vertex(3)) == hash(Vertex(3))
+        assert Vertex(3) != Vertex(4)
+
+    def test_edge_construction(self) -> None:
+        e = Edge(lo=0, hi=5)
+        assert e.lo == 0
+        assert e.hi == 5
+
+    def test_edge_rejects_unordered(self) -> None:
+        with pytest.raises(ValueError, match="lo < hi"):
+            Edge(lo=5, hi=0)
+
+    def test_edge_rejects_degenerate(self) -> None:
+        with pytest.raises(ValueError, match="lo < hi"):
+            Edge(lo=3, hi=3)
+
+    def test_edge_rejects_negative(self) -> None:
+        with pytest.raises(ValueError, match="non-negative"):
+            Edge(lo=-1, hi=2)
+
+    def test_edge_equality_and_hash(self) -> None:
+        assert Edge(1, 4) == Edge(1, 4)
+        assert hash(Edge(1, 4)) == hash(Edge(1, 4))
+        assert Edge(1, 4) != Edge(2, 4)
+
+
+# -- _edges_of --------------------------------------------------------
+
+
+class TestEdgesOf:
+    def test_cube_has_12_edges(self) -> None:
+        assert len(_edges_of(_unit_cube())) == 12
+
+    def test_tetrahedron_has_6_edges(self) -> None:
+        tetra_verts = [
+            _v((0, 0), (0, 0), (0, 0)),
+            _v((2, 0), (0, 0), (0, 0)),
+            _v((0, 0), (2, 0), (0, 0)),
+            _v((0, 0), (0, 0), (2, 0)),
+        ]
+        tetra = Polyhedron.from_vertices(tetra_verts)
+        assert len(_edges_of(tetra)) == 6
+
+    def test_edges_are_sorted_pairs(self) -> None:
+        for (lo, hi) in _edges_of(_unit_cube()):
+            assert lo < hi
+
+
+# -- incidence_defect --------------------------------------------------
+
+
+def _face_sharer_at_plus_x() -> PlacedTile:
+    """Cube face-sharer: neighbour through the +x face of the
+    unit-cube fixture (central vertices at stored (0..2)^3), i.e.
+    identity rotation translated by stored (+2, 0, 0) — real +1 shift
+    by one cube edge — so the neighbour occupies stored (2..4)^[x]
+    × (0..2)^[y, z] and its -x face coincides with the central's +x
+    face.
+    """
+    return PlacedTile(
+        translation=_v((2, 0), (0, 0), (0, 0)),
+        rotation=Rotation.identity(),
+    )
+
+
+def _edge_sharer_at_plus_x_plus_y() -> PlacedTile:
+    """Cube edge-sharer: neighbour shifted by stored (+2, +2, 0) —
+    real (+1, +1, 0) — sharing only the edge from stored (2, 2, 0) to
+    (2, 2, 2) with the central.
+    """
+    return PlacedTile(
+        translation=_v((2, 0), (2, 0), (0, 0)),
+        rotation=Rotation.identity(),
+    )
+
+
+def _vertex_sharer_at_plus_xyz() -> PlacedTile:
+    """Cube vertex-sharer: neighbour shifted by stored (+2, +2, +2) —
+    real (+1, +1, +1) — sharing only the vertex (2, 2, 2) with the
+    central.
+    """
+    return PlacedTile(
+        translation=_v((2, 0), (2, 0), (2, 0)),
+        rotation=Rotation.identity(),
+    )
+
+
+class TestIncidenceDefect:
+    def test_empty_config_vertex_defect(self) -> None:
+        cube = _unit_cube()
+        empty = CoronaConfig.from_neighbours(cube, [])
+        # Only the central contributes; defect = expected - 1.
+        assert incidence_defect(empty, Vertex(0), expected=8) == 7
+
+    def test_empty_config_edge_defect(self) -> None:
+        cube = _unit_cube()
+        empty = CoronaConfig.from_neighbours(cube, [])
+        edges = list(_edges_of(cube))
+        lo, hi = edges[0]
+        assert incidence_defect(empty, Edge(lo, hi), expected=4) == 3
+
+    def test_face_sharer_reduces_shared_face_defects(self) -> None:
+        # The face-sharer across +x touches 4 central vertices and
+        # 4 central edges. Defects at those features drop by 1
+        # relative to the empty config.
+        cube = _unit_cube()
+        empty = CoronaConfig.from_neighbours(cube, [])
+        with_sharer = CoronaConfig.from_neighbours(
+            cube, [_face_sharer_at_plus_x()]
+        )
+        # Vertices of the central's +x face: (2, *, *) — stored
+        # coordinates x = 2.
+        shared_vertex_indices = [
+            i for i, v in enumerate(cube.vertices) if v.x == ZPhi(2, 0)
+        ]
+        assert len(shared_vertex_indices) == 4
+        for idx in shared_vertex_indices:
+            assert incidence_defect(with_sharer, Vertex(idx), expected=8) == (
+                incidence_defect(empty, Vertex(idx), expected=8) - 1
+            )
+
+    def test_non_shared_vertex_defect_unchanged(self) -> None:
+        cube = _unit_cube()
+        empty = CoronaConfig.from_neighbours(cube, [])
+        with_sharer = CoronaConfig.from_neighbours(
+            cube, [_face_sharer_at_plus_x()]
+        )
+        # Vertices on the central's -x face (x = 0) aren't touched.
+        for i, v in enumerate(cube.vertices):
+            if v.x == ZPhi(0, 0):
+                assert incidence_defect(
+                    with_sharer, Vertex(i), expected=8,
+                ) == incidence_defect(empty, Vertex(i), expected=8)
+
+    def test_edge_sharer_contributes_to_shared_edge_only(self) -> None:
+        # The edge-diagonal neighbour at (+4, +4, 0) shares only the
+        # edge (2, 2, 0)-(2, 2, 2) with the central — a single
+        # central edge, two central vertices.
+        cube = _unit_cube()
+        with_edge_sharer = CoronaConfig.from_neighbours(
+            cube, [_edge_sharer_at_plus_x_plus_y()]
+        )
+        # The shared-edge endpoints are the two central vertices with
+        # x = 2 and y = 2.
+        shared = [
+            i for i, v in enumerate(cube.vertices)
+            if v.x == ZPhi(2, 0) and v.y == ZPhi(2, 0)
+        ]
+        assert len(shared) == 2
+        lo, hi = min(shared), max(shared)
+        # That edge must be in the cube's edge set for this test to
+        # be meaningful.
+        assert (lo, hi) in _edges_of(cube)
+        # Defect at the edge is 4 - 2 (central + edge-sharer) = 2.
+        assert incidence_defect(
+            with_edge_sharer, Edge(lo, hi), expected=4,
+        ) == 2
+
+    def test_rejects_invalid_vertex_index(self) -> None:
+        cube = _unit_cube()
+        empty = CoronaConfig.from_neighbours(cube, [])
+        with pytest.raises(ValueError, match="outside"):
+            incidence_defect(empty, Vertex(999), expected=8)
+
+    def test_rejects_non_edge_pair(self) -> None:
+        cube = _unit_cube()
+        empty = CoronaConfig.from_neighbours(cube, [])
+        # Pick two cube vertices that aren't connected by an edge —
+        # the face-diagonal pair (0, 0, 0) and (2, 2, 0). These are
+        # indices 0 and 6 in the canonical-order cube vertex list
+        # (sorted by (x, y, z)).
+        with pytest.raises(ValueError, match="not an edge"):
+            incidence_defect(empty, Edge(0, 7), expected=4)
+
+    def test_rejects_non_feature_type(self) -> None:
+        cube = _unit_cube()
+        empty = CoronaConfig.from_neighbours(cube, [])
+        with pytest.raises(TypeError, match="Vertex or Edge"):
+            incidence_defect(empty, "not a feature", expected=8)   # type: ignore[arg-type]
+
+
+# -- has_interior_overlap ---------------------------------------------
+
+
+class TestHasInteriorOverlap:
+    def test_empty_config_no_overlap(self) -> None:
+        cube = _unit_cube()
+        empty = CoronaConfig.from_neighbours(cube, [])
+        assert not has_interior_overlap(empty)
+
+    def test_face_sharer_no_overlap(self) -> None:
+        cube = _unit_cube()
+        c = CoronaConfig.from_neighbours(cube, [_face_sharer_at_plus_x()])
+        assert not has_interior_overlap(c)
+
+    def test_edge_sharer_no_overlap(self) -> None:
+        cube = _unit_cube()
+        c = CoronaConfig.from_neighbours(
+            cube, [_edge_sharer_at_plus_x_plus_y()]
+        )
+        assert not has_interior_overlap(c)
+
+    def test_vertex_sharer_no_overlap(self) -> None:
+        cube = _unit_cube()
+        c = CoronaConfig.from_neighbours(
+            cube, [_vertex_sharer_at_plus_xyz()]
+        )
+        assert not has_interior_overlap(c)
+
+    def test_coincident_neighbour_overlaps(self) -> None:
+        # Neighbour placed exactly on top of central: full volume
+        # overlap.
+        cube = _unit_cube()
+        coincident = PlacedTile(
+            translation=_v((0, 0), (0, 0), (0, 0)),
+            rotation=Rotation.identity(),
+        )
+        c = CoronaConfig.from_neighbours(cube, [coincident])
+        assert has_interior_overlap(c)
+
+    def test_strictly_nested_neighbour_overlaps(self) -> None:
+        # Neighbour shifted by a small amount (stored +1 in x,
+        # real +0.5) — its interior overlaps the central's interior
+        # along a slab.
+        cube = _unit_cube()
+        shifted = PlacedTile(
+            translation=_v((1, 0), (0, 0), (0, 0)),
+            rotation=Rotation.identity(),
+        )
+        c = CoronaConfig.from_neighbours(cube, [shifted])
+        assert has_interior_overlap(c)
+
+    def test_disjoint_neighbour_no_overlap(self) -> None:
+        # Far-away neighbour: no chance of overlap.
+        cube = _unit_cube()
+        far = PlacedTile(
+            translation=_v((20, 0), (20, 0), (20, 0)),
+            rotation=Rotation.identity(),
+        )
+        c = CoronaConfig.from_neighbours(cube, [far])
+        assert not has_interior_overlap(c)
+
+    def test_two_non_overlapping_neighbours(self) -> None:
+        # Two face-sharers on opposite faces; neither overlaps the
+        # central nor each other.
+        cube = _unit_cube()
+        plus_x = _face_sharer_at_plus_x()
+        minus_x = PlacedTile(
+            translation=_v((-2, 0), (0, 0), (0, 0)),
+            rotation=Rotation.identity(),
+        )
+        c = CoronaConfig.from_neighbours(cube, [plus_x, minus_x])
+        assert not has_interior_overlap(c)
+
+    def test_two_overlapping_neighbours(self) -> None:
+        # Two neighbours at the same face-sharing position (+x face)
+        # but different rotations: the ROT_3 rotation of the cube
+        # about the (1, 1, 1) body diagonal is still a cube at the
+        # same bounding volume, so the two placed tiles occupy
+        # identical real regions and interior-overlap.
+        cube = _unit_cube()
+        plus_x_a = _face_sharer_at_plus_x()
+        plus_x_b = PlacedTile(
+            translation=_v((2, 0), (0, 0), (0, 0)),
+            rotation=ROT_3,
+        )
+        c = CoronaConfig.from_neighbours(cube, [plus_x_a, plus_x_b])
+        assert has_interior_overlap(c)

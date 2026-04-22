@@ -14,14 +14,14 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-`corona.py` sub-commit C — the `corona_1(P)` BFS engine with
-constraint propagation. Sub-commits A (data model) and B (face-to-
-face placement enumeration + `find_rotation` helper) are in; next
-work is the BFS that uses B's primitives to assemble a complete
-closed-neighbourhood corona, with cube as the acceptance oracle. B's
-placement enumerator needs the companion `interior_overlap` and
-`angular_defect` predicates before the BFS can prune; those land
-alongside the BFS in sub-commit C rather than in their own commit.
+`corona.py` sub-commit D — the `corona_1(P)` BFS engine. Sub-commits
+A (data model), B (face-to-face placements + `find_rotation`), and C
+(completeness predicates: `incidence_defect` on `Vertex`/`Edge`
+features + `has_interior_overlap` via face-plane SAT) are all in.
+The BFS assembles a complete closed-neighbourhood corona using the
+A/B primitives and prunes on the C predicates. Cube is the
+acceptance oracle; rhombic dodecahedron + `corona_2` follow in
+sub-commit E.
 
 ---
 
@@ -51,7 +51,10 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **18** (pending) — `feat(corona)`: face-to-face placement
+- **19** (pending) — `feat(corona)`: completeness predicates —
+  `incidence_defect` on `Vertex`/`Edge` features and
+  `has_interior_overlap` via face-plane SAT (sub-commit C).
+- **18** `bdf774c` — `feat(corona)`: face-to-face placement
   enumeration and `find_rotation` helper — sub-commit B of the
   corona.py plan.
 - **17** `ec11ba8` — `feat(viz)`: polyhedron rendering via plotly,
@@ -84,7 +87,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-18 working tree): 320 passing in 3.96 s under
+Test totals (pre-commit-19 working tree): 348 passing in 4.02 s under
 venv pytest 9.0.3.
 
 ---
@@ -96,11 +99,13 @@ venv pytest 9.0.3.
 - **3 `polyhedron.py`** — done via five sub-commits A–E, details below.
 - **4 `substitution.py`** — done in commit 15 (pending). Penrose P3
   and Fibonacci acceptance oracles both pass.
-- **5 `corona.py`** — in progress, split A–D. A (data model) done in
-  `944f589`. B (face-to-face placement + `find_rotation`) done in
-  commit 18 (pending). C (`corona_1` BFS + cube test; plus
-  `interior_overlap` / `angular_defect` as companions to the BFS)
-  and D (`corona_2` + rhombic-dodec test) still to come.
+- **5 `corona.py`** — in progress, now split A–E (sub-commit C
+  was refactored into predicates-only, with BFS pushed to D). A
+  (data model) done in `944f589`. B (face-to-face placement +
+  `find_rotation`) done in `bdf774c`. C (`incidence_defect` +
+  `has_interior_overlap` predicates) done in commit 19 (pending).
+  D (`corona_1` BFS engine + cube acceptance test) and E
+  (`corona_2` + rhombic-dodec test) still to come.
 - **6 `hierarchy.py`** — not started.
 
 ## Implementation plan — `polyhedron.py`
@@ -190,6 +195,19 @@ Shane relays Q&A. See the collab-relay memory in
   face-pair index; committing to a specific index shape now would
   bake in the wrong abstraction. `find_rotation` is named so any
   future optimisation is a single-function swap.
+- **2026-04-22 — `angular_defect` return type.** Earlier
+  "`angular_defect(config, feature) -> ZPhi`" was loose — the
+  literal angle around an edge/vertex is transcendental in ℤ[φ], and
+  `Σ 2·cos(θᵢ)` hitting a target is *not* equivalent to
+  `Σ θᵢ = 2π` because cos isn't additive. **Resolved** — rename to
+  `incidence_defect(config, feature) -> int` = face-count deficit at
+  the feature (combinatorial closure only). Geometric non-overlap is
+  a separate predicate, `has_interior_overlap(config) -> bool`; both
+  are required for corona completeness and both are orthogonal.
+  A matrix-product-around-edge closure check (the genuinely exact
+  ℤ[φ] formulation) is added *alongside* these two if a concrete
+  "combinatorially valid but geometrically non-realisable"
+  configuration ever surfaces — not as a replacement.
 
 ---
 
