@@ -14,12 +14,14 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-Module 5 of the CLAUDE.md §5.1 sequence: `corona.py`, split into four
-sub-commits following the polyhedron-module A–E pattern. Sub-commit A
-(data model: `PlacedTile`, `CoronaConfig`, canonical neighbour order,
-equality + hashing) is done. Next: **sub-commit B** — geometric
-primitives (face-to-face placement enumeration, interior-overlap
-predicate, exact-ℤ[φ] `angular_defect`).
+Resuming `corona.py` sub-commit B (geometric primitives: face-to-face
+placement enumeration, interior-overlap predicate, exact-ℤ[φ]
+`angular_defect`). Paused after sub-commit A to build out the
+visualisation stack first — `apeiron/viz.py` + `notebooks/rth_demo.py`
+now render the RTH and the 60-element icosahedral orbit to
+click-and-drag HTML. Visual output is the main tool for eyeballing
+corona correctness in 16B–D; having it in place first pays for
+itself immediately.
 
 ---
 
@@ -49,7 +51,9 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **16** (pending) — `feat(corona)`: data model (PlacedTile,
+- **17** (pending) — `feat(viz)`: polyhedron rendering via plotly,
+  with RTH demo (single view and 60-rotation I-orbit grid).
+- **16** `944f589` — `feat(corona)`: data model (PlacedTile,
   CoronaConfig, canonical neighbour order) — sub-commit A of the
   corona.py plan.
 - **15** `2cd904d` — `feat(substitution)`: SubstitutionRule,
@@ -77,7 +81,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-16 working tree): 297 passing in 1.83 s under
+Test totals (pre-commit-17 working tree): 308 passing in 1.99 s under
 venv pytest 9.0.3.
 
 ---
