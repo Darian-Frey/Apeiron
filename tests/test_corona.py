@@ -22,6 +22,8 @@ from apeiron.corona import (
     PlacedTile,
     Vertex,
     _edges_of,
+    _placement_feature_coverage,
+    corona_1,
     face_to_face_placements,
     find_rotation,
     has_interior_overlap,
@@ -631,3 +633,112 @@ class TestHasInteriorOverlap:
         )
         c = CoronaConfig.from_neighbours(cube, [plus_x_a, plus_x_b])
         assert has_interior_overlap(c)
+
+
+# -- corona_1 cube acceptance -----------------------------------------
+
+
+@pytest.fixture(scope="module")
+def cube_corona() -> tuple[Polyhedron, tuple[CoronaConfig, ...]]:
+    """Compute the cube's first corona once and share across tests.
+
+    ``corona_1`` on the cube takes ~5 s under the current backtracking
+    implementation — candidate BFS enumeration + ordered-subset
+    search + canonical-form dedup under ``I``. A module-scoped
+    fixture means the whole cube-corona test group runs in that time
+    once, not once per test.
+    """
+    cube = _unit_cube()
+    configs = corona_1(cube, expected_edge_count=4, expected_vertex_count=8)
+    return cube, configs
+
+
+class TestCoronaOneCube:
+    def test_returns_exactly_one_canonical_configuration(
+        self, cube_corona
+    ) -> None:
+        _, configs = cube_corona
+        assert len(configs) == 1
+
+    def test_unique_corona_has_26_neighbours(self, cube_corona) -> None:
+        _, configs = cube_corona
+        assert len(configs[0].neighbours) == 26
+
+    def test_corona_has_6_face_sharers(self, cube_corona) -> None:
+        # corona_1 returns the orbit-min under I, so the "central" in
+        # the result may be a rotated cube — feature coverage must be
+        # computed relative to configs[0].central, not the axis-
+        # aligned fixture cube.
+        _, configs = cube_corona
+        central = configs[0].central
+        face_sharers = [
+            n for n in configs[0].neighbours
+            if sum(
+                1 for f in _placement_feature_coverage(central, n)
+                if isinstance(f, Edge)
+            ) == 4
+        ]
+        assert len(face_sharers) == 6
+
+    def test_corona_has_12_edge_sharers(self, cube_corona) -> None:
+        _, configs = cube_corona
+        central = configs[0].central
+        edge_sharers = [
+            n for n in configs[0].neighbours
+            if sum(
+                1 for f in _placement_feature_coverage(central, n)
+                if isinstance(f, Edge)
+            ) == 1
+        ]
+        assert len(edge_sharers) == 12
+
+    def test_corona_has_8_vertex_sharers(self, cube_corona) -> None:
+        _, configs = cube_corona
+        central = configs[0].central
+        vertex_sharers = [
+            n for n in configs[0].neighbours
+            if sum(
+                1 for f in _placement_feature_coverage(central, n)
+                if isinstance(f, Edge)
+            ) == 0
+        ]
+        assert len(vertex_sharers) == 8
+
+    def test_every_central_edge_has_incidence_count_four(
+        self, cube_corona
+    ) -> None:
+        _, configs = cube_corona
+        cfg = configs[0]
+        for (lo, hi) in _edges_of(cfg.central):
+            assert incidence_defect(cfg, Edge(lo, hi), expected=4) == 0
+
+    def test_every_central_vertex_has_incidence_count_eight(
+        self, cube_corona
+    ) -> None:
+        _, configs = cube_corona
+        cfg = configs[0]
+        for i in range(len(cfg.central.vertices)):
+            assert incidence_defect(cfg, Vertex(i), expected=8) == 0
+
+    def test_corona_has_no_interior_overlap(self, cube_corona) -> None:
+        _, configs = cube_corona
+        assert not has_interior_overlap(configs[0])
+
+    def test_all_neighbours_share_central_rotation(
+        self, cube_corona
+    ) -> None:
+        # For the cube in its natural Moore-neighbour tiling, every
+        # neighbour is axis-aligned with the same orientation as the
+        # central. Under corona_1's orbit-min canonicalisation the
+        # central may be rotated, but whatever rotation it has, every
+        # neighbour carries the SAME rotation — translated offsets
+        # only, no per-neighbour rotation. Specific to the cube
+        # (octahedral symmetry compatible with translational-only
+        # corona); icosahedral-symmetric tiles can admit non-uniform
+        # rotations in their coronas.
+        _, configs = cube_corona
+        # All 26 neighbours must share a single rotation, whatever it
+        # is. (That rotation maps the original identity cube to
+        # configs[0].central's orientation.)
+        rotations = {n.rotation for n in configs[0].neighbours}
+        assert len(rotations) == 1

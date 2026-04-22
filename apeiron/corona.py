@@ -80,6 +80,7 @@ __all__ = [
     "Edge",
     "PlacedTile",
     "Vertex",
+    "corona_1",
     "face_to_face_placements",
     "find_rotation",
     "has_interior_overlap",
@@ -659,3 +660,374 @@ def _sign_of(z: ZPhi) -> int:
     if z < _ZPHI_ZERO:
         return -1
     return 0
+
+
+# -- corona_1 BFS engine (sub-commit D) -------------------------------
+
+
+def _identity_placement() -> PlacedTile:
+    """The placement corresponding to the central at the origin."""
+    return PlacedTile(
+        translation=Vec3(_ZPHI_ZERO, _ZPHI_ZERO, _ZPHI_ZERO),
+        rotation=Rotation.identity(),
+    )
+
+
+def _compose_placements(outer: PlacedTile, inner: PlacedTile) -> PlacedTile:
+    """Compose two placements: ``outer`` applied to the frame of
+    ``inner``.
+
+    If ``inner`` places a tile at ``(g_i, t_i)`` and ``outer``
+    represents a frame transformation ``(g_o, t_o)``, the composed
+    placement is ``(g_o ∘ g_i, g_o · t_i + t_o)``. This is the
+    placement of a tile that is face-to-face-neighbour ``inner`` of
+    the tile at ``outer``.
+    """
+    return PlacedTile(
+        translation=outer.rotation.apply(inner.translation) + outer.translation,
+        rotation=outer.rotation.compose(inner.rotation),
+    )
+
+
+def _enumerate_corona_candidates(P: Polyhedron) -> list[PlacedTile]:
+    """Placements of ``P`` reachable by face-to-face propagation from
+    the central and touching at least one central vertex, without
+    overlapping the central's interior.
+
+    BFS: seed with face-to-face-placements against each central face.
+    Repeatedly expand by composing each known placement with face-to-
+    face-placements against the origin central (which, under
+    composition, gives face-to-face-neighbours of the known
+    placement). Filter to placements that touch a central vertex and
+    don't overlap the central. Terminate when no new placements are
+    found (the universe of touching-placements reachable by the
+    face-to-face graph is finite — it's a subset of the Moore
+    neighbourhood under I).
+
+    Face-to-face-only propagation is what Claude (web) specified for
+    the BFS engine; a "direct enumeration over every central vertex
+    × prototype vertex × I rotation" approach works but produces
+    orders of magnitude more noise candidates (~1750 for the cube vs
+    the ~100 that propagation finds), making the downstream
+    backtracking impractical.
+    """
+    central_verts = list(P.vertices)
+    central_vertex_set = set(central_verts)
+    identity = _identity_placement()
+
+    # Precompute face-to-face placements against the origin central
+    # once, and reuse via composition for every propagation step.
+    ftf_template: list[PlacedTile] = []
+    for face_idx in range(len(P.faces)):
+        ftf_template.extend(face_to_face_placements(P, face_idx))
+
+    def _keep(candidate: PlacedTile) -> bool:
+        if candidate == identity:
+            return False
+        verts = _placed_vertices(P, candidate)
+        if not any(v in central_vertex_set for v in verts):
+            return False
+        if _placements_interior_overlap(P, central_verts, verts):
+            return False
+        return True
+
+    candidates: set[PlacedTile] = set()
+    frontier: list[PlacedTile] = []
+
+    for ftf in ftf_template:
+        if ftf not in candidates and _keep(ftf):
+            candidates.add(ftf)
+            frontier.append(ftf)
+
+    while frontier:
+        current = frontier.pop()
+        for ftf in ftf_template:
+            composed = _compose_placements(current, ftf)
+            if composed in candidates:
+                continue
+            if not _keep(composed):
+                continue
+            candidates.add(composed)
+            frontier.append(composed)
+
+    # Dedupe by geometric content (placed vertex set). Two placements
+    # with the same vertex set represent the same *geometric* polytope
+    # at the same position — even if their stored ``(translation,
+    # rotation)`` differs (e.g. a cube under a rotation from the
+    # stabiliser ``I ∩ O`` yields the same vertex positions as the
+    # identity). Combinatorial constraint satisfaction sees them as
+    # interchangeable, and keeping rotational variants multiplies the
+    # search tree pointlessly. Pick a canonical representative per
+    # signature by ``_placed_tile_key``.
+    by_signature: dict[frozenset[Vec3], PlacedTile] = {}
+    for c in candidates:
+        sig = frozenset(_placed_vertices(P, c))
+        existing = by_signature.get(sig)
+        if existing is None or _placed_tile_key(c) < _placed_tile_key(existing):
+            by_signature[sig] = c
+    return sorted(by_signature.values(), key=_placed_tile_key)
+
+
+def _placement_feature_coverage(
+    P: Polyhedron, placement: PlacedTile,
+) -> frozenset[Vertex | Edge]:
+    """Features (``Vertex`` or ``Edge``) of the central that the
+    placement includes in its boundary.
+
+    A central vertex ``v_c`` is covered iff some placed vertex of the
+    placement coincides with ``v_c``. A central edge ``(lo, hi)`` is
+    covered iff both its endpoints are covered *and* the corresponding
+    prototype-local indices form an edge of the prototype (so two
+    placed vertices landing on central-edge endpoints without actually
+    being adjacent in the prototype — e.g. across a face diagonal —
+    do not wrongly claim edge coverage).
+    """
+    placed = _placed_vertices(P, placement)
+    central_to_local: dict[int, int] = {}
+    for central_idx, v_c in enumerate(P.vertices):
+        for local_idx, v_placed in enumerate(placed):
+            if v_placed == v_c:
+                central_to_local[central_idx] = local_idx
+                break
+    features: set[Vertex | Edge] = {Vertex(i) for i in central_to_local}
+    local_edges = _edges_of(P)
+    for (lo, hi) in local_edges:
+        if lo in central_to_local and hi in central_to_local:
+            local_lo = central_to_local[lo]
+            local_hi = central_to_local[hi]
+            key = (min(local_lo, local_hi), max(local_lo, local_hi))
+            if key in local_edges:
+                features.add(Edge(lo, hi))
+    return frozenset(features)
+
+
+def _apply_rotation_to_config(
+    g: Rotation, config: CoronaConfig,
+) -> CoronaConfig:
+    """Apply ``g ∈ I`` to an entire corona configuration.
+
+    The central rotates via ``Polyhedron.apply(g)``. Each neighbour's
+    placement ``(t, g_n)`` — which, relative to the original central,
+    placed a copy of the central at rotation ``g_n`` — becomes
+    ``(g·t, g ∘ g_n ∘ g⁻¹)`` relative to the rotated central. The
+    conjugation ``g ∘ g_n ∘ g⁻¹`` is required because the neighbour's
+    rotation is expressed relative to the central's frame: when the
+    central rotates, the neighbour's rotation transforms accordingly
+    under the adjoint action of ``g``. A naive ``g ∘ g_n`` is wrong
+    and produces placements whose vertex sets don't match ``g``'s
+    action on the original vertex sets.
+    """
+    new_central = config.central.apply(g)
+    g_inv = g.inverse()
+    new_neighbours = [
+        PlacedTile(
+            translation=g.apply(n.translation),
+            rotation=g.compose(n.rotation).compose(g_inv),
+        )
+        for n in config.neighbours
+    ]
+    return CoronaConfig.from_neighbours(new_central, new_neighbours)
+
+
+_VERTEX_KEY_WIDTH = 6
+
+
+def _config_canonical_key(config: CoronaConfig) -> tuple:
+    """Total order on ``CoronaConfig`` for orbit-min selection.
+
+    The key is ``(central_vertex_key_tuple, neighbour_key_tuple)``.
+    Central's vertex list is in its own canonical order; neighbours
+    are already in the ``_placed_tile_key`` order.
+    """
+    central_key = tuple(
+        (v.x.a, v.x.b, v.y.a, v.y.b, v.z.a, v.z.b)
+        for v in config.central.vertices
+    )
+    neighbour_keys = tuple(_placed_tile_key(n) for n in config.neighbours)
+    return (central_key, neighbour_keys)
+
+
+def _canonical_form_under_I(config: CoronaConfig) -> CoronaConfig:
+    """Return the orbit-min of ``config`` under the action of I on
+    the whole configuration (central included).
+    """
+    return min(
+        (_apply_rotation_to_config(g, config) for g in ICOSAHEDRAL),
+        key=_config_canonical_key,
+    )
+
+
+def corona_1(
+    P: Polyhedron,
+    *,
+    expected_edge_count: int,
+    expected_vertex_count: int,
+) -> tuple[CoronaConfig, ...]:
+    """Enumerate all complete first-corona configurations of ``P``,
+    modulo the icosahedral group I.
+
+    A first-corona configuration is a ``CoronaConfig`` with central
+    ``P`` and a set of placed copies of ``P`` as neighbours such that:
+
+    - ``incidence_defect(config, f, expected=...) == 0`` for every
+      vertex and edge ``f`` of the central, using the given
+      ``expected_vertex_count`` for vertices and
+      ``expected_edge_count`` for edges.
+    - ``not has_interior_overlap(config)``.
+
+    The ``expected_*`` counts are tiling parameters (how many tiles
+    meet at each edge / vertex in the intended tiling). For the cube
+    in its natural face-to-face tiling, 4 and 8. For the rhombic
+    dodecahedron, 4 and 6. They're passed explicitly because
+    deriving them from dihedral angles requires exact-angle reasoning
+    that is not cleanly reducible to integer arithmetic — see the
+    STATUS.md 2026-04-22 Q&A entry on the ``angular_defect`` rename.
+
+    Algorithm
+    ---------
+    1. Enumerate candidates: every placement of ``P`` sharing at
+       least one central vertex and not overlapping the central's
+       interior.
+    2. Precompute each candidate's feature coverage (which central
+       vertices and edges it includes in its boundary).
+    3. Backtracking search: pick the central feature with the highest
+       remaining need, iterate candidates covering it, prune on
+       over-coverage of any feature and on interior-overlap with
+       already-chosen neighbours.
+    4. For each complete solution found, compute the orbit-min under
+       I and deduplicate.
+
+    Returns the canonical configurations in deterministic lex order.
+    For the cube with ``expected_edge_count=4, expected_vertex_count=8``,
+    the unique Moore neighbourhood is returned as a single canonical
+    ``CoronaConfig`` with 26 neighbours.
+    """
+    candidates = _enumerate_corona_candidates(P)
+    cover_map: dict[PlacedTile, frozenset[Vertex | Edge]] = {
+        c: _placement_feature_coverage(P, c) for c in candidates
+    }
+    # Drop candidates that don't cover any central feature — they're
+    # touching via no-edge vertex coincidence and can't contribute to
+    # closure (would just waste backtracking branches).
+    candidates = [c for c in candidates if cover_map[c]]
+
+    all_features: list[Vertex | Edge] = [
+        Vertex(i) for i in range(len(P.vertices))
+    ] + [Edge(lo, hi) for (lo, hi) in sorted(_edges_of(P))]
+
+    def _expected_for(f: Vertex | Edge) -> int:
+        return expected_edge_count if isinstance(f, Edge) else expected_vertex_count
+
+    initial_needs: dict[Vertex | Edge, int] = {
+        f: _expected_for(f) - 1 for f in all_features
+    }
+
+    central_verts = list(P.vertices)
+    central_verts_tuple: Sequence[Vec3] = central_verts
+
+    raw_solutions: list[list[PlacedTile]] = []
+
+    def _has_overlap_with_chosen(
+        chosen: list[PlacedTile], new_candidate: PlacedTile,
+    ) -> bool:
+        new_verts = _placed_vertices(P, new_candidate)
+        if _placements_interior_overlap(P, central_verts_tuple, new_verts):
+            return True
+        for existing in chosen:
+            existing_verts = _placed_vertices(P, existing)
+            if _placements_interior_overlap(P, existing_verts, new_verts):
+                return True
+        return False
+
+    # Ordered-subset enumeration: each candidate has a fixed index,
+    # and we decide INCLUDE vs EXCLUDE in index order. This visits
+    # every subset of ``candidates`` exactly once, so raw_solutions
+    # contains each valid configuration exactly once (no
+    # permutation-equivalent duplicates from picking-a-feature
+    # backtracking). Pruning by over-coverage (``needs`` would go
+    # negative), overlap with already-chosen, and
+    # future-feasibility (can the remaining candidates possibly
+    # cover the remaining need?) keeps the tree small.
+    candidate_list = candidates
+    n_candidates = len(candidate_list)
+
+    # Precompute, for each candidate index, the cumulative maximum
+    # cover contribution from candidates[idx:] — used to prune
+    # branches where the remaining candidates can't possibly meet
+    # the remaining need at some feature.
+    remaining_coverage: list[dict[Vertex | Edge, int]] = [
+        {} for _ in range(n_candidates + 1)
+    ]
+    for i in range(n_candidates - 1, -1, -1):
+        remaining_coverage[i] = dict(remaining_coverage[i + 1])
+        for f in cover_map[candidate_list[i]]:
+            remaining_coverage[i][f] = remaining_coverage[i].get(f, 0) + 1
+
+    def _feasible(idx: int, needs: dict[Vertex | Edge, int]) -> bool:
+        """``True`` iff candidates[idx:] can still meet every
+        positive remaining need. Fails fast when we've excluded too
+        many candidates covering some feature.
+        """
+        rem = remaining_coverage[idx]
+        for f, need in needs.items():
+            if need > rem.get(f, 0):
+                return False
+        return True
+
+    def _backtrack(
+        idx: int,
+        chosen: list[PlacedTile],
+        needs: dict[Vertex | Edge, int],
+    ) -> None:
+        if all(n == 0 for n in needs.values()):
+            raw_solutions.append(list(chosen))
+            return
+        if idx >= n_candidates:
+            return
+        if not _feasible(idx, needs):
+            return
+        c = candidate_list[idx]
+
+        # Option 1: EXCLUDE candidate c.
+        _backtrack(idx + 1, chosen, needs)
+
+        # Option 2: INCLUDE candidate c — if over-coverage and
+        # overlap checks pass.
+        new_needs = dict(needs)
+        over = False
+        for covered in cover_map[c]:
+            if new_needs[covered] <= 0:
+                over = True
+                break
+            new_needs[covered] -= 1
+        if over:
+            return
+        if _has_overlap_with_chosen(chosen, c):
+            return
+        chosen.append(c)
+        _backtrack(idx + 1, chosen, new_needs)
+        chosen.pop()
+
+    _backtrack(0, [], initial_needs)
+
+    # Dedupe raw solutions by neighbour *set*: the backtracking explores
+    # every permutation of candidate-choice order that converges on the
+    # same final set, which for the cube is ~200 permutations of a
+    # single unique 26-tile set. Canonicalising ~200 configs under I
+    # would be O(12 000) rotations — wasted work when ``frozenset``
+    # equality collapses them to one candidate-set in O(n) time first.
+    unique_sets = {frozenset(neighbours) for neighbours in raw_solutions}
+    raw_configs = [
+        CoronaConfig.from_neighbours(P, list(ns)) for ns in unique_sets
+    ]
+    canonical: set[CoronaConfig] = {
+        _canonical_form_under_I(cfg) for cfg in raw_configs
+    }
+    return tuple(sorted(canonical, key=_config_canonical_key))
+
+
+def _feature_sort_key(f: Vertex | Edge) -> tuple[int, ...]:
+    """Tie-break key for deterministic feature ordering."""
+    if isinstance(f, Vertex):
+        return (0, f.index)
+    return (1, f.lo, f.hi)

@@ -14,14 +14,11 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-`corona.py` sub-commit D — the `corona_1(P)` BFS engine. Sub-commits
-A (data model), B (face-to-face placements + `find_rotation`), and C
-(completeness predicates: `incidence_defect` on `Vertex`/`Edge`
-features + `has_interior_overlap` via face-plane SAT) are all in.
-The BFS assembles a complete closed-neighbourhood corona using the
-A/B primitives and prunes on the C predicates. Cube is the
-acceptance oracle; rhombic dodecahedron + `corona_2` follow in
-sub-commit E.
+`corona.py` sub-commit E — `corona_2(config)` second-shell extension
+plus the rhombic dodecahedron acceptance test. Sub-commit D landed
+`corona_1(P)` with the cube acceptance oracle (1 canonical
+configuration with 26 neighbours, 9 tests). E extends to the second
+shell and verifies the RD's unique `corona_1` as a secondary oracle.
 
 ---
 
@@ -51,7 +48,10 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **19** (pending) — `feat(corona)`: completeness predicates —
+- **20** (pending) — `feat(corona)`: `corona_1(P)` BFS engine with
+  face-to-face candidate propagation, ordered-subset backtracking,
+  and I-orbit canonical form; cube acceptance test (sub-commit D).
+- **19** `8b7aef6` — `feat(corona)`: completeness predicates —
   `incidence_defect` on `Vertex`/`Edge` features and
   `has_interior_overlap` via face-plane SAT (sub-commit C).
 - **18** `bdf774c` — `feat(corona)`: face-to-face placement
@@ -87,7 +87,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-19 working tree): 348 passing in 4.02 s under
+Test totals (pre-commit-20 working tree): 357 passing in 6.73 s under
 venv pytest 9.0.3.
 
 ---
@@ -103,9 +103,9 @@ venv pytest 9.0.3.
   was refactored into predicates-only, with BFS pushed to D). A
   (data model) done in `944f589`. B (face-to-face placement +
   `find_rotation`) done in `bdf774c`. C (`incidence_defect` +
-  `has_interior_overlap` predicates) done in commit 19 (pending).
-  D (`corona_1` BFS engine + cube acceptance test) and E
-  (`corona_2` + rhombic-dodec test) still to come.
+  `has_interior_overlap` predicates) done in `8b7aef6`.
+  D (`corona_1` BFS engine + cube acceptance test) done in commit
+  20 (pending). E (`corona_2` + rhombic-dodec test) still to come.
 - **6 `hierarchy.py`** — not started.
 
 ## Implementation plan — `polyhedron.py`
@@ -250,6 +250,28 @@ hit their intended branch — they all raised the wrong error first.
 returning vertices pre-sorted by the canonical key; the face-rejection
 tests use this helper so they bypass the vertex-order gate and hit
 the face-level gates as intended.
+
+### Conjugation in `_apply_rotation_to_config`
+
+**Tried** (2026-04-22, corona sub-commit D development): apply
+``g ∈ I`` to a ``CoronaConfig`` via
+``new_rotation = g.compose(n.rotation)``, with
+``new_translation = g.apply(n.translation)``.
+
+**Failed** because placements are expressed relative to the central's
+frame. When the central rotates by ``g``, each neighbour's rotation
+transforms by the adjoint action ``g ∘ g_n ∘ g⁻¹``, not by
+left-multiplication ``g ∘ g_n``. Symptom: ``corona_1(cube)``
+returned a "canonical" configuration whose ``has_interior_overlap``
+fired — neighbour placed-vertex positions didn't match what
+``g`` applied to the original positions would give.
+
+**Doing instead:**
+``new_rotation = g.compose(n.rotation).compose(g.inverse())``. Under
+this correction the cube corona's canonical form passes every
+completeness predicate and every per-test structural check
+(6 face-sharers / 12 edge-sharers / 8 vertex-sharers, incidence
+count 4 at every edge, 8 at every vertex, no interior overlap).
 
 ### Trusting scipy's simplex vertex order to be outward-oriented
 
