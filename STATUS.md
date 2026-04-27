@@ -14,13 +14,10 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-Module 6 of the CLAUDE.md §5.1 sequence: `hierarchy.py`. Split into
-five sub-commits (A–E) per Claude (web)'s 2026-04-23 design relay.
-Sub-commit A (`Supertile` dataclass + `expand_one`, lazy-recursive
-form) landed. Next: sub-commit B — recognisability test
-(`is_recognisable`, `RecognisabilityResult`, `IndistinguishablePair`)
-with the Ammann–Beenker fixture (Baake & Grimm Vol. 1 §6) as the
-pillar-2 oracle.
+Module 6 of the CLAUDE.md §5.1 sequence: `hierarchy.py`. Sub-commits
+A (`Supertile` + `expand_one`) and B (recognisability test +
+Ammann–Beenker oracle) landed. Next: sub-commit C — inflation
+argument (pillar 3) using P3 as oracle.
 
 ---
 
@@ -50,7 +47,11 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **22** (pending) — `feat(hierarchy)`: `Supertile` lazy-recursive
+- **23** (pending) — `feat(hierarchy)`: recognisability test
+  (`is_recognisable`, `RecognisabilityResult`, `IndistinguishablePair`,
+  `PatchTile`, `TilePatch`, `neighbourhood_signature`) +
+  Ammann–Beenker-style oracle fixture (sub-commit B).
+- **22** `2385c2e` — `feat(hierarchy)`: `Supertile` lazy-recursive
   dataclass + `expand_one` lookup; sub-commit A of the hierarchy.py
   plan.
 - **21** `8b5daf7` — `feat(corona)`: per-feature `expected_*` API,
@@ -95,7 +96,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-22 working tree): 380 passing in 22.78 s under
+Test totals (pre-commit-23 working tree): 392 passing in 22.97 s under
 venv pytest 9.0.3.
 
 ---
@@ -115,10 +116,10 @@ venv pytest 9.0.3.
   `corona_2` acceptance.
 - **6 `hierarchy.py`** — in progress, split A–E per Claude (web)
   2026-04-23 design relay. A (`Supertile` lazy-recursive +
-  `expand_one`) done in commit 22 (pending). B (recognisability +
-  Ammann–Beenker oracle), C (inflation argument + P3 oracle),
-  D (`FourthPillarArgument` framework stub), E (`@pillar(n)`
-  decorator + tagging sweep) still to come.
+  `expand_one`) done in `2385c2e`. B (recognisability +
+  Ammann–Beenker oracle) done in commit 23 (pending). C (inflation
+  argument + P3 oracle), D (`FourthPillarArgument` framework stub),
+  E (`@pillar(n)` decorator + tagging sweep) still to come.
 - **6 `hierarchy.py`** — not started.
 
 ## Implementation plan — `polyhedron.py`

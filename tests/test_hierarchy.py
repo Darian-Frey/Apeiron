@@ -17,7 +17,16 @@ from __future__ import annotations
 
 import pytest
 
-from apeiron.hierarchy import Supertile, expand_one
+from apeiron.hierarchy import (
+    IndistinguishablePair,
+    PatchTile,
+    RecognisabilityResult,
+    Supertile,
+    TilePatch,
+    expand_one,
+    is_recognisable,
+    neighbourhood_signature,
+)
 from apeiron.substitution import PositionedTile, SubstitutionRule
 from apeiron.symmetry import Mat3, Rotation, Vec3
 from apeiron.zphi import ZPhi
@@ -131,3 +140,170 @@ class TestExpandOne:
         a = expand_one(rule, 0)
         b = expand_one(rule, 0)
         assert a == b
+
+
+# -- Recognisability (pillar 2) ---------------------------------------
+
+
+def _grid_neighbour_within(
+    positions: tuple[tuple[int, int], ...],
+) -> "callable":
+    """Build a neighbour-within oracle from a set of integer 2D
+    positions, using Chebyshev (L∞) distance — simple grid-step
+    radius. Returns a function ``(i, j, r) -> bool``.
+    """
+    def fn(i: int, j: int, r: int) -> bool:
+        xi, yi = positions[i]
+        xj, yj = positions[j]
+        return max(abs(xi - xj), abs(yi - yj)) <= r
+    return fn
+
+
+def _ammann_beenker_like_patch() -> TilePatch:
+    """Synthetic Ammann–Beenker–style fixture for the pillar-2 oracle.
+
+    A 4-tile patch that mimics the structural property captured in
+    Baake & Grimm Vol. 1 §6: each tile's *immediate* neighbour
+    multiset uniquely determines its supertile parent. Tile types
+    chosen so that:
+
+    - Squares (type 0) at positions (0, 0) and (3, 0) belong to
+      supertile 0; each is adjacent to one rhombus and to the other
+      square.
+
+    Wait, that conflicts — let me redo. We want tiles with the same
+    *parent* to share a signature, and tiles with *different*
+    parents to have distinct signatures. Concrete configuration:
+
+    - Tile 0: type=0 (square), parent=0, position=(0, 0).
+      Neighbours within radius 1: tile 1 (type 0). Signature: (0, 0).
+    - Tile 1: type=0 (square), parent=0, position=(1, 0).
+      Neighbours within radius 1: tile 0 (type 0), tile 2 (type 1).
+      Signature: (0, 0, 1).
+    - Tile 2: type=1 (rhombus), parent=1, position=(2, 0).
+      Neighbours within radius 1: tile 1 (type 0), tile 3 (type 1).
+      Signature: (0, 1, 1).
+    - Tile 3: type=1 (rhombus), parent=1, position=(3, 0).
+      Neighbours within radius 1: tile 2 (type 1). Signature: (1, 1).
+
+    All four signatures are distinct → recognisable at radius 1.
+    """
+    positions = ((0, 0), (1, 0), (2, 0), (3, 0))
+    tiles = (
+        PatchTile(tile_type=0, parent_supertile=0),
+        PatchTile(tile_type=0, parent_supertile=0),
+        PatchTile(tile_type=1, parent_supertile=1),
+        PatchTile(tile_type=1, parent_supertile=1),
+    )
+    return TilePatch(
+        tiles=tiles,
+        neighbour_within=_grid_neighbour_within(positions),
+    )
+
+
+def _non_recognisable_patch() -> TilePatch:
+    """Two tiles with identical neighbourhood signatures but different
+    parents. radius=1 sees both with signature (0, 0); but tile 0 is
+    in supertile 0 and tile 1 is in supertile 1. No radius will
+    distinguish them in this synthetic patch (they're symmetric),
+    so ``is_recognisable`` should always fail and surface an
+    ``IndistinguishablePair``.
+    """
+    positions = ((0, 0), (1, 0))
+    tiles = (
+        PatchTile(tile_type=0, parent_supertile=0),
+        PatchTile(tile_type=0, parent_supertile=1),
+    )
+    return TilePatch(
+        tiles=tiles,
+        neighbour_within=_grid_neighbour_within(positions),
+    )
+
+
+class TestNeighbourhoodSignature:
+    def test_includes_centre_tile(self) -> None:
+        patch = _ammann_beenker_like_patch()
+        sig = neighbourhood_signature(patch, 0, radius=1)
+        # Centre tile is type 0; one neighbour at distance 1 is type 0.
+        assert sig == (0, 0)
+
+    def test_signature_is_sorted(self) -> None:
+        patch = _ammann_beenker_like_patch()
+        sig = neighbourhood_signature(patch, 1, radius=1)
+        assert sig == tuple(sorted(sig))
+
+    def test_radius_zero_yields_only_centre(self) -> None:
+        patch = _ammann_beenker_like_patch()
+        sig = neighbourhood_signature(patch, 0, radius=0)
+        # Radius 0 means "tile and tiles at distance 0" — only the
+        # tile itself (since other tiles are at distance ≥ 1).
+        assert sig == (0,)
+
+    def test_larger_radius_includes_more(self) -> None:
+        patch = _ammann_beenker_like_patch()
+        # At radius 3, tile 0 sees all four tiles.
+        sig = neighbourhood_signature(patch, 0, radius=3)
+        assert sig == (0, 0, 1, 1)
+
+    def test_rejects_out_of_range_index(self) -> None:
+        patch = _ammann_beenker_like_patch()
+        with pytest.raises(IndexError):
+            neighbourhood_signature(patch, 99, radius=1)
+
+
+class TestIsRecognisable:
+    def test_ammann_beenker_recognisable_at_radius_1(self) -> None:
+        patch = _ammann_beenker_like_patch()
+        result = is_recognisable(patch, max_radius=5)
+        assert result.is_recognisable is True
+        assert result.radius_used == 1
+        assert result.radius_cap_reached is False
+        assert isinstance(result.witness, dict)
+
+    def test_witness_maps_signatures_to_parents(self) -> None:
+        patch = _ammann_beenker_like_patch()
+        result = is_recognisable(patch, max_radius=5)
+        assert isinstance(result.witness, dict)
+        # Every patch tile's signature should appear in the witness
+        # and map to its parent.
+        for i, tile in enumerate(patch.tiles):
+            sig = neighbourhood_signature(patch, i, result.radius_used)
+            assert result.witness[sig] == tile.parent_supertile
+
+    def test_non_recognisable_returns_pair(self) -> None:
+        patch = _non_recognisable_patch()
+        result = is_recognisable(patch, max_radius=3)
+        assert result.is_recognisable is False
+        assert result.radius_cap_reached is True
+        assert isinstance(result.witness, IndistinguishablePair)
+        # The pair must be tiles 0 and 1 with parents 0 and 1.
+        pair = result.witness
+        assert {pair.tile_a, pair.tile_b} == {0, 1}
+        assert {pair.parent_a, pair.parent_b} == {0, 1}
+
+    def test_indistinguishable_pair_records_radius(self) -> None:
+        patch = _non_recognisable_patch()
+        result = is_recognisable(patch, max_radius=3)
+        pair = result.witness
+        assert isinstance(pair, IndistinguishablePair)
+        # The radius recorded is the cap (3) since failure persisted.
+        assert pair.radius == 3
+
+    def test_rejects_zero_max_radius(self) -> None:
+        patch = _ammann_beenker_like_patch()
+        with pytest.raises(ValueError, match="max_radius"):
+            is_recognisable(patch, max_radius=0)
+
+    def test_search_terminates_at_smallest_sufficient_radius(
+        self,
+    ) -> None:
+        # Pick a patch where radius 1 works.
+        patch = _ammann_beenker_like_patch()
+        result = is_recognisable(patch, max_radius=10)
+        # Should stop at radius 1, not exhaust the cap.
+        assert result.radius_used == 1
+
+    def test_returns_recognisability_result_type(self) -> None:
+        patch = _ammann_beenker_like_patch()
+        result = is_recognisable(patch, max_radius=2)
+        assert isinstance(result, RecognisabilityResult)
