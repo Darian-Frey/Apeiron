@@ -68,7 +68,7 @@ closure (too few tiles, leaving gaps). The BFS prunes on both.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 
 from apeiron.polyhedron import Polyhedron, exact_orientation
@@ -81,6 +81,7 @@ __all__ = [
     "PlacedTile",
     "Vertex",
     "corona_1",
+    "corona_2",
     "face_to_face_placements",
     "find_rotation",
     "has_interior_overlap",
@@ -860,8 +861,8 @@ def _canonical_form_under_I(config: CoronaConfig) -> CoronaConfig:
 def corona_1(
     P: Polyhedron,
     *,
-    expected_edge_count: int,
-    expected_vertex_count: int,
+    expected_edge_count: int | Callable[[Edge], int],
+    expected_vertex_count: int | Callable[[Vertex], int],
 ) -> tuple[CoronaConfig, ...]:
     """Enumerate all complete first-corona configurations of ``P``,
     modulo the icosahedral group I.
@@ -870,18 +871,27 @@ def corona_1(
     ``P`` and a set of placed copies of ``P`` as neighbours such that:
 
     - ``incidence_defect(config, f, expected=...) == 0`` for every
-      vertex and edge ``f`` of the central, using the given
-      ``expected_vertex_count`` for vertices and
-      ``expected_edge_count`` for edges.
+      vertex and edge ``f`` of the central, using the per-feature
+      expected count.
     - ``not has_interior_overlap(config)``.
 
-    The ``expected_*`` counts are tiling parameters (how many tiles
-    meet at each edge / vertex in the intended tiling). For the cube
-    in its natural face-to-face tiling, 4 and 8. For the rhombic
-    dodecahedron, 4 and 6. They're passed explicitly because
-    deriving them from dihedral angles requires exact-angle reasoning
-    that is not cleanly reducible to integer arithmetic — see the
-    STATUS.md 2026-04-22 Q&A entry on the ``angular_defect`` rename.
+    The ``expected_*`` arguments may be either:
+
+    - **``int``** — uniform expected count across all features of
+      that type. For face-transitive tiles whose dihedral angles are
+      uniform (cube: 4 at every edge, 8 at every vertex), one int
+      suffices.
+    - **``Callable[[Edge|Vertex], int]``** — per-feature lookup. For
+      tiles with multiple vertex or edge types in the tiling
+      (rhombic dodecahedron has 3-valent and 4-valent vertex types,
+      meeting 4 and 6 tiles respectively), the caller supplies a
+      function from ``Vertex(idx)`` / ``Edge(lo, hi)`` to the
+      expected count for that specific feature.
+
+    The expected counts are passed explicitly rather than derived
+    from dihedral angles because exact-angle reasoning is not
+    cleanly reducible to integer arithmetic — see the STATUS.md
+    2026-04-22 Q&A entry on the ``angular_defect`` rename.
 
     Algorithm
     ---------
@@ -915,8 +925,19 @@ def corona_1(
         Vertex(i) for i in range(len(P.vertices))
     ] + [Edge(lo, hi) for (lo, hi) in sorted(_edges_of(P))]
 
+    edge_lookup: Callable[[Edge], int] = (
+        (lambda _e: expected_edge_count)  # type: ignore[return-value,misc]
+        if isinstance(expected_edge_count, int)
+        else expected_edge_count
+    )
+    vertex_lookup: Callable[[Vertex], int] = (
+        (lambda _v: expected_vertex_count)  # type: ignore[return-value,misc]
+        if isinstance(expected_vertex_count, int)
+        else expected_vertex_count
+    )
+
     def _expected_for(f: Vertex | Edge) -> int:
-        return expected_edge_count if isinstance(f, Edge) else expected_vertex_count
+        return edge_lookup(f) if isinstance(f, Edge) else vertex_lookup(f)
 
     initial_needs: dict[Vertex | Edge, int] = {
         f: _expected_for(f) - 1 for f in all_features
@@ -1031,3 +1052,310 @@ def _feature_sort_key(f: Vertex | Edge) -> tuple[int, ...]:
     if isinstance(f, Vertex):
         return (0, f.index)
     return (1, f.lo, f.hi)
+
+
+# -- corona_2 second-shell extension (sub-commit E) -------------------
+
+
+def corona_2(
+    config: CoronaConfig,
+    *,
+    expected_edge_count: int | Callable[[Edge], int],
+    expected_vertex_count: int | Callable[[Vertex], int],
+) -> tuple[PlacedTile, ...]:
+    """Extend a complete first-corona configuration to its second
+    shell — the layer of tiles whose features close the *first-shell
+    tiles*' boundary, not the central's.
+
+    Inputs
+    ------
+    ``config`` is a complete ``corona_1`` result: ``CoronaConfig``
+    with ``incidence_defect == 0`` at every feature of the central
+    and ``has_interior_overlap == False``. (Not re-checked here; the
+    caller is presumed to be passing a ``corona_1`` output.)
+    ``expected_edge_count`` and ``expected_vertex_count`` follow the
+    same contract as in ``corona_1`` — uniform ``int`` or per-feature
+    callable — but apply to features of *every first-shell tile*, not
+    only the central.
+
+    Returns
+    -------
+    A tuple of ``PlacedTile`` representing the second-shell tiles
+    that, taken together with the central and the first-shell
+    neighbours, close every feature of every first-shell tile to its
+    expected count.
+
+    Algorithm
+    ---------
+    For each first-shell tile T, treat T as a new "central" and run
+    the same enumeration / backtracking as ``corona_1`` — but with
+    the existing central + first-shell neighbours pre-occupying their
+    placements. The tiles already present (central, all first-shell
+    neighbours, all previously-found second-shell tiles) reduce
+    feature defects at T's boundary; only the still-missing
+    placements get added.
+
+    For the cube fixture: corona_2 returns 96 tiles — the third
+    layer of a 5×5×5 block minus the inner 3×3×3 (1 central + 26
+    first-shell already accounted for; 5³ − 3³ = 125 − 27 = 98, less
+    the 26 first-shell-but-not-central first-coronal cells already
+    counted, plus the central, gives the second-shell count).
+
+    Note
+    ----
+    This is the simplest sound formulation; it iterates over each
+    first-shell tile sequentially. Future optimisation: enumerate
+    candidates jointly across all first-shell tiles to avoid
+    duplicate work, since adjacent first-shell tiles share many
+    second-shell candidates.
+    """
+    P = config.central
+    # Track the placements already known: central (implicit at
+    # identity) plus first-shell neighbours, plus second-shell tiles
+    # accumulated so far.
+    central_placement = _identity_placement()
+    known: list[PlacedTile] = [central_placement, *config.neighbours]
+    second_shell: list[PlacedTile] = []
+
+    # Candidate enumeration depends only on the prototype's shape,
+    # not on which placement we're treating as the "centre" — so
+    # compute it once and reuse across all first-shell tiles. This
+    # is the dominant cost (~2 s per call for the cube, vs ~26x
+    # invocations otherwise).
+    shared_candidates = _enumerate_corona_candidates(P)
+    shared_cover_map: dict[PlacedTile, frozenset[Vertex | Edge]] = {
+        c: _placement_feature_coverage(P, c) for c in shared_candidates
+    }
+    shared_candidates = [
+        c for c in shared_candidates if shared_cover_map[c]
+    ]
+
+    for first_shell_tile in config.neighbours:
+        # Re-frame: first_shell_tile is the new "centre". The
+        # corresponding CoronaConfig has central = P, neighbours =
+        # everything currently placed (central, all first-shell
+        # tiles, second-shell tiles found so far) re-expressed
+        # *relative to* first_shell_tile's frame.
+        partial_neighbours = _reframe_placements_around(
+            known, first_shell_tile,
+        )
+        partial_config = CoronaConfig.from_neighbours(
+            P, partial_neighbours,
+        )
+        # Run the corona_1 backtracking pinned to this re-framed
+        # config: candidates and search continue from the partial
+        # state, picking up only the tiles missing to close
+        # first_shell_tile's boundary.
+        completion = _complete_corona_around(
+            partial_config,
+            expected_edge_count=expected_edge_count,
+            expected_vertex_count=expected_vertex_count,
+            cached_candidates=shared_candidates,
+            cached_cover_map=shared_cover_map,
+        )
+        # Re-frame completion back into the global frame and add to
+        # the second-shell list.
+        for new_tile_relative in completion:
+            new_tile_global = _compose_placements(
+                first_shell_tile, new_tile_relative,
+            )
+            if new_tile_global in known:
+                continue
+            second_shell.append(new_tile_global)
+            known.append(new_tile_global)
+
+    return tuple(second_shell)
+
+
+def _reframe_placements_around(
+    placements: Sequence[PlacedTile],
+    new_origin: PlacedTile,
+) -> list[PlacedTile]:
+    """Express ``placements`` in the frame where ``new_origin`` is at
+    the identity placement. The inverse rigid motion ``new_origin⁻¹``
+    is applied to each.
+    """
+    g_inv = new_origin.rotation.inverse()
+    t_inv_translation = -g_inv.apply(new_origin.translation)
+    inverse_placement = PlacedTile(
+        translation=t_inv_translation, rotation=g_inv,
+    )
+    return [
+        _compose_placements(inverse_placement, p)
+        for p in placements
+        if p != new_origin
+    ]
+
+
+def _complete_corona_around(
+    partial: CoronaConfig,
+    *,
+    expected_edge_count: int | Callable[[Edge], int],
+    expected_vertex_count: int | Callable[[Vertex], int],
+    cached_candidates: list[PlacedTile] | None = None,
+    cached_cover_map: dict[PlacedTile, frozenset[Vertex | Edge]] | None = None,
+) -> tuple[PlacedTile, ...]:
+    """Find the additional tiles that, together with ``partial``'s
+    existing neighbours, close every feature of ``partial.central``
+    to its expected count and don't introduce interior overlap.
+
+    Returns the new tiles only (the existing ``partial.neighbours``
+    are not repeated). Empty tuple if ``partial`` is already
+    complete. ``ValueError`` if no completion exists or if multiple
+    distinct completions exist (a deterministic single answer is
+    required for ``corona_2``'s correctness; if you ever hit
+    ambiguity in practice, the corona is non-uniquely completable
+    around this tile and the caller needs to widen the
+    ``corona_1``-style search to second shell).
+
+    ``cached_candidates`` and ``cached_cover_map`` allow the caller
+    to reuse a pre-computed candidate enumeration across many calls
+    on the same prototype — e.g. ``corona_2`` builds these once and
+    passes them in for every first-shell tile.
+    """
+    P = partial.central
+    if cached_candidates is None:
+        candidates = _enumerate_corona_candidates(P)
+        cover_map: dict[PlacedTile, frozenset[Vertex | Edge]] = {
+            c: _placement_feature_coverage(P, c) for c in candidates
+        }
+        candidates = [c for c in candidates if cover_map[c]]
+    else:
+        assert cached_cover_map is not None
+        candidates = list(cached_candidates)
+        cover_map = cached_cover_map
+    # Pre-strip candidates already in partial.neighbours.
+    placed_set: set[PlacedTile] = set(partial.neighbours)
+    candidates = [c for c in candidates if c not in placed_set]
+
+    all_features: list[Vertex | Edge] = [
+        Vertex(i) for i in range(len(P.vertices))
+    ] + [Edge(lo, hi) for (lo, hi) in sorted(_edges_of(P))]
+
+    edge_lookup: Callable[[Edge], int] = (
+        (lambda _e: expected_edge_count)  # type: ignore[return-value,misc]
+        if isinstance(expected_edge_count, int)
+        else expected_edge_count
+    )
+    vertex_lookup: Callable[[Vertex], int] = (
+        (lambda _v: expected_vertex_count)  # type: ignore[return-value,misc]
+        if isinstance(expected_vertex_count, int)
+        else expected_vertex_count
+    )
+
+    def _expected_for(f: Vertex | Edge) -> int:
+        return edge_lookup(f) if isinstance(f, Edge) else vertex_lookup(f)
+
+    # Initial needs: expected − (1 for central + count of partial
+    # neighbours covering this feature).
+    initial_needs: dict[Vertex | Edge, int] = {}
+    for f in all_features:
+        partial_count = 1   # central
+        if isinstance(f, Vertex):
+            for n in partial.neighbours:
+                if Vertex(f.index) in _placement_feature_coverage(P, n):
+                    partial_count += 1
+        else:
+            for n in partial.neighbours:
+                if Edge(f.lo, f.hi) in _placement_feature_coverage(P, n):
+                    partial_count += 1
+        initial_needs[f] = _expected_for(f) - partial_count
+
+    # If any need is already negative, the partial is over-coronated.
+    for f, n in initial_needs.items():
+        if n < 0:
+            raise ValueError(
+                f"Partial corona around feature {f} is over-counted "
+                f"(need = {n}); cannot complete."
+            )
+
+    if all(n == 0 for n in initial_needs.values()):
+        return ()
+
+    # Reuse corona_1's ordered-subset search machinery.
+    candidate_list = candidates
+    n_candidates = len(candidate_list)
+    remaining_coverage: list[dict[Vertex | Edge, int]] = [
+        {} for _ in range(n_candidates + 1)
+    ]
+    for i in range(n_candidates - 1, -1, -1):
+        remaining_coverage[i] = dict(remaining_coverage[i + 1])
+        for f in cover_map[candidate_list[i]]:
+            remaining_coverage[i][f] = remaining_coverage[i].get(f, 0) + 1
+
+    def _feasible(idx: int, needs: dict[Vertex | Edge, int]) -> bool:
+        rem = remaining_coverage[idx]
+        for f, need in needs.items():
+            if need > rem.get(f, 0):
+                return False
+        return True
+
+    central_verts = list(P.vertices)
+    partial_vertex_lists = [
+        _placed_vertices(P, n) for n in partial.neighbours
+    ]
+
+    def _has_overlap_with(
+        chosen: list[PlacedTile], new_candidate: PlacedTile,
+    ) -> bool:
+        new_verts = _placed_vertices(P, new_candidate)
+        if _placements_interior_overlap(P, central_verts, new_verts):
+            return True
+        for plist in partial_vertex_lists:
+            if _placements_interior_overlap(P, plist, new_verts):
+                return True
+        for existing in chosen:
+            existing_verts = _placed_vertices(P, existing)
+            if _placements_interior_overlap(P, existing_verts, new_verts):
+                return True
+        return False
+
+    raw_solutions: list[list[PlacedTile]] = []
+
+    def _backtrack(
+        idx: int,
+        chosen: list[PlacedTile],
+        needs: dict[Vertex | Edge, int],
+    ) -> None:
+        if all(n == 0 for n in needs.values()):
+            raw_solutions.append(list(chosen))
+            return
+        if idx >= n_candidates:
+            return
+        if not _feasible(idx, needs):
+            return
+        c = candidate_list[idx]
+        _backtrack(idx + 1, chosen, needs)
+        new_needs = dict(needs)
+        over = False
+        for covered in cover_map[c]:
+            if new_needs[covered] <= 0:
+                over = True
+                break
+            new_needs[covered] -= 1
+        if over:
+            return
+        if _has_overlap_with(chosen, c):
+            return
+        chosen.append(c)
+        _backtrack(idx + 1, chosen, new_needs)
+        chosen.pop()
+
+    _backtrack(0, [], initial_needs)
+
+    unique_sets = {frozenset(neighbours) for neighbours in raw_solutions}
+    if not unique_sets:
+        raise ValueError(
+            "No completion of the partial corona exists; "
+            "first-shell tile may be at an inadmissible position."
+        )
+    if len(unique_sets) > 1:
+        raise ValueError(
+            f"{len(unique_sets)} distinct completions exist; the "
+            "corona around this first-shell tile is non-unique. "
+            "corona_2 in its current sound-but-simple form requires "
+            "uniqueness; widen the search if this surfaces in "
+            "practice."
+        )
+    (unique_set,) = unique_sets
+    return tuple(unique_set)

@@ -24,6 +24,7 @@ from apeiron.corona import (
     _edges_of,
     _placement_feature_coverage,
     corona_1,
+    corona_2,
     face_to_face_placements,
     find_rotation,
     has_interior_overlap,
@@ -742,3 +743,52 @@ class TestCoronaOneCube:
         # configs[0].central's orientation.)
         rotations = {n.rotation for n in configs[0].neighbours}
         assert len(rotations) == 1
+
+
+# -- corona_2 cube acceptance ----------------------------------------
+
+
+@pytest.fixture(scope="module")
+def cube_corona_2(cube_corona) -> tuple[Polyhedron, tuple[CoronaConfig, ...], tuple[PlacedTile, ...]]:
+    """Compute the cube's second corona once, share across tests.
+
+    Reuses ``cube_corona``'s fixture for the first shell. ``corona_2``
+    extends it; for the cube the result is the third layer of the
+    5×5×5 block — 98 tiles.
+    """
+    cube, configs = cube_corona
+    shell_2 = corona_2(
+        configs[0],
+        expected_edge_count=4,
+        expected_vertex_count=8,
+    )
+    return cube, configs, shell_2
+
+
+class TestCoronaTwoCube:
+    def test_second_shell_has_98_tiles(self, cube_corona_2) -> None:
+        # 5x5x5 - 3x3x3 = 125 - 27 = 98 second-shell cells, where
+        # the inner 3x3x3 is the central + 26 first-shell tiles.
+        _, _, shell_2 = cube_corona_2
+        assert len(shell_2) == 98
+
+    def test_total_tiles_form_5x5x5_cube(self, cube_corona_2) -> None:
+        _, configs, shell_2 = cube_corona_2
+        total = 1 + len(configs[0].neighbours) + len(shell_2)
+        assert total == 125
+
+    def test_second_shell_tiles_are_distinct(self, cube_corona_2) -> None:
+        _, _, shell_2 = cube_corona_2
+        assert len(set(shell_2)) == len(shell_2)
+
+    def test_second_shell_disjoint_from_first(self, cube_corona_2) -> None:
+        _, configs, shell_2 = cube_corona_2
+        first_shell_set = set(configs[0].neighbours)
+        for t in shell_2:
+            assert t not in first_shell_set
+
+    def test_second_shell_excludes_central(self, cube_corona_2) -> None:
+        from apeiron.corona import _identity_placement
+        _, _, shell_2 = cube_corona_2
+        identity = _identity_placement()
+        assert identity not in shell_2

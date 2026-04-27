@@ -14,11 +14,11 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-`corona.py` sub-commit E — `corona_2(config)` second-shell extension
-plus the rhombic dodecahedron acceptance test. Sub-commit D landed
-`corona_1(P)` with the cube acceptance oracle (1 canonical
-configuration with 26 neighbours, 9 tests). E extends to the second
-shell and verifies the RD's unique `corona_1` as a secondary oracle.
+Module 6 of the CLAUDE.md §5.1 sequence: `hierarchy.py`. The
+`corona.py` module is now complete (sub-commits A–E all landed).
+Hierarchy is the last module — supertile construction and
+recognisability (border forcing) — where substitution rules and
+coronas combine into the four-pillar proof structure.
 
 ---
 
@@ -48,7 +48,10 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **20** (pending) — `feat(corona)`: `corona_1(P)` BFS engine with
+- **21** (pending) — `feat(corona)`: per-feature `expected_*` API,
+  `corona_2` second-shell extension, RD `corona_1` acceptance test,
+  cube `corona_2` acceptance test (sub-commit E).
+- **20** `91b5412` — `feat(corona)`: `corona_1(P)` BFS engine with
   face-to-face candidate propagation, ordered-subset backtracking,
   and I-orbit canonical form; cube acceptance test (sub-commit D).
 - **19** `8b7aef6` — `feat(corona)`: completeness predicates —
@@ -87,7 +90,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-20 working tree): 357 passing in 6.73 s under
+Test totals (pre-commit-21 working tree): 368 passing in 23.05 s under
 venv pytest 9.0.3.
 
 ---
@@ -99,13 +102,15 @@ venv pytest 9.0.3.
 - **3 `polyhedron.py`** — done via five sub-commits A–E, details below.
 - **4 `substitution.py`** — done in commit 15 (pending). Penrose P3
   and Fibonacci acceptance oracles both pass.
-- **5 `corona.py`** — in progress, now split A–E (sub-commit C
-  was refactored into predicates-only, with BFS pushed to D). A
-  (data model) done in `944f589`. B (face-to-face placement +
-  `find_rotation`) done in `bdf774c`. C (`incidence_defect` +
-  `has_interior_overlap` predicates) done in `8b7aef6`.
-  D (`corona_1` BFS engine + cube acceptance test) done in commit
-  20 (pending). E (`corona_2` + rhombic-dodec test) still to come.
+- **5 `corona.py`** — done. Sub-commits A `944f589` (data model),
+  B `bdf774c` (face-to-face placement + `find_rotation`),
+  C `8b7aef6` (`incidence_defect` + `has_interior_overlap`),
+  D `91b5412` (`corona_1` BFS + cube test), E commit 21 (pending)
+  — per-feature `expected_*` API, `corona_2`, RD acceptance, cube
+  `corona_2` acceptance.
+- **6 `hierarchy.py`** — current focus. Supertile construction +
+  recognisability tests over the four proof pillars (CLAUDE.md
+  §6.3).
 - **6 `hierarchy.py`** — not started.
 
 ## Implementation plan — `polyhedron.py`

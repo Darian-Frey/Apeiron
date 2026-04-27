@@ -1,0 +1,32 @@
+{
+  "name": "rhombic_dodecahedron",
+  "description": "Rhombic dodecahedron (Catalan dual of the cuboctahedron). 14 vertices = 8 three-valent (cube corners at (±1, ±1, ±1)) + 6 four-valent (octahedral positions at (±2, 0, 0) and cyclic perms), 24 edges, 12 rhombic faces. Space-filling polyhedron whose natural tiling (rhombic-dodecahedral honeycomb) has 3 tiles meeting at every edge (dihedral angle 120°), 4 tiles meeting at each three-valent vertex, 6 tiles meeting at each four-valent vertex. corona_1 has 18 neighbours: 12 face-sharers + 6 vertex-sharers at the 4-valent positions. scale_denom=1, all integer ZPhi.",
+  "scale_denom": 1,
+  "expected": {
+    "vertices": 14,
+    "edges": 24,
+    "faces": 12,
+    "face_shape": "rhombus",
+    "euler_characteristic": 2,
+    "edge_incidence": 3,
+    "vertex_incidence_three_valent": 4,
+    "vertex_incidence_four_valent": 6,
+    "corona_1_neighbours": 18
+  },
+  "vertices": [
+    [[1, 0], [1, 0], [1, 0]],
+    [[1, 0], [1, 0], [-1, 0]],
+    [[1, 0], [-1, 0], [1, 0]],
+    [[1, 0], [-1, 0], [-1, 0]],
+    [[-1, 0], [1, 0], [1, 0]],
+    [[-1, 0], [1, 0], [-1, 0]],
+    [[-1, 0], [-1, 0], [1, 0]],
+    [[-1, 0], [-1, 0], [-1, 0]],
+    [[2, 0], [0, 0], [0, 0]],
+    [[-2, 0], [0, 0], [0, 0]],
+    [[0, 0], [2, 0], [0, 0]],
+    [[0, 0], [-2, 0], [0, 0]],
+    [[0, 0], [0, 0], [2, 0]],
+    [[0, 0], [0, 0], [-2, 0]]
+  ]
+}
