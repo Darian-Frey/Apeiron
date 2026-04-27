@@ -14,10 +14,28 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-Module 6 of the CLAUDE.md §5.1 sequence: `hierarchy.py`. Sub-commits
-A–D landed. Next: sub-commit E — `@pillar(n)` decorator (in
-`util.py`) plus a tagging sweep across `hierarchy.py` and the
-relevant pillar-1 tests in `test_substitution.py`.
+The CLAUDE.md §5.1 module sequence is **complete**. All six
+modules (`zphi`, `symmetry`, `polyhedron`, `substitution`, `corona`,
+`hierarchy`) ship with full acceptance criteria, oracle tests, and
+cross-module integration tests. The four-pillar proof apparatus is
+in place; pillar 4 is framework-only by design (concrete
+implementations live per-candidate at
+`candidates/<name>/fourth_pillar.py`).
+
+The pipeline is now ready to evaluate candidate tiles. Next steps,
+out of the §5.1 sequence:
+
+- **Track A — Deformation-first** (CLAUDE.md §6.1): encode Danzer's
+  4-tile set, search for minimal-deformation merges into a single
+  tile, run the resulting candidates through the four-pillar
+  verifier.
+- **Track B — Substitution-first** (CLAUDE.md §6.2): algebraic
+  search over ℤ[φ]-linear σ with eigenvalue φ² on small alphabets;
+  geometric realisation search for surviving σ candidates; ditto
+  through the four-pillar verifier.
+
+Either track is a research-effort question rather than a
+machinery-build question — the machinery is done.
 
 ---
 
@@ -47,7 +65,12 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **25** (pending) — `feat(hierarchy)`: `FourthPillarArgument`
+- **26** (pending) — `feat(util)`: `@pillar(n)` decorator +
+  tagging sweep across `substitution.py` (pillar 1) and
+  `hierarchy.py` (pillars 2–4); coverage tests asserting every
+  pillar-establishing target carries the right tag (sub-commit E,
+  completes module 6).
+- **25** `7045e13` — `feat(hierarchy)`: `FourthPillarArgument`
   protocol + `HierarchicalWitness` / `HierarchicalCounterexample`
   dataclasses; framework only, concrete implementations live per-
   candidate at `candidates/<name>/fourth_pillar.py` (sub-commit D).
@@ -104,7 +127,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-25 working tree): 411 passing in 23.01 s under
+Test totals (pre-commit-26 working tree): 422 passing in 22.96 s under
 venv pytest 9.0.3.
 
 ---
@@ -122,14 +145,14 @@ venv pytest 9.0.3.
   D `91b5412` (`corona_1` BFS + cube test), E commit 21 (pending)
   — per-feature `expected_*` API, `corona_2`, RD acceptance, cube
   `corona_2` acceptance.
-- **6 `hierarchy.py`** — in progress, split A–E per Claude (web)
-  2026-04-23 design relay. A (`Supertile` lazy-recursive +
-  `expand_one`) done in `2385c2e`. B (recognisability +
-  Ammann–Beenker oracle) done in `a92e25f`. C (inflation argument +
-  P3 oracle) done in `9507fbb`. D (`FourthPillarArgument` framework
-  stub) done in commit 25 (pending). E (`@pillar(n)` decorator +
-  tagging sweep) is the only remaining sub-commit.
-- **6 `hierarchy.py`** — not started.
+- **6 `hierarchy.py`** — done. Sub-commits A `2385c2e` (Supertile +
+  expand_one), B `a92e25f` (recognisability + Ammann–Beenker
+  oracle), C `9507fbb` (inflation argument + P3 oracle),
+  D `7045e13` (FourthPillarArgument framework stub), E commit 26
+  (pending) — `@pillar(n)` decorator in `util.py` plus tagging
+  sweep across pillars 1–4.
+
+**The CLAUDE.md §5.1 module sequence is complete.**
 
 ## Implementation plan — `polyhedron.py`
 

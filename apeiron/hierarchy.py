@@ -48,6 +48,7 @@ from apeiron.substitution import (
     perron_frobenius_in_zphi,
     substitution_matrix,
 )
+from apeiron.util import pillar
 from apeiron.zphi import ZPhi
 
 __all__ = [
@@ -256,12 +257,15 @@ def neighbourhood_signature(
     return tuple(sorted(types))
 
 
+@pillar(2)
 def is_recognisable(
     patch: TilePatch,
     *,
     max_radius: int = 5,
 ) -> RecognisabilityResult:
-    """Decide whether the supertile parent of every tile in ``patch``
+    """Pillar 2: recognisability / border forcing.
+
+    Decide whether the supertile parent of every tile in ``patch``
     is uniquely determined by some bounded radius of local
     neighbourhood.
 
@@ -403,11 +407,14 @@ class InflationFailure:
     detail: str
 
 
+@pillar(3)
 def inflation_argument(
     rule: SubstitutionRule,
     recognisability: RecognisabilityResult,
 ) -> InflationArgument | InflationFailure:
-    """Combine pillar 1 (primitivity) and pillar 2 (recognisability)
+    """Pillar 3: aperiodicity from recognisability.
+
+    Combine pillar 1 (primitivity) and pillar 2 (recognisability)
     to produce a pillar-3 witness, or identify which precondition
     failed.
 
@@ -558,9 +565,12 @@ class HierarchicalCounterexample:
     search_bound: int
 
 
+@pillar(4)
 @runtime_checkable
 class FourthPillarArgument(Protocol):
-    """Protocol for the candidate-specific pillar-4 argument.
+    """Pillar 4: no non-hierarchical tiling exists.
+
+    Protocol for the candidate-specific pillar-4 argument.
 
     A concrete implementation lives at
     ``candidates/<name>/fourth_pillar.py`` and supplies two

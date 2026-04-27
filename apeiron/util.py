@@ -7,13 +7,70 @@ to its own module rather than letting ``util`` bloat.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
+from typing import TypeVar
 
 from apeiron.polyhedron import Polyhedron
 from apeiron.symmetry import Vec3
 from apeiron.zphi import ZPhi
 
-__all__ = ["load_candidate"]
+__all__ = ["load_candidate", "pillar"]
+
+
+_PillarTaggable = TypeVar("_PillarTaggable")
+
+
+def pillar(n: int) -> Callable[[_PillarTaggable], _PillarTaggable]:
+    """Tag a function or class with a four-pillar proof obligation.
+
+    The decorated target gets a ``_pillar = n`` attribute, accessible
+    for grep-style and programmatic queries about which of the four
+    proof pillars (CLAUDE.md §6.3) each function or protocol
+    establishes. The decorator is purely metadata — it does not
+    wrap, rebind, or otherwise alter the target's runtime behaviour.
+
+    Tagging convention (per Claude (web) 2026-04-23):
+
+    - ``@pillar(1)`` on functions establishing "substitution exists
+      and is primitive" (currently ``substitution.is_primitive`` and
+      ``substitution.perron_frobenius_in_zphi``).
+    - ``@pillar(2)`` on functions establishing "recognisability /
+      border forcing" (``hierarchy.is_recognisable``).
+    - ``@pillar(3)`` on functions establishing "aperiodicity from
+      recognisability" (``hierarchy.inflation_argument``).
+    - ``@pillar(4)`` on the ``hierarchy.FourthPillarArgument``
+      protocol; concrete implementations live per-candidate at
+      ``candidates/<name>/fourth_pillar.py`` and inherit the tag
+      through the protocol.
+
+    Tests can grep for the tag with ``getattr(fn, "_pillar", None)``
+    and assert that the four-pillar coverage is complete.
+
+    Parameters
+    ----------
+    n : int
+        Pillar number, 1–4.
+
+    Returns
+    -------
+    Decorator that attaches ``_pillar = n`` to its argument.
+
+    Raises
+    ------
+    ValueError
+        If ``n`` is not in ``{1, 2, 3, 4}``.
+    """
+    if n not in (1, 2, 3, 4):
+        raise ValueError(
+            f"pillar(n) requires n ∈ {{1, 2, 3, 4}}; got {n}."
+        )
+
+    def decorator(target: _PillarTaggable) -> _PillarTaggable:
+        target._pillar = n   # type: ignore[attr-defined]
+        return target
+
+    return decorator
 
 
 _VALID_SCALE_DENOMS: tuple[int, ...] = (1, 2)

@@ -319,3 +319,20 @@ class TestPerronFrobeniusInZPhi:
         P3 = np.array([[2, 1], [1, 1]], dtype=int)
         for radius in (5, 10, 20, 50):
             assert perron_frobenius_in_zphi(P3, max_search=radius) == ZPhi(1, 1)
+
+
+# -- Pillar 1 tag coverage -------------------------------------------
+
+
+class TestPillar1Tagging:
+    """Sweep: every function establishing pillar 1 must carry the
+    ``@pillar(1)`` decorator's ``_pillar = 1`` attribute. Catches
+    regressions where a future refactor strips the decorator
+    silently.
+    """
+
+    def test_is_primitive_is_pillar_1(self) -> None:
+        assert is_primitive._pillar == 1
+
+    def test_perron_frobenius_in_zphi_is_pillar_1(self) -> None:
+        assert perron_frobenius_in_zphi._pillar == 1

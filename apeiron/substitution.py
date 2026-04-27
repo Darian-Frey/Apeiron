@@ -36,6 +36,7 @@ from typing import Final
 import numpy as np
 
 from apeiron.symmetry import Mat3, Rotation, Vec3
+from apeiron.util import pillar
 from apeiron.zphi import ZPhi
 
 __all__ = [
@@ -134,8 +135,11 @@ def substitution_matrix(rule: SubstitutionRule) -> np.ndarray:
     return M
 
 
+@pillar(1)
 def is_primitive(M: np.ndarray, *, max_power: int | None = None) -> bool:
-    """Return ``True`` iff some power of ``M`` has all-positive entries.
+    """Pillar 1: substitution exists and is primitive.
+
+    Return ``True`` iff some power of ``M`` has all-positive entries.
 
     Uses Wielandt's bound: for an ``n × n`` non-negative matrix, if
     primitive, then ``M ** k`` has all-positive entries for some
@@ -193,13 +197,16 @@ def perron_frobenius_eigenvalue(M: np.ndarray) -> float:
     return max(real_positive)
 
 
+@pillar(1)
 def perron_frobenius_in_zphi(
     M: np.ndarray,
     *,
     max_search: int = 20,
     tolerance: float = 1e-7,
 ) -> ZPhi | None:
-    """Return the PF eigenvalue as a ``ZPhi`` if it lies exactly in
+    """Pillar 1: substitution exists and is primitive.
+
+    Return the PF eigenvalue as a ``ZPhi`` if it lies exactly in
     ``Z[phi]``; otherwise ``None``.
 
     Strategy: compute the PF eigenvalue numerically, enumerate candidate

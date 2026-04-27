@@ -19,7 +19,7 @@ import pytest
 
 from apeiron.polyhedron import Polyhedron
 from apeiron.symmetry import Vec3
-from apeiron.util import load_candidate
+from apeiron.util import load_candidate, pillar
 from apeiron.zphi import ZPhi
 
 
@@ -309,6 +309,43 @@ class TestAllowInteriorInputs:
         p = _write_json(tmp_path, payload)
         with pytest.raises(ValueError, match=r"2 of 10 input vertices"):
             load_candidate(p)
+
+
+# -- pillar decorator --------------------------------------------------
+
+
+class TestPillarDecorator:
+    def test_attaches_pillar_attribute_to_function(self) -> None:
+        @pillar(2)
+        def f() -> int:
+            return 42
+
+        assert f._pillar == 2
+        assert f() == 42  # behaviour preserved
+
+    def test_attaches_pillar_attribute_to_class(self) -> None:
+        @pillar(4)
+        class C:
+            pass
+
+        assert C._pillar == 4
+
+    def test_pillar_zero_is_rejected(self) -> None:
+        with pytest.raises(ValueError, match=r"\{1, 2, 3, 4\}"):
+            pillar(0)
+
+    def test_pillar_five_is_rejected(self) -> None:
+        with pytest.raises(ValueError, match=r"\{1, 2, 3, 4\}"):
+            pillar(5)
+
+    def test_decorator_returns_target_unchanged(self) -> None:
+        # Identity except for the attribute attachment.
+        def f() -> str:
+            return "hello"
+
+        decorated = pillar(1)(f)
+        assert decorated is f
+        assert decorated() == "hello"
 
     def test_no_interior_no_error(self, tmp_path: Path) -> None:
         # Plain cube, no interior points.

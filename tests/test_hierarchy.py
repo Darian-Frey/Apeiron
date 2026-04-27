@@ -627,3 +627,43 @@ class TestFourthPillarArgumentProtocol:
         impl = _AlwaysCounterexample()
         verdict = impl.verify_hierarchical(_trivial_corona_config())
         assert isinstance(verdict, HierarchicalCounterexample)
+
+
+# -- Pillar 2 / 3 / 4 tag coverage -----------------------------------
+
+
+class TestPillarTagging:
+    """Sweep: every pillar-establishing function or protocol in
+    ``hierarchy.py`` must carry the ``@pillar(n)`` decorator's tag.
+    Together with ``TestPillar1Tagging`` in ``test_substitution.py``,
+    this verifies the four-pillar coverage is complete and stable
+    against future refactors that might silently strip a decorator.
+    """
+
+    def test_is_recognisable_is_pillar_2(self) -> None:
+        assert is_recognisable._pillar == 2
+
+    def test_inflation_argument_is_pillar_3(self) -> None:
+        assert inflation_argument._pillar == 3
+
+    def test_fourth_pillar_argument_is_pillar_4(self) -> None:
+        assert FourthPillarArgument._pillar == 4
+
+    def test_all_four_pillars_have_at_least_one_tagged_target(self) -> None:
+        # Cross-check against the pillar-1 functions in
+        # apeiron.substitution. This test exists to enforce that no
+        # pillar is unimplemented or silently un-tagged at the
+        # module-graph level.
+        from apeiron.substitution import is_primitive, perron_frobenius_in_zphi
+        pillar_targets: dict[int, list[object]] = {
+            1: [is_primitive, perron_frobenius_in_zphi],
+            2: [is_recognisable],
+            3: [inflation_argument],
+            4: [FourthPillarArgument],
+        }
+        for pillar_n, targets in pillar_targets.items():
+            for t in targets:
+                assert getattr(t, "_pillar", None) == pillar_n, (
+                    f"target {t} expected _pillar = {pillar_n}, "
+                    f"got {getattr(t, '_pillar', None)}"
+                )
