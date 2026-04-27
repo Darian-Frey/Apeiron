@@ -1,0 +1,18 @@
+{
+  "name": "danzer_abck_substitution",
+  "description": "Substitution rule for Danzer ABCK tiling. Linear inflation multiplier is phi (ZPhi(0,1)), NOT phi^3. PF eigenvalue of substitution matrix is phi^3 = ZPhi(1,2) because volume scales as lambda^3 = phi^3. Source: Frettloh (Bielefeld internal report), substitution matrix and Figure 2.",
+  "prototile_files": ["danzer_A.json", "danzer_B.json", "danzer_C.json", "danzer_K.json"],
+  "inflation_linear_factor": [0, 1],
+  "substitution_matrix": [
+    [0, 0, 1, 0],
+    [3, 2, 0, 1],
+    [2, 1, 2, 0],
+    [6, 4, 2, 1]
+  ],
+  "expected_pf_eigenvalue": [1, 2],
+  "expected_other_eigenvalues_note": "tau, -tau^{-1}, -tau^{-3}; all algebraic integers in Z[phi]",
+  "pf_eigenvector_note": "Normalised PF eigenvector (relative frequencies A:B:C:K) = (sqrt5, 10+3sqrt5, 5+2sqrt5, 15+7sqrt5) / (13sqrt5+30), approx (0.0379, 0.2829, 0.1604, 0.5189). K is most common (>50%), A is rare (<4%).",
+  "dissection_note": "Explicit child placements (translation + rotation per child) are depicted in Frettloh Figure 2 and the interactive Tilings Encyclopedia at tilings.math.uni-bielefeld.de. Encoding the full child-list requires transcription from the figure; see candidates/danzer/dissection_notes.md for this work.",
+  "matching_rule": "Face-to-face. If a face of tile T contains an edge with dihedral angle pi/2 (blue/2-fold edge), the mirror image of T must be on the other side of that face. This is a purely geometric local rule — no decorations required beyond face-orientation.",
+  "fourth_pillar_reference": "Aperiodicity follows from recognisability (pillar 2) + inflation argument (pillar 3). Fourth-pillar (no non-hierarchical tilings) is established via the local matching rule above: Frettloh Theorem 1.2 states that all face-to-face tilings by A,B,C,K satisfying the blue-edge mirror rule are ABCK tilings. The ABCK tilings are a subclass of the hierarchical tilings. Citation: Danzer 1989, Frettloh (Bielefeld report) Theorem 1.2."
+}

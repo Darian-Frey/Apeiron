@@ -14,28 +14,28 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-The CLAUDE.md §5.1 module sequence is **complete**. All six
-modules (`zphi`, `symmetry`, `polyhedron`, `substitution`, `corona`,
-`hierarchy`) ship with full acceptance criteria, oracle tests, and
-cross-module integration tests. The four-pillar proof apparatus is
-in place; pillar 4 is framework-only by design (concrete
-implementations live per-candidate at
-`candidates/<name>/fourth_pillar.py`).
+**Track A** (CLAUDE.md §6.1) underway: Danzer ABCK baseline. Per
+Claude (web)'s 2026-04-23 direction-pick, Track A first; fall back
+to Track B if the deformation-search produces a no-go theorem.
 
-The pipeline is now ready to evaluate candidate tiles. Next steps,
-out of the §5.1 sequence:
+Sub-commit plan for Track A's first candidate (Danzer):
 
-- **Track A — Deformation-first** (CLAUDE.md §6.1): encode Danzer's
-  4-tile set, search for minimal-deformation merges into a single
-  tile, run the resulting candidates through the four-pillar
-  verifier.
-- **Track B — Substitution-first** (CLAUDE.md §6.2): algebraic
-  search over ℤ[φ]-linear σ with eigenvalue φ² on small alphabets;
-  geometric realisation search for surviving σ candidates; ditto
-  through the four-pillar verifier.
-
-Either track is a research-effort question rather than a
-machinery-build question — the machinery is done.
+- **27A** done in commit 27 (pending) — encode A/B/C/K prototiles
+  as `candidates/danzer/{A,B,C,K}.json` per Frettlöh Table 1, with
+  K's class-IV vertex stored at `scale_denom=2`. 20 integration
+  tests confirm tetrahedron shape (4V/6E/4F, χ=2, all triangular).
+- **27B** — encode the substitution rule (matrix from Frettlöh,
+  inflation factor φ ≠ φ³ — see correction below); pillar-1
+  verification (primitivity + PF eigenvalue = φ³ = ZPhi(1, 2)).
+  Child placements (translation + rotation per child of σ(X) for
+  X ∈ {A,B,C,K}) require manual transcription from Frettlöh
+  Figure 2 / Tilings Encyclopedia interactive view; will land in a
+  preceding `dissection_notes.md` sub-commit.
+- **27C** — `candidates/danzer/fourth_pillar.py` stub
+  (`NotImplementedError` impl of the protocol, citing Danzer 1989
+  Thm 2 + Goodman-Strauss 1998).
+- **27D** — full four-pillar pipeline run on Danzer; sanity baseline
+  before the deformation search begins.
 
 ---
 
@@ -65,7 +65,10 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **26** (pending) — `feat(util)`: `@pillar(n)` decorator +
+- **27** (pending) — `feat(candidates/danzer)`: encode A/B/C/K
+  prototiles per Frettlöh Table 1 + integration test (20 cases
+  confirming tetrahedron shape, K stored at `scale_denom=2`).
+- **26** `0415ef9` — `feat(util)`: `@pillar(n)` decorator +
   tagging sweep across `substitution.py` (pillar 1) and
   `hierarchy.py` (pillars 2–4); coverage tests asserting every
   pillar-establishing target carries the right tag (sub-commit E,
@@ -127,7 +130,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-26 working tree): 422 passing in 22.96 s under
+Test totals (pre-commit-27 working tree): 442 passing in 22.36 s under
 venv pytest 9.0.3.
 
 ---

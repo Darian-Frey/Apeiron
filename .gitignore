@@ -15,3 +15,5 @@ build/
 .vscode/
 .idea/
 notebooks/*.html
+Claude_docs
+

@@ -1,0 +1,19 @@
+{
+  "name": "danzer_C",
+  "description": "Danzer ABCK tile C. Tetrahedron with all vertices in Z[phi]^3. Source: Frettloh (Bielefeld internal report), Table 1. Vertex classes I, II, II, III per CPS vertex classification. scale_denom=1 since all coords are integer ZPhi.",
+  "scale_denom": 1,
+  "prototile_index": 2,
+  "expected": {
+    "vertices": 4,
+    "edges": 6,
+    "faces": 4,
+    "face_shape": "triangle",
+    "euler_characteristic": 2
+  },
+  "vertices": [
+    [[0, 0],  [0, 0],  [0, 0]],
+    [[0, -1], [0, 0],  [1, 0]],
+    [[1, 1],  [1, 1],  [1, 1]],
+    [[0, 0],  [1, 1],  [1, 0]]
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "danzer_K",
+  "description": "Danzer ABCK tile K. Tetrahedron with one half-integer vertex (vertex 4, class IV). scale_denom=2 required: natural coordinates are (0,0,0), (-1,tau,0), (tau,tau,tau), (1/2)(-1, 1/tau, tau); multiply by 2 to get integer ZPhi numerators. Source: Frettloh (Bielefeld internal report), Table 1. Frettloh notes explicitly: 'K has a vertex (number 4) whose coordinates are half integers with respect to MF.' Vertex classes I, II, III, IV.",
+  "scale_denom": 2,
+  "prototile_index": 3,
+  "expected": {
+    "vertices": 4,
+    "edges": 6,
+    "faces": 4,
+    "face_shape": "triangle",
+    "euler_characteristic": 2
+  },
+  "vertices": [
+    [[0,  0], [0,  0], [0,  0]],
+    [[-2, 0], [0,  2], [0,  0]],
+    [[0,  2], [0,  2], [0,  2]],
+    [[-1, 0], [-1, 1], [0,  1]]
+  ]
+}
