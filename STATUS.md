@@ -15,9 +15,10 @@ returned, or an attempt fails in a way worth remembering.
 ## Current focus
 
 Module 6 of the CLAUDE.md §5.1 sequence: `hierarchy.py`. Sub-commits
-A (`Supertile` + `expand_one`) and B (recognisability test +
-Ammann–Beenker oracle) landed. Next: sub-commit C — inflation
-argument (pillar 3) using P3 as oracle.
+A–C landed. Next: sub-commit D — `FourthPillarArgument` framework
+stub (protocol + module docstring; concrete implementations live
+per-candidate in `candidates/<name>/fourth_pillar.py`, since the
+case analysis is candidate-specific).
 
 ---
 
@@ -47,7 +48,11 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **23** (pending) — `feat(hierarchy)`: recognisability test
+- **24** (pending) — `feat(hierarchy)`: `inflation_argument`
+  (pillar 3) combining primitivity + ZPhi PF eigenvalue >1 +
+  recognisability into an `InflationArgument` witness or
+  `InflationFailure`; Penrose P3 oracle (sub-commit C).
+- **23** `a92e25f` — `feat(hierarchy)`: recognisability test
   (`is_recognisable`, `RecognisabilityResult`, `IndistinguishablePair`,
   `PatchTile`, `TilePatch`, `neighbourhood_signature`) +
   Ammann–Beenker-style oracle fixture (sub-commit B).
@@ -96,7 +101,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-23 working tree): 392 passing in 22.97 s under
+Test totals (pre-commit-24 working tree): 402 passing in 22.77 s under
 venv pytest 9.0.3.
 
 ---
@@ -117,9 +122,10 @@ venv pytest 9.0.3.
 - **6 `hierarchy.py`** — in progress, split A–E per Claude (web)
   2026-04-23 design relay. A (`Supertile` lazy-recursive +
   `expand_one`) done in `2385c2e`. B (recognisability +
-  Ammann–Beenker oracle) done in commit 23 (pending). C (inflation
-  argument + P3 oracle), D (`FourthPillarArgument` framework stub),
-  E (`@pillar(n)` decorator + tagging sweep) still to come.
+  Ammann–Beenker oracle) done in `a92e25f`. C (inflation argument +
+  P3 oracle) done in commit 24 (pending). D (`FourthPillarArgument`
+  framework stub) and E (`@pillar(n)` decorator + tagging sweep)
+  still to come.
 - **6 `hierarchy.py`** — not started.
 
 ## Implementation plan — `polyhedron.py`

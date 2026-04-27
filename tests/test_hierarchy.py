@@ -19,11 +19,14 @@ import pytest
 
 from apeiron.hierarchy import (
     IndistinguishablePair,
+    InflationArgument,
+    InflationFailure,
     PatchTile,
     RecognisabilityResult,
     Supertile,
     TilePatch,
     expand_one,
+    inflation_argument,
     is_recognisable,
     neighbourhood_signature,
 )
@@ -307,3 +310,163 @@ class TestIsRecognisable:
         patch = _ammann_beenker_like_patch()
         result = is_recognisable(patch, max_radius=2)
         assert isinstance(result, RecognisabilityResult)
+
+
+# -- Inflation argument (pillar 3) ------------------------------------
+
+
+def _penrose_p3_rule() -> SubstitutionRule:
+    """Penrose P3 thick/thin rhombus rule used as the pillar-3 oracle.
+
+    Substitution matrix [[2, 1], [1, 1]]: thick → 2 thick + 1 thin;
+    thin → 1 thick + 1 thin. Characteristic polynomial x² − 3x + 1;
+    PF eigenvalue (3 + √5)/2 = 1 + φ = φ² ≈ 2.618. Primitive (M
+    itself is all-positive). Recognisable in 2D at radius 1 in the
+    standard fixture (Baake & Grimm Vol. 1 §4); for the algebraic
+    pillar-3 test we supply a synthetic ``RecognisabilityResult``
+    directly rather than building a P3 patch — pillar 3 only needs
+    the *outcome* of pillar 2, not the geometric machinery that
+    produced it.
+    """
+    return SubstitutionRule(
+        n_prototiles=2,
+        inflation=Mat3.identity(),
+        dissections=(
+            (_dummy_tile(0), _dummy_tile(0), _dummy_tile(1)),
+            (_dummy_tile(0), _dummy_tile(1)),
+        ),
+    )
+
+
+def _trivial_one_prototile_rule() -> SubstitutionRule:
+    """A 1-prototile rule with σ(0) = (0,) — substitution matrix
+    [[1]], PF eigenvalue 1. Primitive but degenerate; the inflation
+    argument's λ > 1 condition fails.
+    """
+    return SubstitutionRule(
+        n_prototiles=1,
+        inflation=Mat3.identity(),
+        dissections=((_dummy_tile(0),),),
+    )
+
+
+def _non_primitive_rule() -> SubstitutionRule:
+    """A reducible rule: σ(0) = (0,), σ(1) = (1,). Substitution
+    matrix is the 2×2 identity; not primitive.
+    """
+    return SubstitutionRule(
+        n_prototiles=2,
+        inflation=Mat3.identity(),
+        dissections=((_dummy_tile(0),), (_dummy_tile(1),)),
+    )
+
+
+def _success_recognisability(radius: int = 1) -> RecognisabilityResult:
+    """Synthetic successful recognisability witness.
+
+    Pillar 3's input is the *outcome* of pillar 2 — a structurally
+    valid ``RecognisabilityResult`` with ``is_recognisable=True``.
+    The witness map's contents don't affect pillar 3's reasoning;
+    only the boolean and the radius do.
+    """
+    return RecognisabilityResult(
+        is_recognisable=True,
+        radius_used=radius,
+        radius_cap_reached=False,
+        witness={(0,): 0, (1,): 1},
+    )
+
+
+def _failure_recognisability() -> RecognisabilityResult:
+    """Synthetic failing recognisability witness, for the
+    not-recognisable branch of pillar 3.
+    """
+    return RecognisabilityResult(
+        is_recognisable=False,
+        radius_used=5,
+        radius_cap_reached=True,
+        witness=IndistinguishablePair(
+            tile_a=0, tile_b=1, radius=5, parent_a=0, parent_b=1,
+        ),
+    )
+
+
+class TestInflationArgumentP3:
+    """Penrose P3 as the primary pillar-3 oracle."""
+
+    def test_p3_yields_inflation_argument(self) -> None:
+        result = inflation_argument(
+            _penrose_p3_rule(), _success_recognisability(),
+        )
+        assert isinstance(result, InflationArgument)
+
+    def test_witness_carries_phi_squared_eigenvalue(self) -> None:
+        result = inflation_argument(
+            _penrose_p3_rule(), _success_recognisability(),
+        )
+        assert isinstance(result, InflationArgument)
+        # P3's PF eigenvalue is φ² = 1 + φ = ZPhi(1, 1).
+        assert result.pf_eigenvalue == ZPhi(1, 1)
+
+    def test_witness_records_recognisability_radius(self) -> None:
+        result = inflation_argument(
+            _penrose_p3_rule(), _success_recognisability(radius=2),
+        )
+        assert isinstance(result, InflationArgument)
+        assert result.recognisability_radius == 2
+
+
+class TestInflationArgumentFailures:
+    def test_non_primitive_rule_fails(self) -> None:
+        result = inflation_argument(
+            _non_primitive_rule(), _success_recognisability(),
+        )
+        assert isinstance(result, InflationFailure)
+        assert result.reason == "not primitive"
+
+    def test_pf_eq_one_rule_fails(self) -> None:
+        # Trivial 1×1 rule with PF = 1.
+        result = inflation_argument(
+            _trivial_one_prototile_rule(), _success_recognisability(),
+        )
+        assert isinstance(result, InflationFailure)
+        assert result.reason == "pf <= 1"
+
+    def test_non_recognisable_input_fails(self) -> None:
+        result = inflation_argument(
+            _penrose_p3_rule(), _failure_recognisability(),
+        )
+        assert isinstance(result, InflationFailure)
+        assert result.reason == "not recognisable"
+
+    def test_failure_carries_detail_string(self) -> None:
+        result = inflation_argument(
+            _non_primitive_rule(), _success_recognisability(),
+        )
+        assert isinstance(result, InflationFailure)
+        assert result.detail
+        assert "pillar 1" in result.detail.lower() or "primitive" in result.detail.lower()
+
+
+class TestInflationArgumentStructure:
+    def test_argument_is_frozen(self) -> None:
+        arg = InflationArgument(
+            pf_eigenvalue=ZPhi(1, 1), recognisability_radius=1,
+        )
+        with pytest.raises(Exception):
+            arg.recognisability_radius = 2  # type: ignore[misc]
+
+    def test_argument_is_hashable(self) -> None:
+        a = InflationArgument(
+            pf_eigenvalue=ZPhi(1, 1), recognisability_radius=1,
+        )
+        b = InflationArgument(
+            pf_eigenvalue=ZPhi(1, 1), recognisability_radius=1,
+        )
+        assert hash(a) == hash(b)
+        assert {a, b} == {a}
+
+    def test_failure_is_frozen(self) -> None:
+        f = InflationFailure(reason="x", detail="y")
+        with pytest.raises(Exception):
+            f.reason = "z"  # type: ignore[misc]

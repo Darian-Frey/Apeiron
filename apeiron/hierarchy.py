@@ -39,15 +39,25 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 
-from apeiron.substitution import PositionedTile, SubstitutionRule
+from apeiron.substitution import (
+    PositionedTile,
+    SubstitutionRule,
+    is_primitive,
+    perron_frobenius_in_zphi,
+    substitution_matrix,
+)
+from apeiron.zphi import ZPhi
 
 __all__ = [
     "IndistinguishablePair",
+    "InflationArgument",
+    "InflationFailure",
     "PatchTile",
     "RecognisabilityResult",
     "Supertile",
     "TilePatch",
     "expand_one",
+    "inflation_argument",
     "is_recognisable",
     "neighbourhood_signature",
 ]
@@ -316,4 +326,148 @@ def is_recognisable(
         radius_used=max_radius,
         radius_cap_reached=True,
         witness=last_counterexample,
+    )
+
+
+# -- Inflation argument (pillar 3) — sub-commit C ---------------------
+
+
+@dataclass(frozen=True, slots=True)
+class InflationArgument:
+    """Pillar-3 witness: aperiodicity by the inflation argument.
+
+    The argument: given a primitive substitution rule with
+    Perron–Frobenius eigenvalue ``λ > 1`` and a recognisability
+    radius ``r`` for that rule, suppose for contradiction that some
+    tiling ``T`` admits a non-zero period vector ``v``. By
+    recognisability (pillar 2), every tile's supertile parent in
+    ``T`` is determined by its radius-``r`` neighbourhood; so a
+    period of ``T`` lifts to a period of the supertile tiling
+    ``σ⁻¹(T)`` of the same length ``|v|``. But ``σ⁻¹`` shrinks the
+    tiling by factor ``1/λ``, so the same period in supertile
+    coordinates has length ``|v|/λ`` in metric units. Iterating
+    yields periods of length ``|v|/λⁿ`` for every ``n``, all of
+    which are valid periods of the original tiling — contradicting
+    finite local complexity (which guarantees a positive lower
+    bound on period length). Therefore no period exists.
+
+    The witness records the two pillar inputs that combined to
+    establish pillar 3:
+
+    - ``pf_eigenvalue``: the Perron–Frobenius eigenvalue ``λ``,
+      strictly greater than 1, recovered exactly from the rule's
+      substitution matrix.
+    - ``recognisability_radius``: the radius at which the
+      recognisability witness was established (pillar 2).
+
+    Per CLAUDE.md §6.3, this argument is "standard" — the
+    interesting work is verifying its inputs (pillars 1 + 2) and
+    the genuinely-Einstein step (pillar 4, framework only in this
+    module).
+    """
+
+    pf_eigenvalue: ZPhi
+    recognisability_radius: int
+
+
+@dataclass(frozen=True, slots=True)
+class InflationFailure:
+    """The inflation argument cannot be invoked: at least one of its
+    three preconditions fails.
+
+    ``reason`` identifies which precondition failed:
+
+    - ``"not primitive"`` — the substitution matrix has no
+      strictly-positive power; pillar 1 is not satisfied.
+    - ``"pf not in z[phi]"`` — the Perron–Frobenius eigenvalue is
+      not exactly representable in ℤ[φ]. The rule may still be
+      aperiodic, but the inflation argument needs an exact ZPhi
+      eigenvalue for the pillar-3 witness; rules outside ℚ(√5)
+      need a different eigenvalue ring or the float fallback (not
+      yet implemented).
+    - ``"pf <= 1"`` — the eigenvalue does not exceed 1, so the
+      shrinking step in the inflation argument doesn't apply.
+    - ``"not recognisable"`` — pillar 2 was not established at the
+      given radius, so the period-lift step has no foundation.
+
+    ``detail`` is a human-readable elaboration tied to the specific
+    failure path.
+    """
+
+    reason: str
+    detail: str
+
+
+def inflation_argument(
+    rule: SubstitutionRule,
+    recognisability: RecognisabilityResult,
+) -> InflationArgument | InflationFailure:
+    """Combine pillar 1 (primitivity) and pillar 2 (recognisability)
+    to produce a pillar-3 witness, or identify which precondition
+    failed.
+
+    Three checks, in order:
+
+    1. The rule's substitution matrix is primitive (some power has
+       all-positive entries) — pillar 1.
+    2. The Perron–Frobenius eigenvalue is recoverable in ℤ[φ] and
+       is strictly greater than 1.
+    3. The supplied ``recognisability`` result has
+       ``is_recognisable == True`` — pillar 2.
+
+    On all three passing, returns an ``InflationArgument`` carrying
+    the eigenvalue and recognisability radius. On any failing,
+    returns an ``InflationFailure`` identifying the first failed
+    check.
+
+    The structure deliberately separates concerns: the inflation
+    argument *itself* is just the implication
+    ``primitive ∧ recognisable ∧ λ > 1 ⟹ aperiodic``; the
+    interesting machinery is in pillars 1, 2, and (separately)
+    pillar 4. This function's job is to verify the implication's
+    antecedent and witness it; it does not re-run primitivity or
+    recognisability checks beyond the antecedent verification.
+    """
+    matrix = substitution_matrix(rule)
+    if not is_primitive(matrix):
+        return InflationFailure(
+            reason="not primitive",
+            detail=(
+                f"Substitution matrix of shape {matrix.shape} has no "
+                "strictly-positive power within the Wielandt bound; "
+                "pillar 1 is not established."
+            ),
+        )
+    pf = perron_frobenius_in_zphi(matrix)
+    if pf is None:
+        return InflationFailure(
+            reason="pf not in z[phi]",
+            detail=(
+                "Perron–Frobenius eigenvalue is not exactly "
+                "representable in ℤ[φ]; pillar 3 in this module "
+                "requires a ZPhi eigenvalue."
+            ),
+        )
+    if not (pf > ZPhi(1, 0)):
+        return InflationFailure(
+            reason="pf <= 1",
+            detail=(
+                f"Perron–Frobenius eigenvalue {pf} is not strictly "
+                "greater than 1; the inflation step's shrinking "
+                "factor is not less than 1."
+            ),
+        )
+    if not recognisability.is_recognisable:
+        return InflationFailure(
+            reason="not recognisable",
+            detail=(
+                "Recognisability witness failed at "
+                f"radius {recognisability.radius_used}; pillar 2 is "
+                "not established, so the period-lift step has no "
+                "foundation."
+            ),
+        )
+    return InflationArgument(
+        pf_eigenvalue=pf,
+        recognisability_radius=recognisability.radius_used,
     )
