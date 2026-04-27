@@ -17,7 +17,11 @@ from __future__ import annotations
 
 import pytest
 
+from apeiron.corona import CoronaConfig
 from apeiron.hierarchy import (
+    FourthPillarArgument,
+    HierarchicalCounterexample,
+    HierarchicalWitness,
     IndistinguishablePair,
     InflationArgument,
     InflationFailure,
@@ -30,6 +34,7 @@ from apeiron.hierarchy import (
     is_recognisable,
     neighbourhood_signature,
 )
+from apeiron.polyhedron import Polyhedron
 from apeiron.substitution import PositionedTile, SubstitutionRule
 from apeiron.symmetry import Mat3, Rotation, Vec3
 from apeiron.zphi import ZPhi
@@ -470,3 +475,155 @@ class TestInflationArgumentStructure:
         f = InflationFailure(reason="x", detail="y")
         with pytest.raises(Exception):
             f.reason = "z"  # type: ignore[misc]
+
+
+# -- Fourth pillar framework (pillar 4) -------------------------------
+
+
+def _v(x: tuple[int, int], y: tuple[int, int], z: tuple[int, int]) -> Vec3:
+    return Vec3(ZPhi(*x), ZPhi(*y), ZPhi(*z))
+
+
+def _trivial_corona_config() -> CoronaConfig:
+    """Smallest valid CoronaConfig: a tetrahedron central with no
+    neighbours. Used as a stand-in CoronaConfig for protocol-level
+    tests; the geometric content doesn't affect pillar-4 *framework*
+    tests, since this commit ships no concrete pillar-4 logic.
+    """
+    tetra_verts = [
+        _v((0, 0), (0, 0), (0, 0)),
+        _v((2, 0), (0, 0), (0, 0)),
+        _v((0, 0), (2, 0), (0, 0)),
+        _v((0, 0), (0, 0), (2, 0)),
+    ]
+    tetra = Polyhedron.from_vertices(tetra_verts)
+    return CoronaConfig.from_neighbours(tetra, [])
+
+
+class TestHierarchicalWitness:
+    def test_construction(self) -> None:
+        w = HierarchicalWitness(
+            supertile_level=2,
+            parent_prototile_index=0,
+            rationale="case 1: configuration matches branch A of σ²(P_0)",
+        )
+        assert w.supertile_level == 2
+        assert w.parent_prototile_index == 0
+        assert "branch" in w.rationale
+
+    def test_is_frozen(self) -> None:
+        w = HierarchicalWitness(
+            supertile_level=1, parent_prototile_index=0, rationale="x",
+        )
+        with pytest.raises(Exception):
+            w.supertile_level = 2  # type: ignore[misc]
+
+    def test_is_hashable(self) -> None:
+        a = HierarchicalWitness(
+            supertile_level=1, parent_prototile_index=0, rationale="x",
+        )
+        b = HierarchicalWitness(
+            supertile_level=1, parent_prototile_index=0, rationale="x",
+        )
+        assert hash(a) == hash(b)
+        assert {a, b} == {a}
+
+
+class TestHierarchicalCounterexample:
+    def test_construction(self) -> None:
+        c = HierarchicalCounterexample(
+            rationale="no σⁿ embedding for n ≤ 5: edge mismatch on face 3",
+            search_bound=5,
+        )
+        assert c.search_bound == 5
+        assert "edge mismatch" in c.rationale
+
+    def test_is_frozen(self) -> None:
+        c = HierarchicalCounterexample(rationale="x", search_bound=3)
+        with pytest.raises(Exception):
+            c.search_bound = 5  # type: ignore[misc]
+
+
+class TestFourthPillarArgumentProtocol:
+    """Protocol-satisfaction tests.
+
+    The framework only ships the protocol; concrete implementations
+    live per-candidate at ``candidates/<name>/fourth_pillar.py``.
+    These tests verify the contract: a class implementing the two
+    methods with the right signatures satisfies the protocol via
+    ``isinstance`` (because the protocol is ``@runtime_checkable``).
+    """
+
+    def test_minimal_implementation_satisfies_protocol(self) -> None:
+        class _Always(FourthPillarArgument):
+            def local_configurations(self) -> frozenset[CoronaConfig]:
+                return frozenset()
+
+            def verify_hierarchical(
+                self, _config: CoronaConfig,
+            ) -> HierarchicalWitness | HierarchicalCounterexample:
+                return HierarchicalWitness(
+                    supertile_level=1,
+                    parent_prototile_index=0,
+                    rationale="trivial",
+                )
+
+        impl = _Always()
+        assert isinstance(impl, FourthPillarArgument)
+
+    def test_missing_method_fails_protocol_check(self) -> None:
+        class _Incomplete:
+            def local_configurations(self) -> frozenset[CoronaConfig]:
+                return frozenset()
+            # No verify_hierarchical defined.
+
+        impl = _Incomplete()
+        assert not isinstance(impl, FourthPillarArgument)
+
+    def test_concrete_implementation_round_trip(self) -> None:
+        """A concrete implementation can be queried; the witness
+        type returned matches the protocol.
+        """
+        config = _trivial_corona_config()
+
+        class _OneConfigYesPillar4(FourthPillarArgument):
+            def local_configurations(self) -> frozenset[CoronaConfig]:
+                return frozenset({config})
+
+            def verify_hierarchical(
+                self, c: CoronaConfig,
+            ) -> HierarchicalWitness | HierarchicalCounterexample:
+                if c == config:
+                    return HierarchicalWitness(
+                        supertile_level=1,
+                        parent_prototile_index=0,
+                        rationale="single-config trivial witness",
+                    )
+                return HierarchicalCounterexample(
+                    rationale="config not in the local set",
+                    search_bound=1,
+                )
+
+        impl = _OneConfigYesPillar4()
+        assert isinstance(impl, FourthPillarArgument)
+        configs = impl.local_configurations()
+        assert len(configs) == 1
+        verdict = impl.verify_hierarchical(next(iter(configs)))
+        assert isinstance(verdict, HierarchicalWitness)
+
+    def test_concrete_implementation_can_return_counterexample(self) -> None:
+        class _AlwaysCounterexample(FourthPillarArgument):
+            def local_configurations(self) -> frozenset[CoronaConfig]:
+                return frozenset()
+
+            def verify_hierarchical(
+                self, _c: CoronaConfig,
+            ) -> HierarchicalWitness | HierarchicalCounterexample:
+                return HierarchicalCounterexample(
+                    rationale="placeholder negative",
+                    search_bound=2,
+                )
+
+        impl = _AlwaysCounterexample()
+        verdict = impl.verify_hierarchical(_trivial_corona_config())
+        assert isinstance(verdict, HierarchicalCounterexample)

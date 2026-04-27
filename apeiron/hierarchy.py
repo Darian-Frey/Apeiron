@@ -38,7 +38,9 @@ from __future__ import annotations
 
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
+from typing import Protocol, runtime_checkable
 
+from apeiron.corona import CoronaConfig
 from apeiron.substitution import (
     PositionedTile,
     SubstitutionRule,
@@ -49,6 +51,9 @@ from apeiron.substitution import (
 from apeiron.zphi import ZPhi
 
 __all__ = [
+    "FourthPillarArgument",
+    "HierarchicalCounterexample",
+    "HierarchicalWitness",
     "IndistinguishablePair",
     "InflationArgument",
     "InflationFailure",
@@ -471,3 +476,127 @@ def inflation_argument(
         pf_eigenvalue=pf,
         recognisability_radius=recognisability.radius_used,
     )
+
+
+# -- Fourth pillar (framework only) — sub-commit D --------------------
+#
+# Pillar 4 — "no non-hierarchical tiling exists" — is the genuinely-
+# Einstein step (CLAUDE.md §6.3). Per Claude (web) 2026-04-23, this
+# pillar is *not generic*: it requires tile-specific case analysis
+# about which local configurations can occur, and the proof is
+# non-decidable from the substitution rule alone (the hat / spectre
+# proofs each spend ~40 pages on it).
+#
+# This module ships only the *framework* — the protocol every
+# candidate's concrete fourth-pillar implementation must satisfy,
+# plus the witness / counterexample dataclasses. Concrete
+# implementations of ``FourthPillarArgument`` live per-candidate at
+#
+#     candidates/<name>/fourth_pillar.py
+#
+# and are written *only* once a candidate has passed pillars 1–3.
+# Premature pillar-4 work on a candidate that fails primitivity,
+# recognisability, or the inflation argument is wasted effort.
+
+
+@dataclass(frozen=True, slots=True)
+class HierarchicalWitness:
+    """Pillar-4 success witness for a particular ``CoronaConfig``.
+
+    The presence of this object asserts that the configuration arises
+    from the substitution hierarchy — i.e., it's the local view of
+    some tile in some level-``n`` supertile decomposition for some
+    ``n``. The fields document the witness:
+
+    - ``supertile_level``: the smallest ``n`` for which this
+      configuration appears as a sub-pattern of the level-``n``
+      supertile of some prototile.
+    - ``parent_prototile_index``: the prototile whose level-``n``
+      supertile contains this configuration.
+    - ``rationale``: human-readable explanation of why this
+      configuration is hierarchical, supplied by the candidate-
+      specific implementation. Per CLAUDE.md §10, the rationale
+      should never be hand-waving — it should describe the
+      case-analysis branch this configuration falls into.
+
+    The candidate's ``FourthPillarArgument.verify_hierarchical``
+    method returns one of these on success. The framework itself
+    does not construct ``HierarchicalWitness`` instances; concrete
+    candidates do.
+    """
+
+    supertile_level: int
+    parent_prototile_index: int
+    rationale: str
+
+
+@dataclass(frozen=True, slots=True)
+class HierarchicalCounterexample:
+    """Pillar-4 failure witness for a particular ``CoronaConfig``.
+
+    A configuration that cannot be embedded in any level-``n``
+    supertile decomposition. If a candidate exhibits even one such
+    configuration, pillar 4 fails — the tile admits a tiling that
+    doesn't arise from the substitution hierarchy, and the
+    aperiodicity argument doesn't go through.
+
+    - ``rationale``: human-readable explanation of why no embedding
+      exists. Typically describes which face/edge/vertex constraint
+      the configuration violates relative to every prototile's
+      level-``n`` decomposition for ``n`` up to the search bound.
+    - ``search_bound``: the largest level ``n`` checked before
+      concluding non-embedding. ``HierarchicalCounterexample`` is
+      *bounded-search* evidence; a configuration that survives every
+      level up to ``search_bound`` is treated as a counterexample,
+      but in principle a sufficiently-deep level might admit it.
+      Concrete implementations should pick ``search_bound`` large
+      enough that the conclusion is robust for the candidate at
+      hand.
+    """
+
+    rationale: str
+    search_bound: int
+
+
+@runtime_checkable
+class FourthPillarArgument(Protocol):
+    """Protocol for the candidate-specific pillar-4 argument.
+
+    A concrete implementation lives at
+    ``candidates/<name>/fourth_pillar.py`` and supplies two
+    methods:
+
+    - ``local_configurations() -> frozenset[CoronaConfig]``: every
+      local configuration the candidate's tilings can exhibit. For
+      a candidate that has passed pillars 1–3 (primitive substitution
+      with recognisability radius ``r``), the relevant local
+      configurations are typically the ``corona_r``-style
+      neighbourhoods of every prototile under every rotation of the
+      icosahedral group I. The concrete implementation is
+      responsible for enumerating *all* of them; pillar 4 is the
+      claim that the hierarchical embedding holds for every one.
+    - ``verify_hierarchical(config: CoronaConfig) -> HierarchicalWitness
+      | HierarchicalCounterexample``: for a given configuration,
+      either return a hierarchical witness (success) or a
+      counterexample (failure). The candidate establishes pillar 4
+      iff every configuration in ``local_configurations()`` returns
+      a ``HierarchicalWitness``.
+
+    Per Claude (web), this protocol is the entire framework
+    contribution of ``hierarchy.py`` to pillar 4. There is no
+    generic algorithmic check; the work happens per-candidate in
+    ``candidates/<name>/fourth_pillar.py``. The presence of a
+    ``FourthPillarArgument`` implementation in that directory is
+    itself the entry point to pillar-4 verification for the
+    candidate.
+    """
+
+    def local_configurations(self) -> frozenset[CoronaConfig]:
+        """Every local configuration the candidate's tilings exhibit."""
+        ...
+
+    def verify_hierarchical(
+        self, config: CoronaConfig,
+    ) -> HierarchicalWitness | HierarchicalCounterexample:
+        """Decide hierarchical embedding for one configuration."""
+        ...

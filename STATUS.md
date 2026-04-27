@@ -15,10 +15,9 @@ returned, or an attempt fails in a way worth remembering.
 ## Current focus
 
 Module 6 of the CLAUDE.md §5.1 sequence: `hierarchy.py`. Sub-commits
-A–C landed. Next: sub-commit D — `FourthPillarArgument` framework
-stub (protocol + module docstring; concrete implementations live
-per-candidate in `candidates/<name>/fourth_pillar.py`, since the
-case analysis is candidate-specific).
+A–D landed. Next: sub-commit E — `@pillar(n)` decorator (in
+`util.py`) plus a tagging sweep across `hierarchy.py` and the
+relevant pillar-1 tests in `test_substitution.py`.
 
 ---
 
@@ -48,7 +47,11 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **24** (pending) — `feat(hierarchy)`: `inflation_argument`
+- **25** (pending) — `feat(hierarchy)`: `FourthPillarArgument`
+  protocol + `HierarchicalWitness` / `HierarchicalCounterexample`
+  dataclasses; framework only, concrete implementations live per-
+  candidate at `candidates/<name>/fourth_pillar.py` (sub-commit D).
+- **24** `9507fbb` — `feat(hierarchy)`: `inflation_argument`
   (pillar 3) combining primitivity + ZPhi PF eigenvalue >1 +
   recognisability into an `InflationArgument` witness or
   `InflationFailure`; Penrose P3 oracle (sub-commit C).
@@ -101,7 +104,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-24 working tree): 402 passing in 22.77 s under
+Test totals (pre-commit-25 working tree): 411 passing in 23.01 s under
 venv pytest 9.0.3.
 
 ---
@@ -123,9 +126,9 @@ venv pytest 9.0.3.
   2026-04-23 design relay. A (`Supertile` lazy-recursive +
   `expand_one`) done in `2385c2e`. B (recognisability +
   Ammann–Beenker oracle) done in `a92e25f`. C (inflation argument +
-  P3 oracle) done in commit 24 (pending). D (`FourthPillarArgument`
-  framework stub) and E (`@pillar(n)` decorator + tagging sweep)
-  still to come.
+  P3 oracle) done in `9507fbb`. D (`FourthPillarArgument` framework
+  stub) done in commit 25 (pending). E (`@pillar(n)` decorator +
+  tagging sweep) is the only remaining sub-commit.
 - **6 `hierarchy.py`** — not started.
 
 ## Implementation plan — `polyhedron.py`
