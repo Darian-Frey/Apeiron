@@ -14,11 +14,13 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-Module 6 of the CLAUDE.md §5.1 sequence: `hierarchy.py`. The
-`corona.py` module is now complete (sub-commits A–E all landed).
-Hierarchy is the last module — supertile construction and
-recognisability (border forcing) — where substitution rules and
-coronas combine into the four-pillar proof structure.
+Module 6 of the CLAUDE.md §5.1 sequence: `hierarchy.py`. Split into
+five sub-commits (A–E) per Claude (web)'s 2026-04-23 design relay.
+Sub-commit A (`Supertile` dataclass + `expand_one`, lazy-recursive
+form) landed. Next: sub-commit B — recognisability test
+(`is_recognisable`, `RecognisabilityResult`, `IndistinguishablePair`)
+with the Ammann–Beenker fixture (Baake & Grimm Vol. 1 §6) as the
+pillar-2 oracle.
 
 ---
 
@@ -48,7 +50,10 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **21** (pending) — `feat(corona)`: per-feature `expected_*` API,
+- **22** (pending) — `feat(hierarchy)`: `Supertile` lazy-recursive
+  dataclass + `expand_one` lookup; sub-commit A of the hierarchy.py
+  plan.
+- **21** `8b5daf7` — `feat(corona)`: per-feature `expected_*` API,
   `corona_2` second-shell extension, RD `corona_1` acceptance test,
   cube `corona_2` acceptance test (sub-commit E).
 - **20** `91b5412` — `feat(corona)`: `corona_1(P)` BFS engine with
@@ -90,7 +95,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-21 working tree): 368 passing in 23.05 s under
+Test totals (pre-commit-22 working tree): 380 passing in 22.78 s under
 venv pytest 9.0.3.
 
 ---
@@ -108,9 +113,12 @@ venv pytest 9.0.3.
   D `91b5412` (`corona_1` BFS + cube test), E commit 21 (pending)
   — per-feature `expected_*` API, `corona_2`, RD acceptance, cube
   `corona_2` acceptance.
-- **6 `hierarchy.py`** — current focus. Supertile construction +
-  recognisability tests over the four proof pillars (CLAUDE.md
-  §6.3).
+- **6 `hierarchy.py`** — in progress, split A–E per Claude (web)
+  2026-04-23 design relay. A (`Supertile` lazy-recursive +
+  `expand_one`) done in commit 22 (pending). B (recognisability +
+  Ammann–Beenker oracle), C (inflation argument + P3 oracle),
+  D (`FourthPillarArgument` framework stub), E (`@pillar(n)`
+  decorator + tagging sweep) still to come.
 - **6 `hierarchy.py`** — not started.
 
 ## Implementation plan — `polyhedron.py`
@@ -200,6 +208,24 @@ Shane relays Q&A. See the collab-relay memory in
   face-pair index; committing to a specific index shape now would
   bake in the wrong abstraction. `find_rotation` is named so any
   future optimisation is a single-function swap.
+- **2026-04-23 — `hierarchy.py` scoping (six questions).**
+  **Resolved** — (a) `Supertile` is lazy-recursive
+  ``(level, prototile_index, children)`` where ``children`` is the
+  level-1 dissection only; (b) ``RecognisabilityResult`` carries
+  either a ``witness: dict[hash, supertile_id]`` on success or an
+  ``IndistinguishablePair`` counterexample on failure; (c)
+  iterative-radius search with default cap 5 and a
+  ``radius_cap_reached`` flag distinguishing
+  "provably non-recognisable" from "unknown beyond cap"; (d)
+  fourth pillar is *framework only* in this module — concrete
+  ``FourthPillarArgument`` implementations live per-candidate in
+  ``candidates/<name>/fourth_pillar.py``, since the case analysis
+  is candidate-specific (~40 pages in the hat / spectre proofs);
+  (e) Ammann–Beenker as the pillar-2 oracle (recognisability
+  cleanly encoded per Baake & Grimm Vol. 1 §6), Penrose P3
+  everywhere else; (f) ``@pillar(n)`` decorator added to
+  ``util.py``, attaching ``fn._pillar = n``, plus a docstring line
+  for human readability.
 - **2026-04-22 — `angular_defect` return type.** Earlier
   "`angular_defect(config, feature) -> ZPhi`" was loose — the
   literal angle around an edge/vertex is transcendental in ℤ[φ], and
