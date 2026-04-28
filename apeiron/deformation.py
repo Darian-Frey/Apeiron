@@ -31,9 +31,11 @@ from apeiron.symmetry import ImproperRotation, Rotation, Vec3
 
 __all__ = [
     "FaceAdjacentPair",
+    "MergeFiltering",
     "face_adjacent_pairs",
     "merge_two_tiles",
     "placed_vertices",
+    "prioritise_merge_candidate",
     "scaffold_merge_candidate",
 ]
 
@@ -229,6 +231,149 @@ def merge_two_tiles(
         for face_verts in merged_face_v_lists
     ]
     return Polyhedron.from_raw(merged_vertex_list, face_index_lists)
+
+
+# -- Q6b prioritisation filter ---------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class MergeFiltering:
+    """Outcome of running Q6b prioritisation filters on a merge candidate.
+
+    Per Claude (web) Q6b 2026-04-29: cheap checks applied *before* the
+    expensive pillar-2 BFS. A candidate that fails any filter is
+    eliminated from the deformation search; a candidate that passes
+    all filters proceeds to pillar-1+2+3 verification via
+    ``hierarchy.aperiodicity_witness``.
+
+    Three filters:
+
+    - ``combinatorial_feasibility``: is there an integer ``k`` such
+      that the merged tile's σ-decomposition equals ``k`` copies of
+      itself? For a 2-tile face-merge this requires the parent's σ
+      count vector to be ``k·(component multiset)`` exactly. For
+      ABCK 2-tile merges this filter ALWAYS fails (no σ-count vector
+      matches any 2-tile composition); the failure constitutes
+      no-go evidence per the roadmap's Phase 1.5.
+    - ``face_count_strictly_decreases``: the merged polyhedron has
+      strictly fewer faces than the sum of its components' face
+      counts. For tetrahedral face-merge this is automatic
+      (``F_merged = F_a + F_b - 2`` since the shared face is removed
+      from both). Always True for valid tetrahedral merges; included
+      for symmetry with future polyhedral candidates.
+    - ``vertex_class_compatible``: Frettlöh's vertex classification
+      (I/II/III/IV) is consistent across the merged tile.
+      *Not implemented yet* — requires per-prototile vertex-class
+      data in the candidate JSON, which ABCK encodes only as
+      docstring text. Filter returns ``None`` (= "unchecked") for
+      now; future deformation-search candidates may add structured
+      vertex-class data and enable the check.
+
+    ``passes_all`` is True iff every implemented filter (1 and 2)
+    returned True, AND filter 3 (if implemented) returned True. Used
+    as the gating condition for proceeding to pillar-1+2+3 work.
+    """
+
+    combinatorial_feasibility: bool
+    combinatorial_k: int | None
+    face_count_strictly_decreases: bool
+    vertex_class_compatible: bool | None
+    detail: str
+
+    @property
+    def passes_all(self) -> bool:
+        if not self.combinatorial_feasibility:
+            return False
+        if not self.face_count_strictly_decreases:
+            return False
+        if self.vertex_class_compatible is False:
+            return False
+        return True
+
+
+def prioritise_merge_candidate(
+    rule: SubstitutionRule,
+    pair: FaceAdjacentPair,
+    prototile_polyhedra: Sequence[Polyhedron],
+) -> MergeFiltering:
+    """Apply Q6b's three prioritisation filters to a face-merge
+    candidate. Cheap O(1) checks; do not call ``aperiodicity_witness``.
+
+    Returns a ``MergeFiltering`` summarising each filter's outcome
+    plus a human-readable ``detail`` string. The deformation search
+    consumes the result via ``MergeFiltering.passes_all``.
+    """
+    children = rule.dissections[pair.parent_index]
+    type_i = children[pair.i].prototile_index
+    type_j = children[pair.j].prototile_index
+    proto_a = prototile_polyhedra[type_i]
+    proto_b = prototile_polyhedra[type_j]
+
+    # --- Filter 1: combinatorial feasibility ---
+    # Merged tile P_AB has composition {type_i: 1, type_j: 1} (or
+    # {type_i: 2} if type_i == type_j, though for face-merges of
+    # distinct tetrahedra we expect i ≠ j).
+    composition: dict[int, int] = {}
+    composition[type_i] = composition.get(type_i, 0) + 1
+    composition[type_j] = composition.get(type_j, 0) + 1
+
+    # σ(P_AB) count vector = σ(type_i) + σ(type_j).
+    sigma_count: list[int] = [0] * rule.n_prototiles
+    for t in (type_i, type_j):
+        for child in rule.dissections[t]:
+            sigma_count[child.prototile_index] += 1
+
+    # Look for integer k such that sigma_count == k · composition_vec.
+    composition_vec = [composition.get(t, 0) for t in range(rule.n_prototiles)]
+    feasible = False
+    k_found: int | None = None
+    # k is determined by any non-zero entry in composition; check
+    # consistency across all entries.
+    nonzero_idx = next(
+        (idx for idx, c in enumerate(composition_vec) if c > 0), None,
+    )
+    if nonzero_idx is not None and composition_vec[nonzero_idx] > 0:
+        if sigma_count[nonzero_idx] % composition_vec[nonzero_idx] == 0:
+            k_candidate = (
+                sigma_count[nonzero_idx] // composition_vec[nonzero_idx]
+            )
+            if k_candidate >= 1 and all(
+                sigma_count[t] == k_candidate * composition_vec[t]
+                for t in range(rule.n_prototiles)
+            ):
+                feasible = True
+                k_found = k_candidate
+
+    # --- Filter 2: face-count strictly decreases ---
+    # Tetrahedral merge: F_merged = F_a + F_b - 2 < F_a + F_b.
+    f_total = len(proto_a.faces) + len(proto_b.faces)
+    f_merged = f_total - 2  # shared face removed from both
+    face_count_ok = f_merged < f_total
+
+    # --- Filter 3: vertex-class compatibility ---
+    # Not implemented; requires structured vertex-class data per
+    # prototile (Frettlöh I/II/III/IV) which ABCK encodes only as
+    # docstring text in the JSON. Future candidates may add a
+    # vertex_classes field; for now this filter returns None.
+    vertex_class_ok: bool | None = None
+
+    detail_parts = [
+        f"composition={composition_vec}",
+        f"σ_count={sigma_count}",
+    ]
+    if feasible:
+        detail_parts.append(f"k={k_found}")
+    else:
+        detail_parts.append("not k·composition for any integer k")
+    detail_parts.append(f"f_merged={f_merged} < f_total={f_total}")
+
+    return MergeFiltering(
+        combinatorial_feasibility=feasible,
+        combinatorial_k=k_found,
+        face_count_strictly_decreases=face_count_ok,
+        vertex_class_compatible=vertex_class_ok,
+        detail="; ".join(detail_parts),
+    )
 
 
 # -- Q6c scaffold ----------------------------------------------------

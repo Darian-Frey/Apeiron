@@ -12,9 +12,11 @@ import pytest
 
 from apeiron.deformation import (
     FaceAdjacentPair,
+    MergeFiltering,
     face_adjacent_pairs,
     merge_two_tiles,
     placed_vertices,
+    prioritise_merge_candidate,
     scaffold_merge_candidate,
 )
 from apeiron.substitution import PositionedTile, SubstitutionRule
@@ -407,3 +409,127 @@ class TestMergeTwoTiles:
                 (zero, Rotation.identity()),
                 frozenset([zero]),  # only 1 vertex
             )
+
+
+# -- Q6b: prioritise_merge_candidate ----------------------------------
+
+
+class TestMergeFiltering:
+    """Validation of the MergeFiltering dataclass + passes_all logic."""
+
+    def test_passes_all_requires_all_filters(self) -> None:
+        # Filter 1 fails → passes_all False.
+        f = MergeFiltering(
+            combinatorial_feasibility=False,
+            combinatorial_k=None,
+            face_count_strictly_decreases=True,
+            vertex_class_compatible=True,
+            detail="x",
+        )
+        assert f.passes_all is False
+
+    def test_passes_all_when_all_true(self) -> None:
+        f = MergeFiltering(
+            combinatorial_feasibility=True,
+            combinatorial_k=4,
+            face_count_strictly_decreases=True,
+            vertex_class_compatible=True,
+            detail="x",
+        )
+        assert f.passes_all is True
+
+    def test_unimplemented_filter_3_treated_as_pass(self) -> None:
+        # vertex_class_compatible=None means "not checked" — gate
+        # accepts. Once the filter lands, None → True/False.
+        f = MergeFiltering(
+            combinatorial_feasibility=True,
+            combinatorial_k=2,
+            face_count_strictly_decreases=True,
+            vertex_class_compatible=None,
+            detail="x",
+        )
+        assert f.passes_all is True
+
+
+class TestPrioritiseMergeCandidateOnDanzer:
+    """Per Claude (web) Q6b 2026-04-29: cheap filters applied before
+    pillar-2 BFS. For ABCK 2-tile face-merges, filter 1 (combinatorial
+    feasibility) is provably incompatible — no σ-count vector matches
+    any 2-tile composition with the right structure. The filter
+    implementation here confirms this and constitutes no-go evidence
+    per the roadmap's Phase 1.5.
+    """
+
+    def test_no_face_merge_passes_combinatorial_feasibility(
+        self, paolini_rule, abck_prototiles,
+    ) -> None:
+        # Across all 24 face-adjacent pairs in Danzer, no merge has
+        # σ-count vector = k·composition for any integer k. This is
+        # the key no-go finding.
+        survivors = []
+        for parent_idx in range(4):
+            for pair in face_adjacent_pairs(
+                paolini_rule, parent_idx, abck_prototiles,
+            ):
+                result = prioritise_merge_candidate(
+                    paolini_rule, pair, abck_prototiles,
+                )
+                if result.combinatorial_feasibility:
+                    survivors.append((parent_idx, pair))
+        assert survivors == [], (
+            f"Expected no Danzer face-merge to be combinatorially "
+            f"feasible (no-go evidence per Q6b 2026-04-29); got "
+            f"{len(survivors)} survivors: {survivors}"
+        )
+
+    def test_face_count_filter_passes_for_all_tetrahedral_merges(
+        self, paolini_rule, abck_prototiles,
+    ) -> None:
+        # Tetrahedral merges always satisfy F_merged = F_a + F_b - 2
+        # < F_a + F_b. Filter 2 is essentially a sanity check for
+        # tetrahedral candidates; it's the prepared check for future
+        # polyhedral candidates.
+        for parent_idx in range(4):
+            for pair in face_adjacent_pairs(
+                paolini_rule, parent_idx, abck_prototiles,
+            ):
+                result = prioritise_merge_candidate(
+                    paolini_rule, pair, abck_prototiles,
+                )
+                assert result.face_count_strictly_decreases is True
+
+    def test_filter_1_detail_records_count_vectors(
+        self, paolini_rule, abck_prototiles,
+    ) -> None:
+        # The MergeFiltering.detail string captures composition + σ_count
+        # for each candidate — useful for debugging the no-go in a
+        # future investigation.
+        pair = face_adjacent_pairs(paolini_rule, 3, abck_prototiles)[0]
+        result = prioritise_merge_candidate(
+            paolini_rule, pair, abck_prototiles,
+        )
+        assert "composition=" in result.detail
+        assert "σ_count=" in result.detail
+        assert result.combinatorial_feasibility is False
+
+    def test_passes_all_aggregate_is_zero_for_danzer(
+        self, paolini_rule, abck_prototiles,
+    ) -> None:
+        # The single bottom-line aggregate: 0 of 24 Danzer face-merge
+        # candidates pass all filters. The full deformation search
+        # over face-merges of ABCK terminates here without proceeding
+        # to pillar-1+2+3 verification.
+        passes = 0
+        total = 0
+        for parent_idx in range(4):
+            for pair in face_adjacent_pairs(
+                paolini_rule, parent_idx, abck_prototiles,
+            ):
+                total += 1
+                result = prioritise_merge_candidate(
+                    paolini_rule, pair, abck_prototiles,
+                )
+                if result.passes_all:
+                    passes += 1
+        assert total == 24
+        assert passes == 0
