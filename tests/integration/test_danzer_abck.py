@@ -421,3 +421,93 @@ class TestDanzerFourthPillarStub:
             assert "Frettlöh" in msg or "Frettloh" in msg
         else:
             raise AssertionError("expected NotImplementedError")
+
+
+# -- Pillars 1 + 3 end-to-end through hierarchy.inflation_argument ----
+
+
+class TestDanzerPillarsOneAndThree:
+    """End-to-end exercise of ``hierarchy.inflation_argument`` on the
+    Danzer rule using a synthetic ``RecognisabilityResult`` for the
+    pillar-2 input.
+
+    This complements the unit-level pillar-3 tests in
+    ``test_hierarchy.py`` (which use a hand-built P3 rule) by
+    confirming the same predicate also produces a valid
+    ``InflationArgument`` on Track A's first real candidate. Until
+    27B-β lands the geometric dissection and real recognisability
+    can be computed on a Danzer patch, the pillar-2 input here is
+    a synthetic ``is_recognisable=True`` witness — same pattern as
+    ``test_hierarchy.py``'s P3 tests.
+    """
+
+    def _success_recognisability(self, radius: int = 1):
+        from apeiron.hierarchy import RecognisabilityResult
+        return RecognisabilityResult(
+            is_recognisable=True,
+            radius_used=radius,
+            radius_cap_reached=False,
+            witness={(0,): 0, (1,): 1, (2,): 2, (3,): 3},
+        )
+
+    def test_inflation_argument_succeeds_on_danzer(
+        self, danzer_rule,
+    ) -> None:
+        from apeiron.hierarchy import (
+            InflationArgument,
+            inflation_argument,
+        )
+        result = inflation_argument(
+            danzer_rule, self._success_recognisability(),
+        )
+        assert isinstance(result, InflationArgument)
+
+    def test_inflation_argument_pf_is_phi_cubed(
+        self, danzer_rule,
+    ) -> None:
+        from apeiron.hierarchy import (
+            InflationArgument,
+            inflation_argument,
+        )
+        result = inflation_argument(
+            danzer_rule, self._success_recognisability(),
+        )
+        assert isinstance(result, InflationArgument)
+        assert result.pf_eigenvalue == ZPhi(1, 2)
+
+    def test_inflation_argument_records_recognisability_radius(
+        self, danzer_rule,
+    ) -> None:
+        from apeiron.hierarchy import (
+            InflationArgument,
+            inflation_argument,
+        )
+        result = inflation_argument(
+            danzer_rule, self._success_recognisability(radius=3),
+        )
+        assert isinstance(result, InflationArgument)
+        assert result.recognisability_radius == 3
+
+    def test_inflation_argument_fails_on_failing_recognisability(
+        self, danzer_rule,
+    ) -> None:
+        # If pillar 2 fails (synthetic is_recognisable=False),
+        # pillar 3 must report "not recognisable" rather than
+        # producing a witness.
+        from apeiron.hierarchy import (
+            IndistinguishablePair,
+            InflationFailure,
+            RecognisabilityResult,
+            inflation_argument,
+        )
+        bad_result = RecognisabilityResult(
+            is_recognisable=False,
+            radius_used=5,
+            radius_cap_reached=True,
+            witness=IndistinguishablePair(
+                tile_a=0, tile_b=1, radius=5, parent_a=0, parent_b=1,
+            ),
+        )
+        result = inflation_argument(danzer_rule, bad_result)
+        assert isinstance(result, InflationFailure)
+        assert result.reason == "not recognisable"
