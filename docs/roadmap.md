@@ -45,18 +45,32 @@ property.
       published proof (Danzer 1989 Thm 2; Goodman-Strauss 1998;
       Frettlöh Thm 1.2) and exercises the protocol's import path
       end-to-end.
-- [ ] **27B-β** — transcribe real geometric dissection (translation
-      + rotation per child of σ(X) for X ∈ {A,B,C,K}) from
-      Frettlöh Figure 2 / Tilings Encyclopedia interactive view
-      into `candidates/danzer/dissection_notes.md` and update the
-      `SubstitutionRule`.
-- [ ] **27D** — full four-pillar pipeline run on the Danzer
-      baseline using the real geometric dissection.
-- [ ] Systematic search for minimal-deformation merges of the four
-      tiles into one. Interval arithmetic over ℤ[φ] for the
-      parameterised tile family. Each candidate gets its own
-      `candidates/danzer_merge_*/` directory with prototile JSON,
-      substitution rule, and `fourth_pillar.py` slot.
+- [x] **27B-β** done in `b3d8e55` + `164e6dd` — Paolini POV-Ray
+      source machine-extracted into
+      `candidates/danzer/paolini_dissection.json` with all 25
+      children verified by volume conservation, multiplicity match,
+      and I_h membership; promoted to canonical `danzer_rule`
+      fixture per Claude (web)'s Q4a 2026-04-29 ruling. (Frettlöh's
+      live URLs were dead; Paolini's POV-Ray is the canonical
+      machine-readable source.)
+- [x] **27D** done in `5bfa3a5` + `875ba02` — full four-pillar
+      pipeline returns `InflationArgument(pf=φ³, radius=2)` on the
+      canonical real-geometry rule; pillar 2 succeeds uniformly
+      across all four prototiles at level 1 and at level 2 for
+      σ(A) using the Goodman-Strauss `position_signature`.
+      Empirical recognisability radii: σ(A)→2, σ(B)→6, σ(C)→1,
+      σ(K)→1, σ²(A)→4. Track A's baseline confirmed: pillars 1 + 2
+      + 3 hold for ABCK with real geometry.
+- [ ] **Phase 1.5** — deformation search proper. Systematic search
+      for minimal-deformation merges of the four tiles into one.
+      Open architectural questions: how is "deformation" formalised
+      (vertex perturbation? face merging?), what's the search space
+      (one-parameter family? full ℤ[φ] parametric family?), what
+      validation pipeline runs per candidate (the same four pillars,
+      computed automatically for each merge candidate). Each
+      candidate gets its own `candidates/danzer_merge_*/` directory
+      with prototile JSON, substitution rule, and per-candidate
+      `fourth_pillar.py`. Direction-pick deferred to Claude (web).
 - [ ] No-go theorem write-up if every parametric merge fails the
       pipeline.
 
