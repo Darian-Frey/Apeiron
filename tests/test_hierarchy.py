@@ -35,7 +35,9 @@ from apeiron.hierarchy import (
     expand_supertile_with_parents,
     inflation_argument,
     is_recognisable,
+    make_euclidean_squared_oracle,
     neighbourhood_signature,
+    patch_from_supertile,
 )
 from apeiron.polyhedron import Polyhedron
 from apeiron.substitution import PositionedTile, SubstitutionRule
@@ -861,6 +863,154 @@ class TestExpandSupertileWithParents:
             assert len(entry) == 2
             assert isinstance(entry[0], PlacedSubtile)
             assert isinstance(entry[1], int)
+
+
+# -- TilePatch from level-N expansion (pillar-2 bridge) ---------------
+
+
+class TestEuclideanSquaredOracle:
+    """Smoke tests for the squared-Euclidean neighbour oracle factory.
+    Distances are computed in ZPhi (no float fallback)."""
+
+    def test_self_neighbour_at_radius_zero(self) -> None:
+        positions = (
+            Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(2, 0), ZPhi(0, 0), ZPhi(0, 0)),
+        )
+        oracle = make_euclidean_squared_oracle(positions, ZPhi(1, 0))
+        assert oracle(0, 0, 0) is True
+        assert oracle(1, 1, 0) is True
+
+    def test_distinct_points_outside_radius_zero(self) -> None:
+        positions = (
+            Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(2, 0), ZPhi(0, 0), ZPhi(0, 0)),
+        )
+        # |pos_0 - pos_1|² = 4; threshold = 0² · 1 = 0 → not within.
+        oracle = make_euclidean_squared_oracle(positions, ZPhi(1, 0))
+        assert oracle(0, 1, 0) is False
+
+    def test_threshold_inclusive(self) -> None:
+        # |pos_0 - pos_1|² = 4 = 1² · 4, so r=1 with step=4 should hit.
+        positions = (
+            Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(2, 0), ZPhi(0, 0), ZPhi(0, 0)),
+        )
+        oracle = make_euclidean_squared_oracle(positions, ZPhi(4, 0))
+        assert oracle(0, 1, 1) is True
+
+    def test_radius_grows_quadratically(self) -> None:
+        # |pos_0 - pos_1|² = 16; threshold = r² · 1 = r².
+        # r=3 → threshold 9 < 16, no; r=4 → threshold 16 = 16, yes.
+        positions = (
+            Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(4, 0), ZPhi(0, 0), ZPhi(0, 0)),
+        )
+        oracle = make_euclidean_squared_oracle(positions, ZPhi(1, 0))
+        assert oracle(0, 1, 3) is False
+        assert oracle(0, 1, 4) is True
+
+    def test_phi_step_irrational_threshold(self) -> None:
+        # Step = phi, so threshold at r=2 is 4*phi.
+        # |pos_0 - pos_1|² = 4 (rational). 4 < 4*phi (since phi > 1)? Yes.
+        # So r=2 should include them.
+        positions = (
+            Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(2, 0), ZPhi(0, 0), ZPhi(0, 0)),
+        )
+        oracle = make_euclidean_squared_oracle(positions, ZPhi(0, 1))
+        assert oracle(0, 1, 2) is True
+
+    def test_rejects_negative_radius(self) -> None:
+        positions = (Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),)
+        oracle = make_euclidean_squared_oracle(positions, ZPhi(1, 0))
+        with pytest.raises(ValueError, match="radius must be"):
+            oracle(0, 0, -1)
+
+    def test_rejects_out_of_range_index(self) -> None:
+        positions = (Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),)
+        oracle = make_euclidean_squared_oracle(positions, ZPhi(1, 0))
+        with pytest.raises(IndexError):
+            oracle(0, 5, 1)
+        with pytest.raises(IndexError):
+            oracle(-1, 0, 1)
+
+    def test_position_snapshot_is_immutable(self) -> None:
+        # Mutating the source list must not change oracle behaviour.
+        positions: list[Vec3] = [
+            Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(2, 0), ZPhi(0, 0), ZPhi(0, 0)),
+        ]
+        oracle = make_euclidean_squared_oracle(positions, ZPhi(4, 0))
+        positions[1] = Vec3(ZPhi(100, 0), ZPhi(0, 0), ZPhi(0, 0))
+        # Oracle still uses the original snapshot: r=1 still hits.
+        assert oracle(0, 1, 1) is True
+
+
+class TestPatchFromSupertile:
+    """Verify the bridge between expand_supertile_with_parents and
+    pillar-2's TilePatch contract.
+    """
+
+    def test_level_zero_single_tile_patch(self) -> None:
+        rule = _two_prototile_rule()
+        patch = patch_from_supertile(
+            rule, 0, level=0, radius_step_squared=ZPhi(1, 0),
+        )
+        assert isinstance(patch, TilePatch)
+        assert len(patch.tiles) == 1
+        tile = patch.tiles[0]
+        assert tile.tile_type == 0
+        assert tile.parent_supertile == 0
+
+    def test_level_one_tile_count_and_types(self) -> None:
+        rule = _two_prototile_rule()
+        patch = patch_from_supertile(
+            rule, 0, level=1, radius_step_squared=ZPhi(1, 0),
+        )
+        children = expand_one(rule, 0)
+        assert len(patch.tiles) == len(children)
+        for i, (tile, child) in enumerate(
+            zip(patch.tiles, children, strict=True)
+        ):
+            assert tile.tile_type == child.prototile_index
+            assert tile.parent_supertile == i
+
+    def test_parent_supertile_matches_tagging(self) -> None:
+        # Every tile's parent_supertile equals the level-1 ancestor
+        # index returned by expand_supertile_with_parents.
+        rule = _danzer_placeholder_rule()
+        patch = patch_from_supertile(
+            rule, 0, level=2, radius_step_squared=ZPhi(1, 0),
+        )
+        tagged = expand_supertile_with_parents(rule, 0, 2)
+        assert len(patch.tiles) == len(tagged)
+        for tile, (_leaf, parent_id) in zip(
+            patch.tiles, tagged, strict=True,
+        ):
+            assert tile.parent_supertile == parent_id
+
+    def test_neighbour_oracle_is_callable(self) -> None:
+        rule = _two_prototile_rule()
+        patch = patch_from_supertile(
+            rule, 0, level=1, radius_step_squared=ZPhi(1, 0),
+        )
+        # Self-distance is zero; r=0 should hit.
+        assert patch.neighbour_within(0, 0, 0) is True
+
+    def test_oracle_uses_leaf_positions(self) -> None:
+        # Pick a level-1 patch; verify the oracle's notion of
+        # "within radius r" actually reflects leaf positions.
+        rule = _danzer_placeholder_rule()
+        # All placeholder children are at the origin / identity, so all
+        # leaf positions coincide and any radius ≥ 0 should connect them.
+        patch = patch_from_supertile(
+            rule, 0, level=1, radius_step_squared=ZPhi(1, 0),
+        )
+        n = len(patch.tiles)
+        for i in range(n):
+            for j in range(n):
+                assert patch.neighbour_within(i, j, 0) is True
 
 
 # -- Pillar 2 / 3 / 4 tag coverage -----------------------------------

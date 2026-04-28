@@ -36,7 +36,7 @@ relevant tests in ``test_substitution.py`` and elsewhere.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
@@ -67,6 +67,8 @@ __all__ = [
     "expand_one",
     "expand_supertile",
     "expand_supertile_with_parents",
+    "make_euclidean_squared_oracle",
+    "patch_from_supertile",
     "inflation_argument",
     "is_recognisable",
     "neighbourhood_signature",
@@ -328,6 +330,89 @@ def expand_supertile_with_parents(
                 )
         leaves = next_leaves
     return tuple(leaves)
+
+
+def make_euclidean_squared_oracle(
+    positions: Sequence[Vec3],
+    radius_step_squared: ZPhi,
+) -> Callable[[int, int, int], bool]:
+    """Build a ``TilePatch.neighbour_within`` oracle from squared
+    Euclidean distance.
+
+    ``oracle(i, j, r)`` returns ``True`` iff
+    ``|pos_i - pos_j|² ≤ r² · radius_step_squared``.
+
+    Squared distances let the comparison stay in ℤ[φ] (no sqrt, no
+    floats). The caller supplies ``radius_step_squared`` — the squared
+    distance corresponding to "radius 1" — based on the prototile's
+    characteristic edge length. Picking it equal to ``edge_length²``
+    (or its ×2-storage scaling) gives the natural "r face-shares away"
+    semantics for tiles that share a single edge per radius step.
+
+    Positions are read once and snapshotted into a tuple so that later
+    mutations to a caller-side list don't change the oracle's behaviour.
+    """
+    pos_tuple = tuple(positions)
+    n = len(pos_tuple)
+
+    def oracle(i: int, j: int, r: int) -> bool:
+        if not 0 <= i < n:
+            raise IndexError(f"i={i} outside [0, {n}).")
+        if not 0 <= j < n:
+            raise IndexError(f"j={j} outside [0, {n}).")
+        if r < 0:
+            raise ValueError(f"radius must be ≥ 0; got {r}.")
+        diff = pos_tuple[i] - pos_tuple[j]
+        sq_dist = diff.norm_squared()
+        threshold = radius_step_squared * (r * r)
+        return sq_dist <= threshold
+
+    return oracle
+
+
+def patch_from_supertile(
+    rule: SubstitutionRule,
+    prototile_index: int,
+    level: int,
+    *,
+    radius_step_squared: ZPhi,
+) -> TilePatch:
+    """Build a ``TilePatch`` from ``σⁿ(P_{prototile_index})`` for
+    pillar-2 recognisability testing.
+
+    Each leaf of the level-``n`` expansion becomes a ``PatchTile`` with:
+
+    - ``tile_type``: the leaf's prototile index.
+    - ``parent_supertile``: the level-1 ancestor index (from
+      ``expand_supertile_with_parents``) — i.e., which of the ``k``
+      level-1 children of ``P`` this leaf descends from.
+
+    The neighbour oracle is the squared-Euclidean version produced by
+    ``make_euclidean_squared_oracle``. ``radius_step_squared`` is the
+    squared distance corresponding to "radius 1" and must be chosen
+    by the caller based on the prototile's edge length (in ×2-storage
+    units, since leaf positions are ×2-stored per CLAUDE.md §3.2).
+
+    Used in pillar-2 testing as: build a level-``n`` patch, call
+    ``is_recognisable`` on it, and check whether the result's
+    ``radius_used`` is bounded uniformly across ``n``.
+
+    Raises ``ValueError`` if ``level < 0`` or if the inputs to
+    ``expand_supertile_with_parents`` are out of range.
+    """
+    tagged = expand_supertile_with_parents(rule, prototile_index, level)
+    tiles: tuple[PatchTile, ...] = tuple(
+        PatchTile(
+            tile_type=leaf.prototile_index,
+            parent_supertile=parent_id,
+        )
+        for leaf, parent_id in tagged
+    )
+    positions: tuple[Vec3, ...] = tuple(
+        leaf.translation for leaf, _ in tagged
+    )
+    oracle = make_euclidean_squared_oracle(positions, radius_step_squared)
+    return TilePatch(tiles=tiles, neighbour_within=oracle)
 
 
 # -- Recognisability (pillar 2) — sub-commit B ------------------------
