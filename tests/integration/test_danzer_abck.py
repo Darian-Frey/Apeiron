@@ -243,42 +243,66 @@ def _build_danzer_rule_with_placeholder_geometry() -> SubstitutionRule:
     )
 
 
-@pytest.fixture(scope="module")
-def danzer_rule() -> SubstitutionRule:
-    """The Danzer ``SubstitutionRule`` (matrix-only; placeholder
-    dissection geometry).
+def _build_danzer_rule_from_paolini_dissection() -> SubstitutionRule:
+    """Construct the canonical Danzer ``SubstitutionRule`` with real
+    per-child geometry.
 
-    Module-scoped so every pillar-1 test reuses a single
-    construction.
-    """
-    return _build_danzer_rule_with_placeholder_geometry()
+    **Source**: Paolini's POV-Ray substitution implementation, SVN
+    trunk at
+    ``https://svn.dmf.unicatt.it/svn/projects/animations/danzer/trunk/``,
+    machine-extracted by ``candidates/danzer/_paolini_extract.py``
+    into ``candidates/danzer/paolini_dissection.json``. Each of the
+    25 children carries a translation in ×2-stored ℤ[φ]³ and a
+    rotation in I (orientation-preserving, ``Rotation``) or in
+    I_h \\ I (orientation-reversing, ``ImproperRotation``).
 
+    **Why Paolini, not Koca** (arXiv 2003.13449, eqs. 19–31): per
+    Claude (web) Q4a ruling 2026-04-29, Paolini is the canonical
+    source. Both sources produce valid, isometrically-equivalent
+    σ(K) dissections, but Koca's text leaves B's pose in σ(K)
+    implicit (Fig. 8 only — no algebraic equation), and the natural
+    "B at identity at origin" guess places B's vertex 1 outside
+    τK. A canonical source that requires figure-reading for at
+    least one child is not canonical. Paolini is complete (all 25
+    children algebraically specified), and our extractor verified
+    the result via three independent checks (volume conservation,
+    multiplicity match, I_h membership; commits ``b3d8e55`` and
+    ``b7174b1``).
 
-def _build_danzer_rule_from_paolini_dissection() -> SubstitutionRule | None:
-    """Construct a Danzer ``SubstitutionRule`` with real-geometry
-    children loaded from ``candidates/danzer/paolini_dissection.json``.
+    **Cross-validations against Koca (where Koca gives equations)**:
 
-    Status: contingent on Q4a ruling from Claude (web). The Paolini
-    POV-Ray source is one of two candidate canonical sources (the
-    other being Koca, arXiv 2003.13449); both produce
-    isometrically-equivalent but absolutely-different child placements
-    within τ·prototile. Until Claude (web) confirms Paolini as the
-    canonical encoding, this builder is exercised only by the
-    contingent end-to-end test below — not by the
-    ``danzer_rule`` fixture.
+    - σ(K) K-child: Koca eq. (19) ``g_K = [[0,-1,0],[0,0,-1],[1,0,0]]``,
+      ``t_K = ½(τ, τ², 0)``. Paolini's ``trK_2`` places the K-child at
+      a different absolute position within τK but isometrically
+      equivalent (pairwise distances among placed vertices match);
+      not a per-child position match, but consistent on isometry-
+      class. Frame difference, not bug.
+    - σ(B), σ(C), σ(A): Koca's matrices appear in eqs. (20)–(31) but
+      are not exhaustively cross-checked here; the Paolini volume
+      conservation (sum of children's vols = τ³·vol(parent)) and
+      multiplicity match against Frettlöh's matrix are the
+      independent witnesses for these.
 
-    Returns ``None`` if the JSON does not exist (extractor not yet
-    run).
+    **Children-only-from-Paolini (figure-dependent in Koca)**:
+
+    - σ(K) B-child: only Paolini gives an explicit pose
+      (``trK_1 = scale<-1,-1,-1>; translate(pt2)``, an
+      ``ImproperRotation(identity)`` at translation
+      ``(τ², τ², τ²)``). Koca's text describes the placement as
+      "the origin coincides with one of the vertices of B" with
+      the rest in Fig. 8 — not algebraically reproducible from text.
     """
     json_path = _DANZER_DIR / "paolini_dissection.json"
     if not json_path.exists():
-        return None
+        raise FileNotFoundError(
+            f"{json_path} missing — run "
+            "candidates/danzer/_paolini_extract.py to regenerate."
+        )
     from apeiron.symmetry import ICOSAHEDRAL, ImproperRotation
 
     data = json.loads(json_path.read_text())
     type_to_idx = {"A": 0, "B": 1, "C": 2, "K": 3}
 
-    # Group children by parent.
     by_parent: dict[str, list] = {"A": [], "B": [], "C": [], "K": []}
     for record in data["children"]:
         by_parent[record["parent"]].append(record)
@@ -305,6 +329,17 @@ def _build_danzer_rule_from_paolini_dissection() -> SubstitutionRule | None:
         inflation=_phi_inflation_matrix(),
         dissections=tuple(dissections),
     )
+
+
+@pytest.fixture(scope="module")
+def danzer_rule() -> SubstitutionRule:
+    """The canonical Danzer ``SubstitutionRule`` (Paolini real geometry).
+
+    Per Claude (web) Q4a ruling 2026-04-29; see
+    ``_build_danzer_rule_from_paolini_dissection`` for source citation
+    and Koca cross-validations. Module-scoped.
+    """
+    return _build_danzer_rule_from_paolini_dissection()
 
 
 class TestDanzerSubstitutionMatrix:
@@ -568,16 +603,17 @@ class TestDanzerPillarsOneAndThree:
 
 class TestDanzerPatchBridge:
     """Exercise the algebraic→combinatorial pillar-2 bridge on Track
-    A's first candidate: ``patch_from_supertile`` on the Danzer rule
-    produces a ``TilePatch`` of the expected shape, even with the
-    placeholder geometry from sub-commit 27B-α.
+    A's first candidate: ``patch_from_supertile`` on the canonical
+    Paolini real-geometry Danzer rule produces a ``TilePatch`` of the
+    expected shape.
 
-    With placeholder geometry (every child at origin / identity), the
-    squared-Euclidean oracle is degenerate (all leaves coincide), so
-    ``is_recognisable`` is forced to fail. Once 27B-β replaces the
-    placeholders with real Frettlöh dissection geometry, the same
-    bridge call will produce a non-degenerate patch and
-    ``is_recognisable`` becomes a meaningful pillar-2 query.
+    With real geometry, leaves at level ≥ 1 land at distinct positions
+    in ℤ[φ]³ (×2-stored), so the squared-Euclidean oracle separates
+    them. ``is_recognisable`` with the multiset / shell signatures
+    still returns False on this rule (the signatures are too coarse;
+    see Q5 in ``candidates/danzer/dissection_notes.md``); the
+    refined ``position_signature`` (Goodman-Strauss atlas form) is
+    where pillar 2 actually decides.
     """
 
     def test_level_one_patch_matches_dissection_size(
@@ -637,14 +673,12 @@ class TestDanzerPatchBridge:
         size_counts = Counter(groups.values())
         assert size_counts == Counter({7: 3, 5: 2, 2: 6})
 
-    def test_recognisable_fails_on_placeholder_geometry(
+    def test_recognisable_fails_with_multiset_signature(
         self, danzer_rule,
     ) -> None:
-        # All level-1 children share the origin under placeholder
-        # geometry, so the Euclidean oracle declares everything
-        # within any radius. is_recognisable must report
-        # IndistinguishablePair (multiset signature can't separate
-        # tiles whose only distinction is their parent_supertile).
+        # The default multiset signature is provably too coarse for
+        # ABCK (per Q5 in dissection_notes.md). is_recognisable must
+        # report IndistinguishablePair until position_signature lands.
         from apeiron.hierarchy import (
             IndistinguishablePair,
             is_recognisable,
@@ -652,7 +686,7 @@ class TestDanzerPatchBridge:
         )
         patch = patch_from_supertile(
             danzer_rule, prototile_index=0, level=1,
-            radius_step_squared=ZPhi(1, 0),
+            radius_step_squared=ZPhi(4, 0),
         )
         result = is_recognisable(patch, max_radius=3)
         assert result.is_recognisable is False
