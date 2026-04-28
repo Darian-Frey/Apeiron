@@ -24,7 +24,18 @@ Sub-commit plan for Track A's first candidate (Danzer):
   as `candidates/danzer/{A,B,C,K}.json` per Frettlöh Table 1, with
   K's class-IV vertex stored at `scale_denom=2`. 20 integration
   tests confirm tetrahedron shape (4V/6E/4F, χ=2, all triangular).
-- **27C** done in commit 29 (pending) — `candidates/danzer/fourth_pillar.py`
+- **27D-prep**: `notebooks/cube_corona_demo.py` (`b7013a8`) renders the
+  cube's 26-neighbour Moore corona via the `corona × viz`
+  integration — first end-to-end exercise of that path.
+  `notebooks/danzer_demo.py` (`bbd8b7d`) renders the four ABCK
+  prototiles side-by-side.
+  `tests/integration/test_danzer_abck.py::TestDanzerPillarsOneAndThree`
+  (`89e8137`) — Danzer rule fed through `hierarchy.inflation_argument`
+  with synthetic pillar-2 input; verifies pillars 1 + 3 are wired
+  end-to-end on Track A's first candidate.
+  `candidates/danzer/dissection_notes.md` (`bbd8b7d`) — template for
+  the 27B-β transcription session.
+- **27C** `4af277a` — `candidates/danzer/fourth_pillar.py`
   with a `DanzerABCKFourthPillar` class implementing the
   `FourthPillarArgument` protocol, methods raising
   `NotImplementedError` with citations to Danzer 1989 Thm 2,
@@ -77,7 +88,15 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **29** (pending) — `feat(candidates/danzer)`: fourth-pillar stub
+- **32** `b7013a8` — `docs(viz)`: cube corona demo
+  (`notebooks/cube_corona_demo.py`); first end-to-end corona × viz
+  integration exercise.
+- **31** `89e8137` — `test(danzer)`: pillars 1 + 3 end-to-end on
+  Track A's first candidate via `hierarchy.inflation_argument`,
+  with synthetic pillar-2 input.
+- **30** `bbd8b7d` — `docs(danzer)`: viz demo + `dissection_notes.md`
+  template for the 27B-β transcription session.
+- **29** `4af277a` — `feat(candidates/danzer)`: fourth-pillar stub
   satisfying `FourthPillarArgument` (sub-commit 27C); first
   end-to-end exercise of the protocol's import path.
 - **28** `2d42fbd` — `feat(candidates/danzer)`: pillar-1 verification
@@ -149,7 +168,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-29 working tree): 456 passing in 22.64 s under
+Test totals (post-commit-32): 460 passing in 22.76 s under
 venv pytest 9.0.3.
 
 ---
