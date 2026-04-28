@@ -134,6 +134,55 @@ class TestDanzerKHalfInteger:
                 assert isinstance(comp.b, int)
 
 
+# -- Q5b: stabiliser of each ABCK prototile in I_h --------------------
+
+
+class TestDanzerProtileStabiliser:
+    """Per Claude (web) Q5b ruling 2026-04-29: the stabiliser of each
+    ABCK prototile in I_h is trivial.
+
+    The argument from Frettlöh: the four vertices of each tetrahedron
+    belong to distinct CPS vertex classes (I/II/III/IV), so no
+    non-identity element of I_h can permute the vertices of a single
+    tile while fixing the tile as a set. Therefore Stab_{I_h}(A) =
+    Stab_{I_h}(B) = Stab_{I_h}(C) = Stab_{I_h}(K) = {identity}.
+
+    This is the hypothesis under which ``position_signature`` (Q5a /
+    Goodman-Strauss atlas form) elides the centre-stabiliser quotient
+    for ABCK. If the assertion ever fails, ``position_signature`` for
+    that prototile would need the explicit modulo-stabiliser pass.
+    """
+
+    @pytest.mark.parametrize("letter", ["A", "B", "C", "K"])
+    def test_only_identity_fixes_tile(self, danzer_tiles, letter) -> None:
+        from apeiron.symmetry import ICOSAHEDRAL, ImproperRotation, Rotation
+
+        tile = danzer_tiles[letter]
+        original = frozenset(tile.vertices)
+
+        identity = Rotation.identity()
+        fixed_by: list = []
+        # 60 proper + 60 improper = 120 elements of I_h.
+        for g in ICOSAHEDRAL:
+            transformed = frozenset(g.apply(v) for v in tile.vertices)
+            if transformed == original:
+                fixed_by.append(g)
+            transformed_imp = frozenset(
+                ImproperRotation(g).apply(v) for v in tile.vertices
+            )
+            if transformed_imp == original:
+                fixed_by.append(ImproperRotation(g))
+
+        assert len(fixed_by) == 1, (
+            f"Stab_{{I_h}}({letter}) has {len(fixed_by)} elements, "
+            f"expected 1 (trivial). Non-identity stabilisers would "
+            f"break the position_signature elision; see Q5b."
+        )
+        assert fixed_by[0] == identity, (
+            f"Stab_{{I_h}}({letter}) contains a non-identity element."
+        )
+
+
 # -- prototile_index metadata is internally consistent ----------------
 
 
