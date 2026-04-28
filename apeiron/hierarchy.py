@@ -64,6 +64,7 @@ __all__ = [
     "RecognisabilityResult",
     "Supertile",
     "TilePatch",
+    "aperiodicity_witness",
     "expand_one",
     "expand_supertile",
     "expand_supertile_with_parents",
@@ -1039,6 +1040,106 @@ def inflation_argument(
     return InflationArgument(
         pf_eigenvalue=pf,
         recognisability_radius=recognisability.radius_used,
+    )
+
+
+def aperiodicity_witness(
+    rule: SubstitutionRule,
+    *,
+    level: int = 1,
+    radius_step_squared: ZPhi,
+    max_radius: int = 8,
+    signature_fn: Callable[[TilePatch, int, int], tuple] = position_signature,
+) -> InflationArgument | InflationFailure:
+    """Pillars 1 + 2 + 3 chained — the deformation-search building block.
+
+    Runs the algebraic verification pipeline end-to-end for a
+    substitution rule:
+
+    1. **Pillar 1** (substitution.is_primitive +
+       perron_frobenius_in_zphi) checks the substitution matrix is
+       primitive and recovers the PF eigenvalue exactly in ℤ[φ].
+    2. **Pillar 2** (is_recognisable) builds a level-``level`` patch
+       for *every* prototile and checks that every tile's supertile
+       parent is uniquely determined by its bounded local
+       neighbourhood. Recognisability must hold for all prototiles
+       — pillar 3 needs a uniform recognisability witness, not just
+       one for an arbitrary starting prototile.
+    3. **Pillar 3** (inflation_argument) wraps the result in an
+       ``InflationArgument`` carrying the PF eigenvalue and the
+       maximum recognisability radius across prototiles.
+
+    Returns:
+      - ``InflationArgument`` on full success (pillars 1, 2, 3 all
+        established for every prototile).
+      - ``InflationFailure`` on first failure, with the failing
+        pillar identified in ``reason`` and the prototile index
+        in ``detail`` where applicable.
+
+    Per CLAUDE.md §6.3, this is the *algebraic* verification — pillar
+    4 is candidate-specific and lives elsewhere. The deformation
+    search calls this once per merge candidate to filter algebraic-
+    aperiodic rules from the much larger candidate space; pillar-4
+    work proceeds only on candidates that survive.
+
+    Default arguments tuned for ABCK-scale rules; ``max_radius=8``
+    covers Danzer's worst case (σ(B) at radius 6) with margin. For
+    rules with larger inflation factors or longer alphabets, raise
+    ``max_radius`` accordingly — the theoretical bound is roughly
+    ``λ^(2n)`` for an ``n``-letter alphabet with inflation factor ``λ``.
+
+    Raises ``ValueError`` for ``level < 0`` or ``max_radius < 1``.
+    """
+    if level < 0:
+        raise ValueError(f"level must be ≥ 0; got {level}.")
+    if max_radius < 1:
+        raise ValueError(f"max_radius must be ≥ 1; got {max_radius}.")
+
+    matrix = substitution_matrix(rule)
+    if not is_primitive(matrix):
+        return InflationFailure(
+            reason="not primitive",
+            detail=(
+                f"Substitution matrix of shape {matrix.shape} has no "
+                "strictly-positive power within the Wielandt bound."
+            ),
+        )
+    pf = perron_frobenius_in_zphi(matrix)
+    if pf is None:
+        return InflationFailure(
+            reason="pf not in z[phi]",
+            detail="Perron–Frobenius eigenvalue is not in ℤ[φ].",
+        )
+    if not (pf > ZPhi(1, 0)):
+        return InflationFailure(
+            reason="pf <= 1",
+            detail=f"Perron–Frobenius eigenvalue {pf} is not > 1.",
+        )
+
+    max_radius_used = 0
+    for proto_idx in range(rule.n_prototiles):
+        patch = patch_from_supertile(
+            rule, prototile_index=proto_idx, level=level,
+            radius_step_squared=radius_step_squared,
+        )
+        recog = is_recognisable(
+            patch, max_radius=max_radius, signature_fn=signature_fn,
+        )
+        if not recog.is_recognisable:
+            return InflationFailure(
+                reason="not recognisable",
+                detail=(
+                    f"Pillar 2 failed for σ(prototile_{proto_idx}) at "
+                    f"max_radius={max_radius}; "
+                    f"witness={recog.witness}."
+                ),
+            )
+        if recog.radius_used > max_radius_used:
+            max_radius_used = recog.radius_used
+
+    return InflationArgument(
+        pf_eigenvalue=pf,
+        recognisability_radius=max_radius_used,
     )
 
 

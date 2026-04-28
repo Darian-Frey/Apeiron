@@ -32,6 +32,7 @@ from apeiron.hierarchy import (
     TilePatch,
     expand_one,
     expand_supertile,
+    aperiodicity_witness,
     expand_supertile_with_parents,
     inflation_argument,
     is_recognisable,
@@ -482,6 +483,96 @@ class TestInflationArgumentStructure:
         f = InflationFailure(reason="x", detail="y")
         with pytest.raises(Exception):
             f.reason = "z"  # type: ignore[misc]
+
+
+# -- aperiodicity_witness (deformation-search building block) --------
+
+
+class TestAperiodicityWitness:
+    """Pillars 1 + 2 + 3 chained in one call. The deformation-search
+    building block — call once per merge candidate, get InflationArgument
+    or InflationFailure with the failing pillar identified.
+    """
+
+    def test_succeeds_on_fibonacci_with_shell_signature(self) -> None:
+        # Fibonacci 1D rule with shell signature passes pillars 1+2+3.
+        rule = _fibonacci_geometric_rule()
+        result = aperiodicity_witness(
+            rule, level=2, radius_step_squared=ZPhi(4, 0),
+            max_radius=5, signature_fn=shell_neighbourhood_signature,
+        )
+        assert isinstance(result, InflationArgument)
+        assert result.pf_eigenvalue == ZPhi(0, 1)  # φ
+
+    def test_fails_on_non_primitive_rule(self) -> None:
+        result = aperiodicity_witness(
+            _non_primitive_rule(),
+            radius_step_squared=ZPhi(1, 0), max_radius=3,
+        )
+        assert isinstance(result, InflationFailure)
+        assert result.reason == "not primitive"
+
+    def test_fails_when_pf_eq_one(self) -> None:
+        result = aperiodicity_witness(
+            _trivial_one_prototile_rule(),
+            radius_step_squared=ZPhi(1, 0), max_radius=3,
+        )
+        assert isinstance(result, InflationFailure)
+        assert result.reason == "pf <= 1"
+
+    def test_fails_on_unrecognisable_rule(self) -> None:
+        # Penrose P3 with default neighbourhood_signature is too coarse
+        # — pillar 2 fails for at least one prototile.
+        rule = _penrose_p3_rule()
+        result = aperiodicity_witness(
+            rule, level=1, radius_step_squared=ZPhi(1, 0),
+            max_radius=3, signature_fn=neighbourhood_signature,
+        )
+        assert isinstance(result, InflationFailure)
+        assert result.reason == "not recognisable"
+        # Detail must identify which prototile failed.
+        assert "prototile_" in result.detail
+
+    def test_rejects_negative_level(self) -> None:
+        rule = _fibonacci_geometric_rule()
+        with pytest.raises(ValueError, match="level must be"):
+            aperiodicity_witness(
+                rule, level=-1, radius_step_squared=ZPhi(4, 0),
+            )
+
+    def test_rejects_zero_max_radius(self) -> None:
+        rule = _fibonacci_geometric_rule()
+        with pytest.raises(ValueError, match="max_radius must be"):
+            aperiodicity_witness(
+                rule, radius_step_squared=ZPhi(4, 0), max_radius=0,
+            )
+
+    def test_max_radius_used_is_max_across_prototiles(self) -> None:
+        # The InflationArgument's recognisability_radius must be the
+        # MAX across all prototiles (not just the first / last).
+        rule = _fibonacci_geometric_rule()
+        result = aperiodicity_witness(
+            rule, level=2, radius_step_squared=ZPhi(4, 0),
+            max_radius=5, signature_fn=shell_neighbourhood_signature,
+        )
+        assert isinstance(result, InflationArgument)
+        # Independently compute the radii and verify the maximum.
+        from apeiron.hierarchy import (
+            is_recognisable, patch_from_supertile,
+        )
+        per_proto_radii = []
+        for proto_idx in range(rule.n_prototiles):
+            patch = patch_from_supertile(
+                rule, prototile_index=proto_idx, level=2,
+                radius_step_squared=ZPhi(4, 0),
+            )
+            recog = is_recognisable(
+                patch, max_radius=5,
+                signature_fn=shell_neighbourhood_signature,
+            )
+            assert recog.is_recognisable
+            per_proto_radii.append(recog.radius_used)
+        assert result.recognisability_radius == max(per_proto_radii)
 
 
 # -- End-to-end pipeline compose (Fibonacci 1D oracle) ----------------

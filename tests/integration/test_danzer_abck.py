@@ -985,3 +985,22 @@ class TestDanzerFullPipeline:
         assert isinstance(result, InflationArgument)
         assert result.pf_eigenvalue == ZPhi(1, 2)  # φ³
         assert result.recognisability_radius == recog.radius_used
+
+    def test_aperiodicity_witness_one_call_baseline(
+        self, danzer_rule,
+    ) -> None:
+        # The deformation-search building block: aperiodicity_witness
+        # runs pillars 1 + 2 + 3 across all four prototiles in one
+        # call. The Track A baseline returns InflationArgument with
+        # PF = φ³ and recognisability_radius = max across {σ(A)→2,
+        # σ(B)→6, σ(C)→1, σ(K)→1} = 6.
+        from apeiron.hierarchy import (
+            InflationArgument, aperiodicity_witness,
+        )
+        result = aperiodicity_witness(
+            danzer_rule, level=1, radius_step_squared=ZPhi(4, 0),
+            max_radius=8,
+        )
+        assert isinstance(result, InflationArgument)
+        assert result.pf_eigenvalue == ZPhi(1, 2)
+        assert result.recognisability_radius == 6
