@@ -254,6 +254,59 @@ def danzer_rule() -> SubstitutionRule:
     return _build_danzer_rule_with_placeholder_geometry()
 
 
+def _build_danzer_rule_from_paolini_dissection() -> SubstitutionRule | None:
+    """Construct a Danzer ``SubstitutionRule`` with real-geometry
+    children loaded from ``candidates/danzer/paolini_dissection.json``.
+
+    Status: contingent on Q4a ruling from Claude (web). The Paolini
+    POV-Ray source is one of two candidate canonical sources (the
+    other being Koca, arXiv 2003.13449); both produce
+    isometrically-equivalent but absolutely-different child placements
+    within τ·prototile. Until Claude (web) confirms Paolini as the
+    canonical encoding, this builder is exercised only by the
+    contingent end-to-end test below — not by the
+    ``danzer_rule`` fixture.
+
+    Returns ``None`` if the JSON does not exist (extractor not yet
+    run).
+    """
+    json_path = _DANZER_DIR / "paolini_dissection.json"
+    if not json_path.exists():
+        return None
+    from apeiron.symmetry import ICOSAHEDRAL, ImproperRotation
+
+    data = json.loads(json_path.read_text())
+    type_to_idx = {"A": 0, "B": 1, "C": 2, "K": 3}
+
+    # Group children by parent.
+    by_parent: dict[str, list] = {"A": [], "B": [], "C": [], "K": []}
+    for record in data["children"]:
+        by_parent[record["parent"]].append(record)
+
+    dissections: list[tuple[PositionedTile, ...]] = []
+    for parent_letter in "ABCK":
+        children: list[PositionedTile] = []
+        for record in sorted(by_parent[parent_letter], key=lambda r: r["child_index"]):
+            t_x2 = record["translation_x2"]
+            translation = Vec3(
+                ZPhi(*t_x2[0]), ZPhi(*t_x2[1]), ZPhi(*t_x2[2]),
+            )
+            proper = ICOSAHEDRAL[record["icosahedral_index"]]
+            rotation = proper if record["is_proper"] else ImproperRotation(proper)
+            children.append(PositionedTile(
+                prototile_index=type_to_idx[record["child_type"]],
+                translation=translation,
+                rotation=rotation,
+            ))
+        dissections.append(tuple(children))
+
+    return SubstitutionRule(
+        n_prototiles=4,
+        inflation=_phi_inflation_matrix(),
+        dissections=tuple(dissections),
+    )
+
+
 class TestDanzerSubstitutionMatrix:
     """Pillar 1 — the substitution-matrix recovery and primitivity
     checks against Frettlöh's published matrix.
@@ -737,3 +790,103 @@ class TestPaoliniDissectionExtraction:
                 f"σ({parent}): vol mismatch — expected {expected}, "
                 f"got {actual}, ratio {actual/expected}"
             )
+
+
+class TestPaoliniRealGeometryPipeline:
+    """End-to-end pipeline on the Paolini real-geometry Danzer rule.
+    *Contingent on Q4a ruling from Claude (web).* Until Q4a confirms
+    Paolini, this test exercises 27D infrastructure on what may turn
+    out not to be the canonical encoding — but the structural checks
+    (pillar 1 unchanged, recognisability runs, inflation_argument
+    composes) are encoding-independent and worth running now to catch
+    bridge bugs early.
+    """
+
+    def test_real_rule_has_same_substitution_matrix_as_placeholder(self) -> None:
+        rule = _build_danzer_rule_from_paolini_dissection()
+        if rule is None:
+            pytest.skip("paolini_dissection.json not yet generated")
+        from apeiron.substitution import substitution_matrix
+        import numpy as np
+        # The placeholder rule's substitution matrix is the source of
+        # truth for the multiplicities (Frettlöh's matrix). The real-
+        # geometry rule must agree exactly — geometry doesn't affect
+        # the matrix, only the placement.
+        placeholder = _build_danzer_rule_with_placeholder_geometry()
+        assert (substitution_matrix(rule) == substitution_matrix(placeholder)).all()
+
+    def test_real_rule_is_primitive_with_phi_cubed_pf(self) -> None:
+        rule = _build_danzer_rule_from_paolini_dissection()
+        if rule is None:
+            pytest.skip("paolini_dissection.json not yet generated")
+        from apeiron.substitution import (
+            is_primitive,
+            perron_frobenius_in_zphi,
+            substitution_matrix,
+        )
+        m = substitution_matrix(rule)
+        assert is_primitive(m)
+        assert perron_frobenius_in_zphi(m) == ZPhi(1, 2)
+
+    def test_patch_from_real_supertile_is_non_degenerate(self) -> None:
+        # With real geometry, leaves at level >= 1 should land at
+        # distinct positions (unlike placeholder geometry where they
+        # all coincide at origin).
+        rule = _build_danzer_rule_from_paolini_dissection()
+        if rule is None:
+            pytest.skip("paolini_dissection.json not yet generated")
+        from apeiron.hierarchy import expand_supertile_with_parents
+        tagged = expand_supertile_with_parents(rule, 0, 1)
+        positions = {leaf.translation for leaf, _parent in tagged}
+        # σ(A) = 11 children. Some children may share a position (if
+        # two children of different rotation but same translation are
+        # face-glued), so we don't require all 11 to be distinct, but
+        # we DO require strictly more than 1 (placeholder gave 1).
+        assert len(positions) > 1, (
+            "Paolini geometry produced all-coincident positions — "
+            "extraction bug or all-zero translations"
+        )
+
+    def test_full_pipeline_runs_to_completion(self) -> None:
+        # Smoke test: SubstitutionRule → patch → is_recognisable
+        # (shell signature) → inflation_argument. The pillar-2 result
+        # may be positive or negative depending on the radius cap and
+        # patch level; we don't require recognisability to succeed —
+        # only that the chain composes without errors.
+        rule = _build_danzer_rule_from_paolini_dissection()
+        if rule is None:
+            pytest.skip("paolini_dissection.json not yet generated")
+        from apeiron.hierarchy import (
+            InflationArgument,
+            InflationFailure,
+            inflation_argument,
+            is_recognisable,
+            patch_from_supertile,
+            shell_neighbourhood_signature,
+        )
+        # Use a level-1 patch with a generous radius_step_squared so
+        # the multiset signature has room to grow with radius.
+        # ZPhi(4, 0) is the squared edge length of a unit-edge tile.
+        patch = patch_from_supertile(
+            rule, prototile_index=0, level=1,
+            radius_step_squared=ZPhi(4, 0),
+        )
+        recog = is_recognisable(
+            patch, max_radius=3,
+            signature_fn=shell_neighbourhood_signature,
+        )
+        # Recognisability could be positive or negative; both are fine
+        # for a smoke test. The important thing is that
+        # inflation_argument composes cleanly off the result.
+        result = inflation_argument(rule, recog)
+        assert isinstance(result, (InflationArgument, InflationFailure))
+        if isinstance(result, InflationArgument):
+            # If positive, PF must be ZPhi(1, 2) = φ³.
+            assert result.pf_eigenvalue == ZPhi(1, 2)
+        # Always log the outcome (visible only on -v).
+        print(
+            f"Paolini real-geometry pipeline at level=1: "
+            f"recognisable={recog.is_recognisable} "
+            f"(radius_used={recog.radius_used}); "
+            f"pillar 3 → {type(result).__name__}"
+        )
