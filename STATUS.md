@@ -14,9 +14,11 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-**Track A** (CLAUDE.md §6.1) underway: Danzer ABCK baseline. Per
-Claude (web)'s 2026-04-23 direction-pick, Track A first; fall back
-to Track B if the deformation-search produces a no-go theorem.
+**Track A** (CLAUDE.md §6.1) baseline complete + Phase 1.5
+2-tile-face-merge deformation search exhausted with no survivors.
+Remaining options: Phase 1.6 extension to 3-/4-tile face-merges
+(per `docs/roadmap.md`), or fall back to Track B (CLAUDE.md §6.2)
+substitution-first search. Direction-pick deferred to Claude (web).
 
 Sub-commit plan for Track A's first candidate (Danzer):
 
@@ -95,6 +97,24 @@ Sub-commit plan for Track A's first candidate (Danzer):
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
+- **Phase 1.5** `27f84f1` + `6732fbc` + `4406900` —
+  `feat(deformation)`: face-merge deformation-search infrastructure
+  per Claude (web)'s Q6a/b/c 2026-04-29 ruling. New module
+  `apeiron/deformation.py` with `scaffold_merge_candidate` (auto-
+  generates `candidates/<name>/fourth_pillar.py` stubs at scaffold
+  time), `face_adjacent_pairs` (24 pairs across σ(A,B,C,K)),
+  `merge_two_tiles` (5V/9E/6F triangular bipyramid for tetrahedral
+  merges), and `prioritise_merge_candidate` (Q6b filters 1+2+3).
+  **Phase 1.5 no-go**: ZERO of 24 candidates pass filter 1; no
+  σ-count vector matches any 2-tile composition. Face-merging two
+  ABCK tetrahedra cannot yield a 1-tile substitution rule with PF
+  in ℤ[φ].
+- **deformation building block** `24371c2` — `feat(hierarchy)`:
+  `aperiodicity_witness` chains pillars 1 + 2 + 3 in one call,
+  iterating across all prototiles. The deformation search calls
+  this once per merge candidate that passes Q6b's filters; for
+  Phase 1.5 no candidates reached this stage (filter 1 eliminated
+  all 24 immediately).
 - **27D-extended** `875ba02` — `test(danzer)`: pillar 2 succeeds
   uniformly across all four prototiles at level 1 and at level 2
   for σ(A). Empirical radii (with radius_step_squared = ZPhi(4, 0)):
@@ -273,11 +293,13 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (post-27D-extended): 548 passing in ~19.6 s under venv
+Test totals (post-Phase 1.5): 586 passing in ~19.4 s under venv
 pytest 9.0.3. Slow-test distribution unchanged: `cube_corona_2`
 setup ~7 s, `RD corona_1` setup ~5.5 s, `cube corona_1` setup
-~2.3 s, `RTH face-to-face counts` ~1.5 s. The rest of the 548
-tests run in well under a second combined.
+~2.3 s, `RTH face-to-face counts` ~1.5 s. The rest of the 586
+tests run in well under a second combined. The 38 new tests in
+the Phase 1.5 burst (`24371c2..4406900`) all run in well under a
+second.
 
 ---
 

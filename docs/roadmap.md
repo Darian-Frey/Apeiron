@@ -61,18 +61,30 @@ property.
       Empirical recognisability radii: σ(A)→2, σ(B)→6, σ(C)→1,
       σ(K)→1, σ²(A)→4. Track A's baseline confirmed: pillars 1 + 2
       + 3 hold for ABCK with real geometry.
-- [ ] **Phase 1.5** — deformation search proper. Systematic search
-      for minimal-deformation merges of the four tiles into one.
-      Open architectural questions: how is "deformation" formalised
-      (vertex perturbation? face merging?), what's the search space
-      (one-parameter family? full ℤ[φ] parametric family?), what
-      validation pipeline runs per candidate (the same four pillars,
-      computed automatically for each merge candidate). Each
-      candidate gets its own `candidates/danzer_merge_*/` directory
-      with prototile JSON, substitution rule, and per-candidate
-      `fourth_pillar.py`. Direction-pick deferred to Claude (web).
-- [ ] No-go theorem write-up if every parametric merge fails the
-      pipeline.
+- [x] **Phase 1.5** done in commits `27f84f1`, `6732fbc`, `4406900`,
+      per Claude (web)'s Q6 ruling 2026-04-29 (face-merge formalism,
+      brute-force enumeration with cheap filters, scaffold-time
+      stub).
+      `apeiron/deformation.py` provides `face_adjacent_pairs`,
+      `merge_two_tiles`, `prioritise_merge_candidate`, and
+      `scaffold_merge_candidate`. The face-merge enumeration over
+      σ(A,B,C,K) finds 24 face-adjacent pairs, ZERO of which pass
+      Q6b's combinatorial-feasibility filter — no σ-count vector
+      matches any 2-tile composition with the right structure.
+- [x] **Phase 1.5 no-go (2-tile face-merges)** — face-merging two
+      ABCK tetrahedra into a single tile cannot yield a 1-tile
+      substitution rule with PF in ℤ[φ]; the σ-count vector
+      mismatch is decisive. Concrete: σ(A)+σ(B) = (0, 5, 3, 10),
+      no factorisation through (1, 1, 0, 0). Tested in
+      `tests/test_deformation.py::TestPrioritiseMergeCandidateOnDanzer::test_passes_all_aggregate_is_zero_for_danzer`.
+- [ ] **Phase 1.6** — extension to 3-tile / 4-tile face-merges.
+      Same enumeration framework, larger composition space.
+      Combinatorial feasibility on ABCK σ-count vectors:
+      need a partition of (A, B, C, K) into multisets that sum
+      to a multiple of σ-counts. e.g., (1A, 1B, 1C, 1K) might
+      have viable k for σ(A)+σ(B)+σ(C)+σ(K) — check.
+- [ ] No-go theorem write-up if Phase 1.6 also exhausts without a
+      survivor. Track B (CLAUDE.md §6.2) becomes the alternative.
 
 ## Phase 2 — Track B (substitution-first)
 
