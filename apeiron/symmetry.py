@@ -30,12 +30,15 @@ from apeiron.zphi import ZPhi
 
 __all__ = [
     "ICOSAHEDRAL",
+    "ImproperRotation",
     "Mat3",
     "ROT_2",
     "ROT_3",
     "ROT_5",
     "Rotation",
     "Vec3",
+    "determinant",
+    "is_proper",
 ]
 
 
@@ -233,6 +236,107 @@ class Rotation:
         which is just the transpose of the stored matrix.
         """
         return Rotation(self.matrix.transpose())
+
+
+@dataclass(frozen=True, slots=True)
+class ImproperRotation:
+    """An orientation-reversing isometry of R^3: a rotation in I composed
+    with point inversion ``v ↦ -v`` (CLAUDE.md §2.1, Claude (web) Q2
+    ruling 2026-04-28).
+
+    Members of I_h \\ I (the 60 orientation-reversing elements of the
+    full icosahedral group I_h, order 120). Determinant is ``-1``;
+    members of ``Rotation`` (= I) have determinant ``+1``. Distinct
+    types deliberately: orientation-preserving and orientation-reversing
+    isometries are different mathematical objects, and conflating them
+    into a single type would force every downstream consumer to check a
+    flag to decide which kind it has — at which point the wrapper has
+    been reinvented with worse structure.
+
+    The action is ``v ↦ self.rotation.apply(-v)``, equivalently
+    ``v ↦ -self.rotation.apply(v)``. Since point inversion ``-I``
+    commutes with every ``g ∈ I``, the factorisation ``Improper(r) =
+    r ∘ (-I) = (-I) ∘ r`` is unambiguous and ``self.rotation`` is the
+    unique proper component.
+
+    Used by Track A's Danzer ABCK substitution: Koca et al.
+    (arXiv 2003.13449, eqs. 19–31) and Paolini's POV-Ray source both
+    place several of the 25 children using orientation-reversing
+    isometries — encoded here as ``ImproperRotation`` instances rather
+    than as ``Rotation`` plus a parity flag.
+    """
+
+    rotation: Rotation
+
+    def apply(self, v: Vec3) -> Vec3:
+        """Apply to a position vector in ×2 storage form.
+
+        ``Improper(r).apply(v) = r.apply(-v) = -r.apply(v)``. Both
+        forms agree because point inversion commutes with rotation;
+        the negation form is one fewer Mat3 multiplication so it's
+        what we use.
+        """
+        return -self.rotation.apply(v)
+
+    def compose(
+        self, other: Rotation | ImproperRotation,
+    ) -> Rotation | ImproperRotation:
+        """Compose: ``self ∘ other``.
+
+        ``Improper(r) ∘ Rotation(s) = Improper(r ∘ s)``;
+        ``Improper(r) ∘ Improper(s) = Rotation(r ∘ s)``
+        (the two parity flips cancel).
+        """
+        if isinstance(other, Rotation):
+            return ImproperRotation(self.rotation.compose(other))
+        if isinstance(other, ImproperRotation):
+            return self.rotation.compose(other.rotation)
+        return NotImplemented  # type: ignore[return-value]
+
+    def __matmul__(
+        self, other: Rotation | ImproperRotation,
+    ) -> Rotation | ImproperRotation:
+        if not isinstance(other, (Rotation, ImproperRotation)):
+            return NotImplemented  # type: ignore[return-value]
+        return self.compose(other)
+
+    def inverse(self) -> ImproperRotation:
+        """Inverse: ``Improper(r)^{-1} = Improper(r^{-1})``.
+
+        ``(r ∘ -I)^{-1} = (-I)^{-1} ∘ r^{-1} = -I ∘ r^{-1}``, and
+        ``-I`` commutes with ``r^{-1}``, so ``= r^{-1} ∘ -I =
+        Improper(r^{-1})``. The proper-component inverse is the
+        familiar transpose.
+        """
+        return ImproperRotation(self.rotation.inverse())
+
+
+def is_proper(g: Rotation | ImproperRotation) -> bool:
+    """Return ``True`` iff ``g`` is orientation-preserving (in I).
+
+    The type-discrimination check used downstream of any code that
+    accepts ``Rotation | ImproperRotation``. ``Rotation`` ↦ ``True``;
+    ``ImproperRotation`` ↦ ``False``. No float, no determinant
+    computation — the type is the answer.
+    """
+    if isinstance(g, Rotation):
+        return True
+    if isinstance(g, ImproperRotation):
+        return False
+    raise TypeError(
+        f"is_proper expects Rotation or ImproperRotation; "
+        f"got {type(g).__name__}."
+    )
+
+
+def determinant(g: Rotation | ImproperRotation) -> int:
+    """Return the determinant of ``g``: ``+1`` for ``Rotation``,
+    ``-1`` for ``ImproperRotation``.
+
+    Exact integer-valued; no float fallback. Equivalent to
+    ``+1 if is_proper(g) else -1``.
+    """
+    return 1 if is_proper(g) else -1
 
 
 # -- generators ---------------------------------------------------------

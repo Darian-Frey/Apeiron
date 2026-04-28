@@ -19,10 +19,13 @@ from apeiron.symmetry import (
     ROT_2,
     ROT_3,
     ROT_5,
+    ImproperRotation,
     Mat3,
     Rotation,
     Vec3,
     _halve_zphi,
+    determinant,
+    is_proper,
 )
 from apeiron.zphi import ZPhi
 
@@ -372,6 +375,100 @@ class TestNormPreservation:
             for v in panel:
                 gv = g.apply(v)
                 assert gv.norm_squared() == v.norm_squared()
+
+
+# -- ImproperRotation (I_h) --------------------------------------------
+
+
+class TestImproperRotation:
+    """Orientation-reversing isometries of R^3 — the 60 elements of
+    I_h \\ I needed by Track A's Danzer ABCK substitution.
+    """
+
+    def test_apply_inverts_then_rotates(self) -> None:
+        # Improper(r).apply(v) == r.apply(-v) == -r.apply(v).
+        g = ICOSAHEDRAL[5]
+        imp = ImproperRotation(g)
+        v = Vec3(_TWO, _Z, ZPhi(0, 2))
+        assert imp.apply(v) == g.apply(-v)
+        assert imp.apply(v) == -g.apply(v)
+
+    def test_apply_to_identity_is_negation(self) -> None:
+        # Improper(identity) is point inversion: v ↦ -v.
+        imp = ImproperRotation(Rotation.identity())
+        v = Vec3(ZPhi(2, 4), ZPhi(-6, 0), ZPhi(0, -2))
+        assert imp.apply(v) == -v
+
+    def test_compose_improper_with_proper_is_improper(self) -> None:
+        imp = ImproperRotation(ROT_5)
+        result = imp.compose(ROT_3)
+        assert isinstance(result, ImproperRotation)
+        assert result.rotation == ROT_5.compose(ROT_3)
+
+    def test_compose_improper_with_improper_is_proper(self) -> None:
+        # Two parity flips cancel; Improper ∘ Improper ∈ I.
+        imp_a = ImproperRotation(ROT_5)
+        imp_b = ImproperRotation(ROT_3)
+        result = imp_a.compose(imp_b)
+        assert isinstance(result, Rotation)
+        assert result == ROT_5.compose(ROT_3)
+
+    def test_inverse_is_improper(self) -> None:
+        imp = ImproperRotation(ROT_5)
+        inv = imp.inverse()
+        assert isinstance(inv, ImproperRotation)
+        # inv ∘ imp == identity (a Rotation in I).
+        round_trip = inv.compose(imp)
+        assert isinstance(round_trip, Rotation)
+        assert round_trip == Rotation.identity()
+
+    def test_matmul_dispatches_like_compose(self) -> None:
+        imp = ImproperRotation(ROT_5)
+        assert imp @ ROT_3 == imp.compose(ROT_3)
+        assert imp @ imp == imp.compose(imp)
+
+    def test_apply_preserves_norm(self) -> None:
+        # Reflections and rotations both preserve |v|^2; the I_h
+        # action is norm-preserving end-to-end.
+        v = Vec3(ZPhi(2, 0), ZPhi(0, 2), ZPhi(-2, 4))
+        for g in ICOSAHEDRAL:
+            imp = ImproperRotation(g)
+            assert imp.apply(v).norm_squared() == v.norm_squared()
+
+    def test_is_frozen_and_hashable(self) -> None:
+        a = ImproperRotation(ROT_5)
+        b = ImproperRotation(ROT_5)
+        assert hash(a) == hash(b)
+        assert {a, b} == {a}
+        with pytest.raises(Exception):
+            a.rotation = ROT_3  # type: ignore[misc]
+
+
+class TestIsProperAndDeterminant:
+    def test_is_proper_true_for_rotation(self) -> None:
+        for g in ICOSAHEDRAL:
+            assert is_proper(g) is True
+
+    def test_is_proper_false_for_improper(self) -> None:
+        for g in ICOSAHEDRAL:
+            assert is_proper(ImproperRotation(g)) is False
+
+    def test_determinant_plus_one_for_rotation(self) -> None:
+        for g in ICOSAHEDRAL:
+            assert determinant(g) == 1
+
+    def test_determinant_minus_one_for_improper(self) -> None:
+        for g in ICOSAHEDRAL:
+            assert determinant(ImproperRotation(g)) == -1
+
+    def test_rejects_other_types(self) -> None:
+        with pytest.raises(TypeError, match="Rotation or ImproperRotation"):
+            is_proper("not a rotation")  # type: ignore[arg-type]
+
+    def test_determinant_returns_python_int(self) -> None:
+        # Exact integer-valued, not a numpy scalar or float.
+        d = determinant(ROT_5)
+        assert isinstance(d, int) and not isinstance(d, bool)
 
 
 # -- No-floats-anywhere invariant --------------------------------------
