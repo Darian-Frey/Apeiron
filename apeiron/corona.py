@@ -1130,6 +1130,14 @@ def corona_2(
         c for c in shared_candidates if shared_cover_map[c]
     ]
 
+    # Vertex-list cache shared across every _complete_corona_around
+    # call: each PlacedTile's placed-vertex-list is invariant under
+    # the central polyhedron (which is fixed), so we compute each
+    # at most once. Without this, _placed_vertices for the same
+    # PlacedTile is recomputed repeatedly across the 26 first-shell
+    # invocations, which the profile shows is the dominant cost.
+    vertex_list_cache: dict[PlacedTile, list[Vec3]] = {}
+
     for first_shell_tile in config.neighbours:
         # Re-frame: first_shell_tile is the new "centre". The
         # corresponding CoronaConfig has central = P, neighbours =
@@ -1152,6 +1160,7 @@ def corona_2(
             expected_vertex_count=expected_vertex_count,
             cached_candidates=shared_candidates,
             cached_cover_map=shared_cover_map,
+            vertex_list_cache=vertex_list_cache,
         )
         # Re-frame completion back into the global frame and add to
         # the second-shell list.
@@ -1194,6 +1203,7 @@ def _complete_corona_around(
     expected_vertex_count: int | Callable[[Vertex], int],
     cached_candidates: list[PlacedTile] | None = None,
     cached_cover_map: dict[PlacedTile, frozenset[Vertex | Edge]] | None = None,
+    vertex_list_cache: dict[PlacedTile, list[Vec3]] | None = None,
 ) -> tuple[PlacedTile, ...]:
     """Find the additional tiles that, together with ``partial``'s
     existing neighbours, close every feature of ``partial.central``
@@ -1291,21 +1301,29 @@ def _complete_corona_around(
         return True
 
     central_verts = list(P.vertices)
-    partial_vertex_lists = [
-        _placed_vertices(P, n) for n in partial.neighbours
-    ]
+
+    cache = vertex_list_cache if vertex_list_cache is not None else {}
+
+    def _verts_for(placement: PlacedTile) -> list[Vec3]:
+        cached = cache.get(placement)
+        if cached is None:
+            cached = _placed_vertices(P, placement)
+            cache[placement] = cached
+        return cached
+
+    partial_vertex_lists = [_verts_for(n) for n in partial.neighbours]
 
     def _has_overlap_with(
         chosen: list[PlacedTile], new_candidate: PlacedTile,
     ) -> bool:
-        new_verts = _placed_vertices(P, new_candidate)
+        new_verts = _verts_for(new_candidate)
         if _placements_interior_overlap(P, central_verts, new_verts):
             return True
         for plist in partial_vertex_lists:
             if _placements_interior_overlap(P, plist, new_verts):
                 return True
         for existing in chosen:
-            existing_verts = _placed_vertices(P, existing)
+            existing_verts = _verts_for(existing)
             if _placements_interior_overlap(P, existing_verts, new_verts):
                 return True
         return False

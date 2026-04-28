@@ -66,13 +66,39 @@ class ZPhi:
         _require_int("n", n)
         return cls(n, 0)
 
+    @classmethod
+    def _unchecked(cls, a: int, b: int) -> ZPhi:
+        """Construct without running ``__post_init__``'s type checks.
+
+        **UNSAFE** for external callers: bypasses the bool/float/non-int
+        rejection that the public constructor enforces, so a misuse
+        with a float would silently produce a corrupt ZPhi.
+
+        Used internally by this module's arithmetic operators
+        (``__add__``, ``__sub__``, ``__mul__``, ``__neg__``,
+        ``conjugate``) where the operands are themselves ZPhi values
+        — i.e., already-validated ints — so the result of int
+        arithmetic is provably an int and the type-check is
+        redundant. Profile-confirmed ~16 % runtime spent in
+        ``__post_init__`` on the corona BFS hot path; bypassing for
+        these internal operators recovers that.
+
+        Module-private (leading underscore); not exported in
+        ``__all__``. Tests that need the bypass for whitebox checks
+        can import it directly from this module.
+        """
+        obj = cls.__new__(cls)
+        object.__setattr__(obj, "a", a)
+        object.__setattr__(obj, "b", b)
+        return obj
+
     # ---- arithmetic ----------------------------------------------------
 
     def __add__(self, other: ZPhi | int) -> ZPhi:
         if isinstance(other, ZPhi):
-            return ZPhi(self.a + other.a, self.b + other.b)
+            return ZPhi._unchecked(self.a + other.a, self.b + other.b)
         if isinstance(other, int) and not isinstance(other, bool):
-            return ZPhi(self.a + other, self.b)
+            return ZPhi._unchecked(self.a + other, self.b)
         return NotImplemented  # type: ignore[return-value]
 
     def __radd__(self, other: int) -> ZPhi:
@@ -80,18 +106,18 @@ class ZPhi:
 
     def __sub__(self, other: ZPhi | int) -> ZPhi:
         if isinstance(other, ZPhi):
-            return ZPhi(self.a - other.a, self.b - other.b)
+            return ZPhi._unchecked(self.a - other.a, self.b - other.b)
         if isinstance(other, int) and not isinstance(other, bool):
-            return ZPhi(self.a - other, self.b)
+            return ZPhi._unchecked(self.a - other, self.b)
         return NotImplemented  # type: ignore[return-value]
 
     def __rsub__(self, other: int) -> ZPhi:
         if isinstance(other, int) and not isinstance(other, bool):
-            return ZPhi(other - self.a, -self.b)
+            return ZPhi._unchecked(other - self.a, -self.b)
         return NotImplemented  # type: ignore[return-value]
 
     def __neg__(self) -> ZPhi:
-        return ZPhi(-self.a, -self.b)
+        return ZPhi._unchecked(-self.a, -self.b)
 
     def __pos__(self) -> ZPhi:
         return self
@@ -104,9 +130,9 @@ class ZPhi:
         if isinstance(other, ZPhi):
             a, b = self.a, self.b
             c, d = other.a, other.b
-            return ZPhi(a * c + b * d, a * d + b * c + b * d)
+            return ZPhi._unchecked(a * c + b * d, a * d + b * c + b * d)
         if isinstance(other, int) and not isinstance(other, bool):
-            return ZPhi(self.a * other, self.b * other)
+            return ZPhi._unchecked(self.a * other, self.b * other)
         return NotImplemented  # type: ignore[return-value]
 
     def __rmul__(self, other: int) -> ZPhi:
@@ -137,7 +163,7 @@ class ZPhi:
 
         ``conj(a + b*phi) = a + b*(1 - phi) = (a + b) - b*phi``.
         """
-        return ZPhi(self.a + self.b, -self.b)
+        return ZPhi._unchecked(self.a + self.b, -self.b)
 
     def norm(self) -> int:
         """Field norm N(a + b*phi) = a**2 + a*b - b**2.
