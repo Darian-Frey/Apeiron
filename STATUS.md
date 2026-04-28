@@ -4,7 +4,7 @@ Living status document for the Apeiron build-out. Updated whenever a
 commit lands, a decision is reached, a relay to Claude (web) is sent or
 returned, or an attempt fails in a way worth remembering.
 
-- **Current date:** 2026-04-20.
+- **Current date:** 2026-04-28.
 - **Scope of this file:** *what is happening right now*, *what has been
   tried and abandoned*, *what questions are open*. Durable guidance
   (invariants, conventions, research strategy) lives in
@@ -35,6 +35,14 @@ Sub-commit plan for Track A's first candidate (Danzer):
   end-to-end on Track A's first candidate.
   `candidates/danzer/dissection_notes.md` (`bbd8b7d`) — template for
   the 27B-β transcription session.
+  Bridge from algebraic to combinatorial pillar-2 testing:
+  `expand_supertile` (`f2caac2`) flattens σⁿ(P);
+  `expand_supertile_with_parents` (`0c8a5c1`) tags each leaf with its
+  level-1 ancestor; `patch_from_supertile` (`9679481`) builds a
+  `TilePatch` ready for `is_recognisable` using a squared-Euclidean
+  oracle in pure ℤ[φ]. `TestPipelineFibonacci` (`cbb2fc3`) confirms
+  the four-function pipeline composes end-to-end on a 1D oracle.
+  Once 27B-β lands the same bridge runs on Danzer's σⁿ(P_i).
 - **27C** `4af277a` — `candidates/danzer/fourth_pillar.py`
   with a `DanzerABCKFourthPillar` class implementing the
   `FourthPillarArgument` protocol, methods raising
@@ -85,9 +93,36 @@ Sub-commit plan for Track A's first candidate (Danzer):
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-Reverse-chronological. Authoritative log is `git log`; this list is for
-quick orientation.
-
+- **44** `cbb2fc3` — `test(hierarchy)`: end-to-end pipeline compose
+  on Fibonacci 1D oracle. SubstitutionRule → patch_from_supertile →
+  is_recognisable → inflation_argument. Fibonacci's multiset signature
+  is provably insufficient, so the test asserts the expected failure
+  mode (IndistinguishablePair → InflationFailure
+  `reason="not recognisable"`) plus two adjuncts confirming pillar 1
+  passes independently and pillar 3 produces a valid InflationArgument
+  with synthetic recognisability — establishing the failure is from
+  the signature, not the algebra.
+- **43** `9679481` — `feat(hierarchy)`: `patch_from_supertile` and a
+  Euclidean-squared neighbour oracle. Bridges the algebraic layer
+  (`expand_supertile_with_parents`) to pillar-2's `TilePatch` /
+  `is_recognisable`. Each leaf becomes a PatchTile (tile_type +
+  parent_supertile = level-1 ancestor index); the oracle uses squared
+  Euclidean distance computed in pure ℤ[φ] (no float fallback).
+- **42** `0c8a5c1` — `feat(hierarchy)`: `expand_supertile_with_parents`
+  pairs each leaf in σⁿ(P) with its level-1 parent index — the
+  position 0..k-1 of the level-1 child of P from which it descends.
+  Pillar 2's recognisability question is "is this index determinable
+  from the leaf's bounded local neighbourhood?" so this is the patch-
+  construction prerequisite.
+- **41** `f2caac2` — `feat(hierarchy)`: `expand_supertile` recursively
+  flattens σⁿ(P) into a tuple of PlacedSubtile leaves. Bridge code
+  for pillar-2 patch construction; level-N expansion follows
+  σ(σⁿ⁻¹(P)) bottom-up with positions composed as M·T + G·t_c and
+  rotations as G ∘ g_c.
+- **40** `3e671c7` — `perf(zphi, corona)`: bypass `__post_init__`
+  type-checks in ZPhi arithmetic via `_unchecked` constructor, and
+  cache placed-vertex lists across `_complete_corona_around` calls
+  in `corona_2`. -17 % suite runtime (22.9 s → 19.0 s).
 - **38** `86bd159` — `docs(literature)`: add Track-A working
   references (Frettlöh, Senechal, Socolar–Steinhardt, Baake–Grimm).
 - **37** `3baccd1` — `docs`: roadmap update reflecting the
@@ -177,12 +212,14 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (post-commit-38): 460 passing in 22.90 s under venv
-pytest 9.0.3. Slow-test distribution (>1 s): `cube_corona_2` setup
-~10 s, `RD corona_1` setup ~5.9 s, `cube corona_1` setup ~2.5 s,
-`RTH face-to-face counts` ~1.8 s. The four together are ~20 of the
-23 s total; the rest of the 460 tests run in well under a second
-combined.
+Test totals (post-commit-44): 490 passing in ~19.3 s under venv
+pytest 9.0.3. The 17 % suite-runtime drop from commit 40's perf
+work is holding; the 30 new tests (commits 41–44) added ~0.5 s.
+Slow-test distribution (>1 s): `cube_corona_2` setup ~7 s (down
+from ~10 s after commit 40's vertex-list caching), `RD corona_1`
+setup ~5.5 s, `cube corona_1` setup ~2.3 s, `RTH face-to-face
+counts` ~1.5 s. The rest of the 490 tests run in well under a
+second combined.
 
 ---
 
