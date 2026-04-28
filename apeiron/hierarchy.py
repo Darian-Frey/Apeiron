@@ -67,11 +67,11 @@ __all__ = [
     "expand_one",
     "expand_supertile",
     "expand_supertile_with_parents",
-    "make_euclidean_squared_oracle",
-    "patch_from_supertile",
     "inflation_argument",
     "is_recognisable",
+    "make_euclidean_squared_oracle",
     "neighbourhood_signature",
+    "patch_from_supertile",
 ]
 
 
