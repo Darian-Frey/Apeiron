@@ -38,6 +38,50 @@ disabled in our extractor. Every transform produces a clean I_h
 isometry without the kludge — confirming the kludge is purely a POV-Ray
 floating-point hygiene measure, not a mathematical correction.
 
+## Pillar-2 finding (post-`2cba1bb`): a refinement is needed
+
+Smoke-test result on Paolini real geometry, level=1 and level=2,
+multiset and shell signatures, max_radius up to 5:
+
+| parent | level | leaves | sig | max_r | recognisable | radius_used |
+| --- | --- | --- | --- | --- | --- | --- |
+| A | 1 | 11 | multiset | 5 | False | 5 |
+| A | 1 | 11 | shell | 5 | False | 5 |
+| A | 2 | 43 | multiset | 5 | False | 5 |
+| A | 2 | 43 | shell | 5 | False | 5 |
+
+**Pillar 2 fails at every tested combination.** Both `neighbourhood_signature`
+(multiset of types within radius) and `shell_neighbourhood_signature`
+(per-distance shells) are too coarse to separate level-1 ancestors of
+σⁿ(A) under the squared-Euclidean oracle. This is a known phenomenon
+in 3D substitution tilings: the published recognisability arguments
+(Goodman-Strauss 1998, Senechal *Quasicrystals and Geometry* §6.5)
+use much finer signatures — typically the exact *position-and-rotation
+pattern* of neighbours within a small radius, treated as a canonical
+form modulo the prototile's symmetry group. Multiset / shell over
+distance is the lowest-resolution proxy.
+
+This is Q5 for Claude (web): what's the canonical pillar-2 signature
+form for 3D substitution tilings? Likely answer is an
+exact-coordinate canonical form, e.g.:
+
+```text
+signature(centre) = canonical_form({
+    (relative_translation, relative_rotation, type)
+    for each neighbour within radius r
+}, modulo centre's stabiliser in the icosahedral symmetry group)
+```
+
+…where `relative_translation` is in ℤ[φ]³ exact, `relative_rotation`
+is an I_h element, and the canonical form sorts by some lex order
+on the (translation, rotation, type) tuples. Building this is non-
+trivial but is what the published 2D/3D arguments use.
+
+Until Q5 is decided, the existing multiset and shell signatures
+remain useful (they're sufficient for the 1D Fibonacci oracle and
+catch the easy cases) but Track A's actual recognisability check
+needs the refinement.
+
 This file is the working artifact for sub-commit 27B-β: the
 real geometric dissection of σ(X) for X ∈ {A, B, C, K} in
 Danzer's ABCK substitution.
