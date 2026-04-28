@@ -42,7 +42,7 @@ from apeiron.hierarchy import (
 )
 from apeiron.polyhedron import Polyhedron
 from apeiron.substitution import PositionedTile, SubstitutionRule
-from apeiron.symmetry import Mat3, Rotation, Vec3
+from apeiron.symmetry import ImproperRotation, Mat3, Rotation, Vec3
 from apeiron.zphi import ZPhi
 
 
@@ -1010,6 +1010,33 @@ class TestExpandSupertile:
         rule = _two_prototile_rule()
         leaves = expand_supertile(rule, 0, 1)
         assert isinstance(leaves, tuple)
+
+    def test_improper_child_survives_recursion(self) -> None:
+        # Track A's Danzer ABCK rule places several children with
+        # orientation-reversing isometries (CLAUDE.md §2.1 / Claude
+        # (web) Q2 ruling 2026-04-28). Verify expand_supertile composes
+        # Proper ∘ Improper correctly via the Rotation.compose union.
+        from apeiron.symmetry import ROT_5
+        improper_child = PositionedTile(
+            prototile_index=0,
+            translation=_origin(),
+            rotation=ImproperRotation(ROT_5),
+        )
+        rule = SubstitutionRule(
+            n_prototiles=1,
+            inflation=Mat3.identity(),
+            dissections=((improper_child,),),
+        )
+        # Level 1: one leaf, rotation = Improper(ROT_5).
+        leaves = expand_supertile(rule, 0, 1)
+        assert len(leaves) == 1
+        assert isinstance(leaves[0].rotation, ImproperRotation)
+        # Level 2: identity ∘ Improper(ROT_5) ∘ Improper(ROT_5) =
+        # Rotation(ROT_5 ∘ ROT_5) per the parity-cancel law.
+        leaves2 = expand_supertile(rule, 0, 2)
+        assert len(leaves2) == 1
+        assert isinstance(leaves2[0].rotation, Rotation)
+        assert leaves2[0].rotation == ROT_5.compose(ROT_5)
 
 
 class TestExpandSupertileWithParents:

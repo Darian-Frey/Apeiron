@@ -214,18 +214,33 @@ class Rotation:
         """
         return (self.matrix @ v)._halve()
 
-    def compose(self, other: Rotation) -> Rotation:
-        """Compose two rotations: ``self ∘ other``.
+    def compose(
+        self, other: Rotation | ImproperRotation,
+    ) -> Rotation | ImproperRotation:
+        """Compose two isometries: ``self ∘ other``.
 
-        ``self.matrix @ other.matrix`` equals ``4*(g ∘ h)``; halving
-        returns ``2*(g ∘ h)``, the storage form of the composition. The
-        denominator is preserved because ``g ∘ h ∈ I`` and I fits in
-        (1/2)Z[phi] uniformly.
+        ``Rotation ∘ Rotation = Rotation``: ``self.matrix @ other.matrix``
+        equals ``4*(g ∘ h)``; halving returns ``2*(g ∘ h)``, the
+        storage form. The denominator is preserved because ``g ∘ h ∈ I``
+        and I fits in (1/2)Z[phi] uniformly.
+
+        ``Rotation ∘ Improper = Improper``: ``r ∘ (s ∘ -I) = (r ∘ s) ∘ -I``,
+        i.e., ``Improper(r ∘ s)``. Point inversion commutes with every
+        rotation.
         """
-        return Rotation((self.matrix @ other.matrix)._halve())
+        if isinstance(other, Rotation):
+            return Rotation((self.matrix @ other.matrix)._halve())
+        if isinstance(other, ImproperRotation):
+            composed_proper = Rotation(
+                (self.matrix @ other.rotation.matrix)._halve()
+            )
+            return ImproperRotation(composed_proper)
+        return NotImplemented  # type: ignore[return-value]
 
-    def __matmul__(self, other: Rotation) -> Rotation:
-        if not isinstance(other, Rotation):
+    def __matmul__(
+        self, other: Rotation | ImproperRotation,
+    ) -> Rotation | ImproperRotation:
+        if not isinstance(other, (Rotation, ImproperRotation)):
             return NotImplemented  # type: ignore[return-value]
         return self.compose(other)
 

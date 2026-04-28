@@ -35,7 +35,7 @@ from typing import Final
 
 import numpy as np
 
-from apeiron.symmetry import Mat3, Rotation, Vec3
+from apeiron.symmetry import ImproperRotation, Mat3, Rotation, Vec3
 from apeiron.util import pillar
 from apeiron.zphi import ZPhi
 
@@ -59,13 +59,16 @@ class PositionedTile:
     ``prototile_index`` selects which prototile in the alphabet this
     tile is a copy of. ``translation`` is the position of the copy's
     origin in ×2-storage form (CLAUDE.md §3.2). ``rotation`` is an
-    element of the icosahedral group I (stored as ``2·g``; see
-    CLAUDE.md §3.3).
+    isometry of R^3: either a ``Rotation`` (element of I, |I|=60,
+    orientation-preserving) or an ``ImproperRotation`` (element of
+    I_h \\ I, orientation-reversing). Track A's Danzer ABCK rule
+    requires the I_h type per CLAUDE.md §2.1 (Claude (web) ruling
+    2026-04-28).
     """
 
     prototile_index: int
     translation: Vec3
-    rotation: Rotation
+    rotation: Rotation | ImproperRotation
 
 
 @dataclass(frozen=True, slots=True)
