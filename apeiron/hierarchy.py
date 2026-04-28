@@ -48,6 +48,7 @@ from apeiron.substitution import (
     perron_frobenius_in_zphi,
     substitution_matrix,
 )
+from apeiron.symmetry import Rotation, Vec3
 from apeiron.util import pillar
 from apeiron.zphi import ZPhi
 
@@ -59,10 +60,12 @@ __all__ = [
     "InflationArgument",
     "InflationFailure",
     "PatchTile",
+    "PlacedSubtile",
     "RecognisabilityResult",
     "Supertile",
     "TilePatch",
     "expand_one",
+    "expand_supertile",
     "inflation_argument",
     "is_recognisable",
     "neighbourhood_signature",
@@ -133,6 +136,102 @@ def expand_one(
             f"[0, {rule.n_prototiles})."
         )
     return rule.dissections[prototile_index]
+
+
+@dataclass(frozen=True, slots=True)
+class PlacedSubtile:
+    """A leaf-level positioned tile in a level-``N`` supertile expansion.
+
+    Distinct from ``substitution.PositionedTile`` (which describes a
+    child relative to its parent in a *single* substitution step) and
+    from ``corona.PlacedTile`` (which describes a tile's position in
+    a *corona* configuration). ``PlacedSubtile`` is the leaf in a
+    flattened level-``N`` expansion: its ``translation`` and
+    ``rotation`` are the accumulated isometry from the level-``N``
+    parent's frame down to the leaf's local frame.
+
+    Used by ``expand_supertile``; consumed by callers building a
+    ``TilePatch`` for ``is_recognisable``.
+    """
+
+    prototile_index: int
+    translation: Vec3
+    rotation: Rotation
+
+
+def expand_supertile(
+    rule: SubstitutionRule,
+    prototile_index: int,
+    level: int,
+) -> tuple[PlacedSubtile, ...]:
+    """Recursively flatten ``σ^level(prototile_{prototile_index})``
+    into a tuple of ``PlacedSubtile`` leaves.
+
+    Recursion semantics, for a substitution rule with linear
+    inflation matrix ``M`` and dissections ``rule.dissections``:
+
+    - ``level == 0`` → one leaf at origin / identity rotation, of
+      type ``prototile_index``. The recursion base case.
+    - ``level == n`` → for each leaf at ``(T, G)`` of type ``t`` in
+      the level-``(n-1)`` expansion, scale ``T`` by ``M`` (the
+      single-step inflation, applied once per recursion level) and,
+      for every child ``(t_c, g_c)`` of ``rule.dissections[t]``,
+      yield a new leaf at ``(M·T + G·t_c, G ∘ g_c)``.
+
+    The position update has two components: ``M·T`` accounts for the
+    fact that going from level ``n-1`` to level ``n`` inflates the
+    whole previous-level configuration by ``M``; ``G·t_c`` is the
+    child's offset from its parent leaf, rotated by the parent's
+    accumulated orientation ``G`` so the offset aligns with the
+    parent's pose in the level-``n`` frame.
+
+    Returns a tuple sized to ``column_sum(M, prototile_index)^level``
+    in the limit (Perron–Frobenius) — for the cube-corona-sized
+    test rules this is fine, but for high-level expansions on rules
+    with large eigenvalues the count grows exponentially. Cap the
+    ``level`` argument accordingly when calling.
+
+    Raises ``ValueError`` if ``prototile_index`` is out of range or
+    if ``level < 0``.
+    """
+    if not 0 <= prototile_index < rule.n_prototiles:
+        raise ValueError(
+            f"prototile_index {prototile_index} outside "
+            f"[0, {rule.n_prototiles})."
+        )
+    if level < 0:
+        raise ValueError(f"level must be ≥ 0; got {level}.")
+
+    origin = Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0))
+    identity = Rotation.identity()
+
+    if level == 0:
+        return (
+            PlacedSubtile(
+                prototile_index=prototile_index,
+                translation=origin,
+                rotation=identity,
+            ),
+        )
+
+    leaves: tuple[PlacedSubtile, ...] = expand_supertile(
+        rule, prototile_index, level - 1,
+    )
+    M = rule.inflation
+    next_leaves: list[PlacedSubtile] = []
+    for leaf in leaves:
+        scaled_t = M @ leaf.translation
+        for child in rule.dissections[leaf.prototile_index]:
+            new_t = scaled_t + leaf.rotation.apply(child.translation)
+            new_g = leaf.rotation.compose(child.rotation)
+            next_leaves.append(
+                PlacedSubtile(
+                    prototile_index=child.prototile_index,
+                    translation=new_t,
+                    rotation=new_g,
+                )
+            )
+    return tuple(next_leaves)
 
 
 # -- Recognisability (pillar 2) — sub-commit B ------------------------

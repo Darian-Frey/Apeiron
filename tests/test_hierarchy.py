@@ -26,10 +26,12 @@ from apeiron.hierarchy import (
     InflationArgument,
     InflationFailure,
     PatchTile,
+    PlacedSubtile,
     RecognisabilityResult,
     Supertile,
     TilePatch,
     expand_one,
+    expand_supertile,
     inflation_argument,
     is_recognisable,
     neighbourhood_signature,
@@ -627,6 +629,149 @@ class TestFourthPillarArgumentProtocol:
         impl = _AlwaysCounterexample()
         verdict = impl.verify_hierarchical(_trivial_corona_config())
         assert isinstance(verdict, HierarchicalCounterexample)
+
+
+# -- expand_supertile (level-N supertile flattening) ------------------
+
+
+def _phi_inflation_mat() -> Mat3:
+    """φ·I, the canonical Danzer linear inflation."""
+    phi = ZPhi(0, 1)
+    z = ZPhi(0, 0)
+    return Mat3(
+        Vec3(phi, z, z),
+        Vec3(z, phi, z),
+        Vec3(z, z, phi),
+    )
+
+
+def _placeholder_dissection_for(matrix_column: list[int]) -> tuple[
+    PositionedTile, ...,
+]:
+    """Build a tuple of PositionedTile (origin / identity) whose
+    prototile_index multiset matches ``matrix_column``. Used for
+    expand_supertile tests where the geometric content of children
+    doesn't matter — only the type counts.
+    """
+    children: list[PositionedTile] = []
+    for type_idx, count in enumerate(matrix_column):
+        for _ in range(count):
+            children.append(
+                PositionedTile(
+                    prototile_index=type_idx,
+                    translation=_origin(),
+                    rotation=Rotation.identity(),
+                )
+            )
+    return tuple(children)
+
+
+def _danzer_placeholder_rule() -> SubstitutionRule:
+    """Frettlöh's Danzer 4×4 substitution matrix as a SubstitutionRule
+    with placeholder dissection geometry. Identical in spirit to the
+    helper in tests/integration/test_danzer_abck.py; duplicated here
+    rather than imported so this test file stays unit-scoped (it
+    only needs the *combinatorial* structure of σ for
+    expand_supertile coverage).
+    """
+    matrix = [
+        [0, 0, 1, 0],
+        [3, 2, 0, 1],
+        [2, 1, 2, 0],
+        [6, 4, 2, 1],
+    ]
+    n = 4
+    dissections = tuple(
+        _placeholder_dissection_for([matrix[t][col] for t in range(n)])
+        for col in range(n)
+    )
+    return SubstitutionRule(
+        n_prototiles=n,
+        inflation=_phi_inflation_mat(),
+        dissections=dissections,
+    )
+
+
+class TestExpandSupertile:
+    def test_level_zero_returns_single_leaf(self) -> None:
+        rule = _two_prototile_rule()
+        leaves = expand_supertile(rule, prototile_index=0, level=0)
+        assert len(leaves) == 1
+        assert isinstance(leaves[0], PlacedSubtile)
+        assert leaves[0].prototile_index == 0
+        assert leaves[0].rotation == Rotation.identity()
+
+    def test_level_one_matches_expand_one(self) -> None:
+        # At level 1 the leaf count + types should agree with
+        # expand_one's direct dissection (only the position/rotation
+        # accumulation in expand_supertile is novel).
+        rule = _two_prototile_rule()
+        leaves = expand_supertile(rule, prototile_index=0, level=1)
+        children = expand_one(rule, 0)
+        assert len(leaves) == len(children)
+        leaf_types = sorted(leaf.prototile_index for leaf in leaves)
+        child_types = sorted(c.prototile_index for c in children)
+        assert leaf_types == child_types
+
+    def test_rejects_negative_level(self) -> None:
+        rule = _two_prototile_rule()
+        with pytest.raises(ValueError, match="level must be"):
+            expand_supertile(rule, 0, -1)
+
+    def test_rejects_out_of_range_prototile_index(self) -> None:
+        rule = _two_prototile_rule()
+        with pytest.raises(ValueError, match="outside"):
+            expand_supertile(rule, 99, 1)
+
+    def test_count_matches_substitution_matrix_power(self) -> None:
+        # For Danzer's 4×4 matrix, leaf counts at level N equal the
+        # column sums of M^N. Cross-checks expand_supertile against
+        # an independent sanity check (numpy matrix power).
+        import numpy as np
+        rule = _danzer_placeholder_rule()
+        M = np.array([
+            [0, 0, 1, 0],
+            [3, 2, 0, 1],
+            [2, 1, 2, 0],
+            [6, 4, 2, 1],
+        ])
+        for level in (1, 2, 3):
+            for col in range(4):
+                expected = int(np.linalg.matrix_power(M, level)[:, col].sum())
+                leaves = expand_supertile(rule, col, level)
+                assert len(leaves) == expected, (
+                    f"level={level}, col={col}: expected {expected} "
+                    f"leaves, got {len(leaves)}"
+                )
+
+    def test_leaf_type_distribution_matches_matrix_column(self) -> None:
+        # Per-prototile counts at level N match column N of M^level.
+        import numpy as np
+        rule = _danzer_placeholder_rule()
+        M = np.array([
+            [0, 0, 1, 0],
+            [3, 2, 0, 1],
+            [2, 1, 2, 0],
+            [6, 4, 2, 1],
+        ])
+        from collections import Counter
+        for level in (1, 2):
+            for col in range(4):
+                leaves = expand_supertile(rule, col, level)
+                actual = Counter(leaf.prototile_index for leaf in leaves)
+                expected_col = np.linalg.matrix_power(M, level)[:, col]
+                for type_idx in range(4):
+                    assert actual[type_idx] == int(expected_col[type_idx]), (
+                        f"level={level}, col={col}, type={type_idx}: "
+                        f"expected {expected_col[type_idx]}, got "
+                        f"{actual[type_idx]}"
+                    )
+
+    def test_returns_tuple_not_list(self) -> None:
+        # Frozen output: callers can hash / share without copying.
+        rule = _two_prototile_rule()
+        leaves = expand_supertile(rule, 0, 1)
+        assert isinstance(leaves, tuple)
 
 
 # -- Pillar 2 / 3 / 4 tag coverage -----------------------------------
