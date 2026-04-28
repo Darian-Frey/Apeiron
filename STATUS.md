@@ -93,6 +93,28 @@ Sub-commit plan for Track A's first candidate (Danzer):
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
+- **48** `33165cd` — `feat(hierarchy)`:
+  `shell_neighbourhood_signature` — per-distance shell sequence
+  (shell_0, shell_1, ..., shell_radius) where shell_k is the
+  multiset of types at distance exactly k. Strictly more
+  discriminating than the cumulative multiset; the multiset at
+  radius r is the disjoint union of shells 0..r, but the shell
+  sequence preserves the distance bucket. `is_recognisable` gains
+  an opt-in `signature_fn` kwarg (default unchanged). The Fibonacci
+  1D pipeline test flips from negative to positive at radius 1 —
+  pillar 2 now succeeds, and the full pipeline produces a valid
+  `InflationArgument` with PF = φ. The choice of refined signature
+  was anticipated by the existing `neighbourhood_signature`
+  docstring; this commit cashes that anticipation.
+- **47** `eb76240` — `test(danzer)`: `patch_from_supertile` bridge
+  on Track A's first candidate. Five tests confirming σ(A) →
+  11-tile patch, σ²(A) → 43 tiles partitioned into 11 groups, and
+  `is_recognisable` correctly fails on the placeholder geometry
+  (all leaves coincide at origin). Once 27B-β replaces placeholders
+  with real Frettlöh geometry, the same bridge call produces a
+  non-degenerate patch.
+- **46** `ad1b15f` — `chore(hierarchy)`: sort `__all__` alphabetically.
+- **45** `b53d00a` — `docs`: STATUS catch-up through pillar-2 bridge.
 - **44** `cbb2fc3` — `test(hierarchy)`: end-to-end pipeline compose
   on Fibonacci 1D oracle. SubstitutionRule → patch_from_supertile →
   is_recognisable → inflation_argument. Fibonacci's multiset signature
@@ -212,13 +234,13 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (post-commit-44): 490 passing in ~19.3 s under venv
+Test totals (post-commit-48): 503 passing in ~19.8 s under venv
 pytest 9.0.3. The 17 % suite-runtime drop from commit 40's perf
-work is holding; the 30 new tests (commits 41–44) added ~0.5 s.
+work is holding; the 43 new tests (commits 41–48) added ~0.6 s.
 Slow-test distribution (>1 s): `cube_corona_2` setup ~7 s (down
 from ~10 s after commit 40's vertex-list caching), `RD corona_1`
 setup ~5.5 s, `cube corona_1` setup ~2.3 s, `RTH face-to-face
-counts` ~1.5 s. The rest of the 490 tests run in well under a
+counts` ~1.5 s. The rest of the 503 tests run in well under a
 second combined.
 
 ---
