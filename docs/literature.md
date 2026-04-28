@@ -35,3 +35,38 @@ explicit, not to restate the abstract.
   manuscript.
   — The SCD biprism. Weak aperiodic only (via screw symmetry); the reason
   the Weak definition is insufficient for Apeiron's target.
+
+## Working references for Track A
+
+- **Frettlöh, D.** *Substitution tilings* (Bielefeld internal
+  report). Online: tilings.math.uni-bielefeld.de.
+  — Primary source for the Danzer ABCK encoding. Table 1 gives
+  exact ℤ[φ]³ vertex coordinates for all four prototiles (with
+  K's vertex 4 noted as half-integer relative to MF, requiring
+  `scale_denom=2` storage). The substitution matrix is given
+  explicitly; the dissection geometry is depicted in Figure 2 and
+  the Tilings Encyclopedia interactive view, not listed
+  algebraically. Frettlöh's Theorem 1.2 is the pillar-4 statement
+  for Danzer (every face-to-face tiling by A,B,C,K with the
+  blue-edge mirror matching rule belongs to the substitution
+  hierarchy).
+
+- **Senechal, M. (1995).** *Quasicrystals and Geometry.* Cambridge
+  University Press.
+  — Chapter 7: careful published transcription of the Danzer
+  ABCK tiles into modern notation; useful as a secondary
+  cross-check on Frettlöh Table 1.
+
+- **Socolar, J. E. S., & Steinhardt, P. J. (1986).** *Quasicrystals.
+  II. Unit-cell configurations.* Physical Review B, 34(2), 617–647.
+  — Icosahedral tiles in Cartesian ℤ[φ]³ with explicit vertex lists.
+  Cross-check for inflation factor (the Danzer ABCK substitution
+  has linear inflation φ, volume scaling φ³ — these are not the
+  same quantity).
+
+- **Baake, M., & Grimm, U. (2013).** *Aperiodic Order, Volume 1: A
+  Mathematical Invitation.* Cambridge University Press.
+  — Chapter 6 covers the Ammann–Beenker tiling and its
+  recognisability radius; used as the pillar-2 oracle fixture.
+  The book's recognisability framework matches the
+  ``hierarchy.is_recognisable`` predicate's contract.
