@@ -32,6 +32,7 @@ from apeiron.hierarchy import (
     TilePatch,
     expand_one,
     expand_supertile,
+    expand_supertile_with_parents,
     inflation_argument,
     is_recognisable,
     neighbourhood_signature,
@@ -772,6 +773,94 @@ class TestExpandSupertile:
         rule = _two_prototile_rule()
         leaves = expand_supertile(rule, 0, 1)
         assert isinstance(leaves, tuple)
+
+
+class TestExpandSupertileWithParents:
+    """Verify the level-1 parent tagging used for pillar-2 patch
+    construction: each leaf in σⁿ(P) carries the index ``i ∈ [0, k)``
+    of the level-1 child of ``P`` from which it descends.
+    """
+
+    def test_level_zero_single_leaf_parent_zero(self) -> None:
+        # Degenerate: no level-1 dissection has been applied.
+        rule = _two_prototile_rule()
+        tagged = expand_supertile_with_parents(rule, 0, 0)
+        assert len(tagged) == 1
+        leaf, parent_id = tagged[0]
+        assert leaf.prototile_index == 0
+        assert parent_id == 0
+
+    def test_level_one_parent_ids_are_dissection_positions(self) -> None:
+        # At level 1 each leaf is the i-th child, so parent_id == i.
+        rule = _two_prototile_rule()
+        tagged = expand_supertile_with_parents(rule, 0, 1)
+        children = expand_one(rule, 0)
+        assert len(tagged) == len(children)
+        for i, (leaf, parent_id) in enumerate(tagged):
+            assert parent_id == i
+            assert leaf.prototile_index == children[i].prototile_index
+
+    def test_leaf_component_matches_expand_supertile(self) -> None:
+        # The leaf-only projection must be equal element-wise (same
+        # geometry, same iteration order) to expand_supertile's output.
+        rule = _danzer_placeholder_rule()
+        for level in (0, 1, 2, 3):
+            plain = expand_supertile(rule, 0, level)
+            tagged = expand_supertile_with_parents(rule, 0, level)
+            assert len(plain) == len(tagged)
+            for a, (b, _parent) in zip(plain, tagged, strict=True):
+                assert a == b
+
+    def test_rejects_negative_level(self) -> None:
+        rule = _two_prototile_rule()
+        with pytest.raises(ValueError, match="level must be"):
+            expand_supertile_with_parents(rule, 0, -1)
+
+    def test_rejects_out_of_range_prototile_index(self) -> None:
+        rule = _two_prototile_rule()
+        with pytest.raises(ValueError, match="outside"):
+            expand_supertile_with_parents(rule, 99, 1)
+
+    def test_parent_ids_partition_leaves_correctly(self) -> None:
+        # For each parent id i, the leaves tagged i are exactly the
+        # level-(N-1) expansion of the i-th level-1 child of P. So the
+        # count of leaves with parent_id=i equals the column-sum of
+        # M^(N-1) at column = type of that child.
+        import numpy as np
+        from collections import Counter
+        rule = _danzer_placeholder_rule()
+        M = np.array([
+            [0, 0, 1, 0],
+            [3, 2, 0, 1],
+            [2, 1, 2, 0],
+            [6, 4, 2, 1],
+        ])
+        for level in (2, 3):
+            for col in range(4):
+                tagged = expand_supertile_with_parents(rule, col, level)
+                groups = Counter(parent_id for _leaf, parent_id in tagged)
+                children = rule.dissections[col]
+                M_pow = np.linalg.matrix_power(M, level - 1)
+                for i, child in enumerate(children):
+                    expected = int(M_pow[:, child.prototile_index].sum())
+                    assert groups[i] == expected, (
+                        f"level={level}, col={col}, parent_id={i}: "
+                        f"expected {expected}, got {groups[i]}"
+                    )
+                # All parent_ids are within [0, k).
+                for parent_id in groups:
+                    assert 0 <= parent_id < len(children)
+
+    def test_returns_tuple_of_tuples(self) -> None:
+        # Frozen output, hashable shape; the inner pairs are tuples too.
+        rule = _two_prototile_rule()
+        tagged = expand_supertile_with_parents(rule, 0, 1)
+        assert isinstance(tagged, tuple)
+        for entry in tagged:
+            assert isinstance(entry, tuple)
+            assert len(entry) == 2
+            assert isinstance(entry[0], PlacedSubtile)
+            assert isinstance(entry[1], int)
 
 
 # -- Pillar 2 / 3 / 4 tag coverage -----------------------------------

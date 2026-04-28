@@ -66,6 +66,7 @@ __all__ = [
     "TilePatch",
     "expand_one",
     "expand_supertile",
+    "expand_supertile_with_parents",
     "inflation_argument",
     "is_recognisable",
     "neighbourhood_signature",
@@ -232,6 +233,101 @@ def expand_supertile(
                 )
             )
     return tuple(next_leaves)
+
+
+def expand_supertile_with_parents(
+    rule: SubstitutionRule,
+    prototile_index: int,
+    level: int,
+) -> tuple[tuple[PlacedSubtile, int], ...]:
+    """Like ``expand_supertile``, but each leaf is paired with its
+    level-1 parent index — the position ``0..k-1`` of the level-1
+    child of ``P_{prototile_index}`` from which this leaf descends.
+
+    The level-1 parent is what pillar-2 recognisability tests as the
+    ``parent_supertile`` field of a ``PatchTile``: σⁿ(P) decomposes
+    as ``⋃_i σⁿ⁻¹(c_i)`` where ``{c_i}`` is the level-1 dissection
+    of ``P``, and the recognisability question is whether each leaf's
+    membership in some ``σⁿ⁻¹(c_i)`` is determinable from its bounded
+    local neighbourhood. The integer paired with each leaf in the
+    output is exactly that membership index ``i``.
+
+    Recursion semantics: at level 1, the ``i``-th child of
+    ``rule.dissections[prototile_index]`` is tagged with parent index
+    ``i``. At higher levels, the tag is preserved through subsequent
+    expansion steps — a level-``n`` leaf inherits its level-``(n-1)``
+    predecessor's tag, since the recursion ``σⁿ = σ(σⁿ⁻¹)`` applies
+    ``σ`` to each predecessor and the new children inherit the
+    predecessor's level-1 ancestor.
+
+    For ``level == 0`` the dissection has not been applied; the single
+    leaf is conventionally tagged ``0``. Callers should treat
+    ``level == 0`` as a degenerate case for which "parent supertile"
+    is not meaningful.
+
+    The leaf component of each pair is identical (in geometry and in
+    iteration order) to the corresponding entry in
+    ``expand_supertile(rule, prototile_index, level)``; the only
+    addition is the parent-index tag.
+
+    Raises ``ValueError`` if ``prototile_index`` is out of range or
+    if ``level < 0``.
+    """
+    if not 0 <= prototile_index < rule.n_prototiles:
+        raise ValueError(
+            f"prototile_index {prototile_index} outside "
+            f"[0, {rule.n_prototiles})."
+        )
+    if level < 0:
+        raise ValueError(f"level must be ≥ 0; got {level}.")
+
+    origin = Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0))
+    identity = Rotation.identity()
+
+    if level == 0:
+        return (
+            (
+                PlacedSubtile(
+                    prototile_index=prototile_index,
+                    translation=origin,
+                    rotation=identity,
+                ),
+                0,
+            ),
+        )
+
+    children = rule.dissections[prototile_index]
+    leaves: list[tuple[PlacedSubtile, int]] = [
+        (
+            PlacedSubtile(
+                prototile_index=c.prototile_index,
+                translation=c.translation,
+                rotation=c.rotation,
+            ),
+            i,
+        )
+        for i, c in enumerate(children)
+    ]
+    M = rule.inflation
+    for _ in range(2, level + 1):
+        next_leaves: list[tuple[PlacedSubtile, int]] = []
+        for leaf, parent_id in leaves:
+            scaled_t = M @ leaf.translation
+            for child in rule.dissections[leaf.prototile_index]:
+                new_t = scaled_t + leaf.rotation.apply(child.translation)
+                new_g = leaf.rotation.compose(child.rotation)
+                next_leaves.append(
+                    (
+                        PlacedSubtile(
+                            prototile_index=child.prototile_index,
+                            translation=new_t,
+                            rotation=new_g,
+                        ),
+                        parent_id,
+                    )
+                )
+        leaves = next_leaves
+    return tuple(leaves)
 
 
 # -- Recognisability (pillar 2) — sub-commit B ------------------------
