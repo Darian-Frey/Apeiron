@@ -88,7 +88,16 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **32** `b7013a8` — `docs(viz)`: cube corona demo
+- **38** `86bd159` — `docs(literature)`: add Track-A working
+  references (Frettlöh, Senechal, Socolar–Steinhardt, Baake–Grimm).
+- **37** `3baccd1` — `docs`: roadmap update reflecting the
+  six-modules-complete state and Track A's specific status.
+- **36** `5bcf09d` — `docs`: refresh README with current state +
+  visualisation pointers + correctness-first discipline note.
+- **35** `92a5847` — `docs(tests/integration)`: refresh README;
+  three real tenants (RTH, RD, Danzer), three planned.
+- **34** `0c4073f` — `docs`: STATUS.md catch-up through commit 32.
+- **33** `b7013a8` — `docs(viz)`: cube corona demo
   (`notebooks/cube_corona_demo.py`); first end-to-end corona × viz
   integration exercise.
 - **31** `89e8137` — `test(danzer)`: pillars 1 + 3 end-to-end on
@@ -168,8 +177,12 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (post-commit-32): 460 passing in 22.76 s under
-venv pytest 9.0.3.
+Test totals (post-commit-38): 460 passing in 22.90 s under venv
+pytest 9.0.3. Slow-test distribution (>1 s): `cube_corona_2` setup
+~10 s, `RD corona_1` setup ~5.9 s, `cube corona_1` setup ~2.5 s,
+`RTH face-to-face counts` ~1.8 s. The four together are ~20 of the
+23 s total; the rest of the 460 tests run in well under a second
+combined.
 
 ---
 
