@@ -4,7 +4,7 @@ Living status document for the Apeiron build-out. Updated whenever a
 commit lands, a decision is reached, a relay to Claude (web) is sent or
 returned, or an attempt fails in a way worth remembering.
 
-- **Current date:** 2026-04-28.
+- **Current date:** 2026-04-29.
 - **Scope of this file:** *what is happening right now*, *what has been
   tried and abandoned*, *what questions are open*. Durable guidance
   (invariants, conventions, research strategy) lives in
@@ -56,17 +56,19 @@ Sub-commit plan for Track A's first candidate (Danzer):
   ZPhi(1, 2) = φ³. The inflation matrix on the rule encodes the
   *linear* factor φ (not the volume factor φ³ — Claude (web)'s
   2026-04-23 correction is locked in by metadata + tests).
-- **27B-β** — replace placeholder dissection geometry with real
-  child translations + rotations transcribed from Frettlöh
-  Figure 2 / Tilings Encyclopedia at tilings.math.uni-bielefeld.de
-  into a `candidates/danzer/dissection_notes.md` sidecar before
-  encoding. Open; requires a focused geometric-transcription
-  session.
+- **27B-β** done in `b3d8e55` + `164e6dd` — Paolini POV-Ray
+  source transcribed (all 25 children machine-extracted into
+  `candidates/danzer/paolini_dissection.json` with volume
+  conservation, multiplicity match, and I_h membership verified)
+  and promoted to the canonical `danzer_rule` fixture per Claude
+  (web)'s Q4a 2026-04-29 ruling.
 - **27C** — `candidates/danzer/fourth_pillar.py` stub
   (`NotImplementedError` impl of the protocol, citing Danzer 1989
   Thm 2 + Goodman-Strauss 1998).
-- **27D** — full four-pillar pipeline run on Danzer; sanity baseline
-  before the deformation search begins.
+- **27D** done in `5bfa3a5` — full pipeline returns
+  `InflationArgument(pf=ZPhi(1,2), radius=2)` on the canonical
+  Paolini real-geometry rule with `position_signature`. Track A's
+  Danzer baseline now passes pillars 1 + 2 + 3.
 
 ---
 
@@ -93,6 +95,36 @@ Sub-commit plan for Track A's first candidate (Danzer):
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
+- **27D** `5bfa3a5` — `test(danzer)`: full four-pillar pipeline on
+  the canonical Paolini Danzer rule returns `InflationArgument`.
+  Pillars 1 + 2 + 3 chained: `SubstitutionRule → patch_from_supertile
+  → is_recognisable(signature_fn=position_signature) →
+  inflation_argument` returns `InflationArgument(pf=ZPhi(1,2),
+  radius=2)` at level-1, σ(A) = 11 children. The 27D milestone —
+  Track A's first candidate has now passed pillars 1 + 2 + 3 with
+  real geometry.
+- **Q5a** `2d59b82` — `feat(hierarchy)`: `position_signature` —
+  Goodman-Strauss atlas form. Per-neighbour `(rel_translation,
+  rel_rotation, type)` tuples in centre-frame coordinates, sorted
+  in pure ℤ[φ]-lex order. Comparators (`_zphi_cmp`, `_vec3_cmp`,
+  `_mat3_cmp`, `_isometry_cmp`) use `ZPhi._sign` on integers only —
+  no floats anywhere. Stabiliser quotient elided for trivial-Stab
+  candidates (ABCK qualifies per Q5b).
+- **Q5c** `a4cd555` — `feat(hierarchy)`: `PatchTile` gains optional
+  `translation` and `rotation` fields plus `has_placement` property,
+  populated by `patch_from_supertile`. Mixed placement state
+  rejected. Existing callers (Fibonacci 1D oracle, AB shell tests)
+  unaffected.
+- **Q5b** `6d5a38a` — `test(danzer)`: `Stab_{I_h}(X) = {identity}`
+  for all four ABCK prototiles. Brute-force iteration over all 120
+  I_h elements; only identity fixes each tile's vertex set.
+  Precondition under which Q5a's quotient elision is valid.
+- **Q4a** `164e6dd` — `test(danzer)`: promote Paolini real geometry
+  to canonical `danzer_rule` fixture. Header cites both sources,
+  flags Koca's Figure 8 gap explicitly. Placeholder builder
+  retained as reference.
+- **49** `d43a05d` — `docs(danzer)`: pillar-2 finding — multiset/
+  shell signatures insufficient for ABCK; Q5 drafted.
 - **48** `33165cd` — `feat(hierarchy)`:
   `shell_neighbourhood_signature` — per-distance shell sequence
   (shell_0, shell_1, ..., shell_radius) where shell_k is the
@@ -234,13 +266,13 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (post-commit-48): 503 passing in ~19.8 s under venv
+Test totals (post-27D): 544 passing in ~19.4 s under venv
 pytest 9.0.3. The 17 % suite-runtime drop from commit 40's perf
-work is holding; the 43 new tests (commits 41–48) added ~0.6 s.
-Slow-test distribution (>1 s): `cube_corona_2` setup ~7 s (down
-from ~10 s after commit 40's vertex-list caching), `RD corona_1`
+work is holding; the 84 new tests (commits 41–27D, including the
+13-commit Q4a/Q5a-c/Q4b/27D burst) added ~1 s. Slow-test
+distribution unchanged: `cube_corona_2` setup ~7 s, `RD corona_1`
 setup ~5.5 s, `cube corona_1` setup ~2.3 s, `RTH face-to-face
-counts` ~1.5 s. The rest of the 503 tests run in well under a
+counts` ~1.5 s. The rest of the 544 tests run in well under a
 second combined.
 
 ---
