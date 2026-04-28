@@ -29,7 +29,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import numpy as np
 import pytest
 
 from apeiron.polyhedron import Polyhedron
@@ -353,3 +352,72 @@ class TestDanzerInflationMatrix:
         # confusion-with-PF regression.
         meta = _danzer_substitution_metadata()
         assert meta["inflation_linear_factor"] == [0, 1]
+
+
+# -- Sub-commit 27C: fourth-pillar stub -------------------------------
+
+
+class TestDanzerFourthPillarStub:
+    """The ``candidates/danzer/fourth_pillar.py`` stub satisfies the
+    ``FourthPillarArgument`` protocol, raises ``NotImplementedError``
+    on its methods, and cites the published proof.
+
+    First end-to-end exercise of the
+    ``apeiron.hierarchy.FourthPillarArgument`` protocol's import +
+    instantiation path. Future deformation-search candidates will
+    inherit the ``candidates/<name>/fourth_pillar.py`` convention
+    that this module establishes.
+    """
+
+    def test_module_imports(self) -> None:
+        from candidates.danzer import fourth_pillar
+        assert hasattr(fourth_pillar, "DanzerABCKFourthPillar")
+
+    def test_class_instantiates(self) -> None:
+        from candidates.danzer.fourth_pillar import DanzerABCKFourthPillar
+        impl = DanzerABCKFourthPillar()
+        assert impl is not None
+
+    def test_satisfies_protocol(self) -> None:
+        from apeiron.hierarchy import FourthPillarArgument
+        from candidates.danzer.fourth_pillar import DanzerABCKFourthPillar
+        impl = DanzerABCKFourthPillar()
+        assert isinstance(impl, FourthPillarArgument)
+
+    def test_local_configurations_raises_not_implemented(self) -> None:
+        from candidates.danzer.fourth_pillar import DanzerABCKFourthPillar
+        impl = DanzerABCKFourthPillar()
+        with pytest.raises(NotImplementedError):
+            impl.local_configurations()
+
+    def test_verify_hierarchical_raises_not_implemented(self) -> None:
+        from candidates.danzer.fourth_pillar import DanzerABCKFourthPillar
+        from apeiron.corona import CoronaConfig
+        # Build any valid CoronaConfig; the stub should refuse
+        # regardless of input.
+        from apeiron.polyhedron import Polyhedron
+        any_tetra_verts = [
+            Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(2, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(0, 0), ZPhi(2, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(2, 0)),
+        ]
+        any_polytope = Polyhedron.from_vertices(any_tetra_verts)
+        any_config = CoronaConfig.from_neighbours(any_polytope, [])
+        impl = DanzerABCKFourthPillar()
+        with pytest.raises(NotImplementedError):
+            impl.verify_hierarchical(any_config)
+
+    def test_error_message_contains_citation(self) -> None:
+        from candidates.danzer.fourth_pillar import DanzerABCKFourthPillar
+        impl = DanzerABCKFourthPillar()
+        try:
+            impl.local_configurations()
+        except NotImplementedError as exc:
+            msg = str(exc)
+            # All three published sources should be referenced.
+            assert "Danzer 1989" in msg
+            assert "Goodman-Strauss 1998" in msg
+            assert "Frettlöh" in msg or "Frettloh" in msg
+        else:
+            raise AssertionError("expected NotImplementedError")

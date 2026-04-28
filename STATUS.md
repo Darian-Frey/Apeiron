@@ -24,7 +24,13 @@ Sub-commit plan for Track A's first candidate (Danzer):
   as `candidates/danzer/{A,B,C,K}.json` per Frettlöh Table 1, with
   K's class-IV vertex stored at `scale_denom=2`. 20 integration
   tests confirm tetrahedron shape (4V/6E/4F, χ=2, all triangular).
-- **27B-α** done in commit 28 (pending) — `SubstitutionRule` with
+- **27C** done in commit 29 (pending) — `candidates/danzer/fourth_pillar.py`
+  with a `DanzerABCKFourthPillar` class implementing the
+  `FourthPillarArgument` protocol, methods raising
+  `NotImplementedError` with citations to Danzer 1989 Thm 2,
+  Goodman-Strauss 1998, and Frettlöh Thm 1.2. First end-to-end
+  exercise of the protocol's import + instantiation path.
+- **27B-α** done in `2d42fbd` — `SubstitutionRule` with
   Frettlöh's matrix and placeholder dissection geometry (every
   child at origin, identity rotation). Pillar 1 acceptance verified:
   matrix recovers exactly, is primitive, PF eigenvalue is
@@ -71,7 +77,10 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **28** (pending) — `feat(candidates/danzer)`: pillar-1 verification
+- **29** (pending) — `feat(candidates/danzer)`: fourth-pillar stub
+  satisfying `FourthPillarArgument` (sub-commit 27C); first
+  end-to-end exercise of the protocol's import path.
+- **28** `2d42fbd` — `feat(candidates/danzer)`: pillar-1 verification
   via `SubstitutionRule` with Frettlöh's matrix + placeholder
   dissection geometry; PF eigenvalue confirmed ZPhi(1, 2) = φ³
   (sub-commit 27B-α).
@@ -140,7 +149,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-28 working tree): 450 passing in 23.83 s under
+Test totals (pre-commit-29 working tree): 456 passing in 22.64 s under
 venv pytest 9.0.3.
 
 ---
