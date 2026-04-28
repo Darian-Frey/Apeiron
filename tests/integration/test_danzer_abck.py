@@ -4,26 +4,45 @@ Track A (CLAUDE.md §6.1) starts here: encode Danzer's published
 4-tile aperiodic set, run it through the pipeline, then perturb
 toward a single-tile candidate via deformation search.
 
-Sub-commit 27A: load and structurally verify all four prototiles
-(A, B, C, K). Each is a tetrahedron with 4 vertices, 6 edges, 4
-triangular faces, Euler characteristic 2. K's vertices include a
-class-IV half-integer position (per Frettlöh's note) so its
-``scale_denom`` is 2 — this is the first wild-input exercise of the
-loader's half-integer path.
+Sub-commit 27A landed prototile shape verification. **27B-α (this
+file's additions)** builds the Danzer ``SubstitutionRule`` with
+Frettlöh's matrix and placeholder geometric dissections — children
+positioned at origin with identity rotation. The dissection's
+*combinatorial* content (how many of each prototile per σ(X)) is
+correct and matches Frettlöh exactly; the *geometric* content
+(translation + rotation per child) is deferred to 27B-β, which
+will transcribe Frettlöh Figure 2 / the Tilings Encyclopedia
+interactive view into a ``dissection_notes.md`` sidecar before
+encoding the full geometry.
 
-The substitution rule itself (matrix + dissection) lands in 27B.
-The fourth-pillar stub lands in 27C. The full pipeline run on the
-4-tile set lands in 27D.
+This is sufficient for pillar-1 verification (which only consults
+the substitution matrix derived from prototile_index counts), and
+is what Claude (web) and the user agreed to as the matrix-only
+acceptance step.
+
+The fourth-pillar stub lands in 27C; the full pipeline run lands
+in 27D.
 """
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
+import numpy as np
 import pytest
 
 from apeiron.polyhedron import Polyhedron
+from apeiron.substitution import (
+    PositionedTile,
+    SubstitutionRule,
+    is_primitive,
+    perron_frobenius_in_zphi,
+    substitution_matrix,
+)
+from apeiron.symmetry import Mat3, Rotation, Vec3
 from apeiron.util import load_candidate
+from apeiron.zphi import ZPhi
 
 _DANZER_DIR = Path("candidates/danzer")
 
@@ -129,9 +148,208 @@ class TestDanzerProtileIndices:
     """
 
     def test_prototile_indices_match_letter_order(self) -> None:
-        import json
         expected = {"A": 0, "B": 1, "C": 2, "K": 3}
         for letter, idx in expected.items():
             with (_DANZER_DIR / f"{letter}.json").open() as f:
                 payload = json.load(f)
             assert payload["prototile_index"] == idx
+
+
+# -- Sub-commit 27B-α: SubstitutionRule + pillar-1 verification -------
+
+
+def _danzer_substitution_metadata() -> dict:
+    """Read ``candidates/danzer/substitution.json`` once."""
+    with (_DANZER_DIR / "substitution.json").open() as f:
+        return json.load(f)
+
+
+def _zero_vec3() -> Vec3:
+    """Origin in ×2 storage (the dummy translation for placeholder
+    children)."""
+    return Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0))
+
+
+def _phi_inflation_matrix() -> Mat3:
+    """The Danzer linear inflation σ = φ·I.
+
+    Per Claude (web)'s 2026-04-23 correction, the *linear* inflation
+    factor is φ (= ZPhi(0, 1)); volume scales as the cube and that
+    cube is the PF eigenvalue of the substitution matrix
+    (φ³ = ZPhi(1, 2)). The two are not the same quantity; the
+    inflation matrix carries the linear factor.
+    """
+    phi = ZPhi(0, 1)
+    z = ZPhi(0, 0)
+    return Mat3(
+        Vec3(phi, z, z),
+        Vec3(z, phi, z),
+        Vec3(z, z, phi),
+    )
+
+
+def _placeholder_dissection(
+    matrix_column: list[int],
+) -> tuple[PositionedTile, ...]:
+    """Build a tuple of ``PositionedTile`` whose ``prototile_index``
+    multiset matches ``matrix_column``.
+
+    All children share the origin / identity-rotation placement.
+    Geometric content is deliberately stubbed; this commit's job is
+    to verify the substitution-matrix shape (pillar 1 only).
+    Sub-commit 27B-β replaces these with real translations and
+    rotations transcribed from Frettlöh Figure 2.
+    """
+    children: list[PositionedTile] = []
+    for type_idx, count in enumerate(matrix_column):
+        for _ in range(count):
+            children.append(
+                PositionedTile(
+                    prototile_index=type_idx,
+                    translation=_zero_vec3(),
+                    rotation=Rotation.identity(),
+                )
+            )
+    return tuple(children)
+
+
+def _build_danzer_rule_with_placeholder_geometry() -> SubstitutionRule:
+    """Construct a Danzer ``SubstitutionRule`` with Frettlöh's matrix
+    and placeholder-only dissection geometry (origin + identity for
+    every child).
+
+    The substitution matrix is column-conventioned: column ``i`` of
+    ``M`` is the count vector of σ(prototile_i)'s children by type.
+    Frettlöh's matrix:
+
+    ::
+
+        M  =  A  B  C  K
+           A [[0, 0, 1, 0],
+           B  [3, 2, 0, 1],
+           C  [2, 1, 2, 0],
+           K  [6, 4, 2, 1]]
+    """
+    metadata = _danzer_substitution_metadata()
+    matrix = metadata["substitution_matrix"]
+    n = len(matrix)
+    dissections = tuple(
+        _placeholder_dissection([matrix[type_idx][col] for type_idx in range(n)])
+        for col in range(n)
+    )
+    return SubstitutionRule(
+        n_prototiles=n,
+        inflation=_phi_inflation_matrix(),
+        dissections=dissections,
+    )
+
+
+@pytest.fixture(scope="module")
+def danzer_rule() -> SubstitutionRule:
+    """The Danzer ``SubstitutionRule`` (matrix-only; placeholder
+    dissection geometry).
+
+    Module-scoped so every pillar-1 test reuses a single
+    construction.
+    """
+    return _build_danzer_rule_with_placeholder_geometry()
+
+
+class TestDanzerSubstitutionMatrix:
+    """Pillar 1 — the substitution-matrix recovery and primitivity
+    checks against Frettlöh's published matrix.
+    """
+
+    def test_matrix_shape(self, danzer_rule) -> None:
+        m = substitution_matrix(danzer_rule)
+        assert m.shape == (4, 4)
+
+    def test_matrix_matches_frettloh(self, danzer_rule) -> None:
+        # Reconstructed matrix must equal the on-disk reference
+        # (transcribed from Frettlöh's report).
+        expected = _danzer_substitution_metadata()["substitution_matrix"]
+        m = substitution_matrix(danzer_rule)
+        for j in range(4):
+            for i in range(4):
+                assert m[j, i] == expected[j][i], (
+                    f"M[{j},{i}] = {m[j, i]} but Frettlöh says "
+                    f"{expected[j][i]}"
+                )
+
+    def test_matrix_column_sums_match_child_counts(
+        self, danzer_rule,
+    ) -> None:
+        # Column j of M is the multiset count vector of σ(prototile_j)'s
+        # children — its sum is the total number of children. Useful
+        # cross-check that the placeholder dissection construction
+        # didn't drop any children.
+        m = substitution_matrix(danzer_rule)
+        # σ(A) = 11 children (3+2+6), σ(B) = 7, σ(C) = 5, σ(K) = 2.
+        assert int(m[:, 0].sum()) == 11
+        assert int(m[:, 1].sum()) == 7
+        assert int(m[:, 2].sum()) == 5
+        assert int(m[:, 3].sum()) == 2
+
+    def test_matrix_is_primitive(self, danzer_rule) -> None:
+        # Pillar 1 acceptance: M is primitive (some power has all-
+        # positive entries). Wielandt bound for a 4×4 matrix is
+        # (4-1)² + 1 = 10.
+        m = substitution_matrix(danzer_rule)
+        assert is_primitive(m)
+
+
+class TestDanzerPerronFrobenius:
+    """Pillar 1 — Perron–Frobenius eigenvalue extraction. Frettlöh
+    states the PF eigenvalue is φ³ = ZPhi(1, 2); the other
+    eigenvalues are τ, −τ⁻¹, −τ⁻³ (all in ℤ[φ]).
+    """
+
+    def test_pf_eigenvalue_is_phi_cubed(self, danzer_rule) -> None:
+        m = substitution_matrix(danzer_rule)
+        pf = perron_frobenius_in_zphi(m)
+        assert pf is not None, (
+            "PF eigenvalue not recovered in ℤ[φ]; expected φ³ = "
+            "ZPhi(1, 2)"
+        )
+        assert pf == ZPhi(1, 2), f"expected ZPhi(1, 2), got {pf}"
+
+    def test_pf_eigenvalue_matches_metadata(
+        self, danzer_rule,
+    ) -> None:
+        # The on-disk substitution metadata declares the expected PF.
+        m = substitution_matrix(danzer_rule)
+        pf = perron_frobenius_in_zphi(m)
+        meta_pf = _danzer_substitution_metadata()["expected_pf_eigenvalue"]
+        assert pf is not None
+        assert pf == ZPhi(meta_pf[0], meta_pf[1])
+
+
+class TestDanzerInflationMatrix:
+    """Pillar-1 metadata cross-check: the inflation matrix on the
+    SubstitutionRule encodes the *linear* factor (φ), not the
+    volume-scaling factor (φ³ = PF eigenvalue).
+    """
+
+    def test_inflation_is_phi_times_identity(
+        self, danzer_rule,
+    ) -> None:
+        # Row 0 column 0: ZPhi(0, 1) = φ. Off-diagonal: 0.
+        m = danzer_rule.inflation
+        phi = ZPhi(0, 1)
+        zero = ZPhi(0, 0)
+        assert m.row0.x == phi
+        assert m.row0.y == zero
+        assert m.row0.z == zero
+        assert m.row1.x == zero
+        assert m.row1.y == phi
+        assert m.row1.z == zero
+        assert m.row2.x == zero
+        assert m.row2.y == zero
+        assert m.row2.z == phi
+
+    def test_inflation_factor_in_metadata_is_phi(self) -> None:
+        # The on-disk metadata records [0, 1] = ZPhi(0, 1) = φ as
+        # the linear inflation factor. Guards against a future
+        # confusion-with-PF regression.
+        meta = _danzer_substitution_metadata()
+        assert meta["inflation_linear_factor"] == [0, 1]

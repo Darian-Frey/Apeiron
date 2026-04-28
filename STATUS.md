@@ -24,13 +24,19 @@ Sub-commit plan for Track A's first candidate (Danzer):
   as `candidates/danzer/{A,B,C,K}.json` per Frettlöh Table 1, with
   K's class-IV vertex stored at `scale_denom=2`. 20 integration
   tests confirm tetrahedron shape (4V/6E/4F, χ=2, all triangular).
-- **27B** — encode the substitution rule (matrix from Frettlöh,
-  inflation factor φ ≠ φ³ — see correction below); pillar-1
-  verification (primitivity + PF eigenvalue = φ³ = ZPhi(1, 2)).
-  Child placements (translation + rotation per child of σ(X) for
-  X ∈ {A,B,C,K}) require manual transcription from Frettlöh
-  Figure 2 / Tilings Encyclopedia interactive view; will land in a
-  preceding `dissection_notes.md` sub-commit.
+- **27B-α** done in commit 28 (pending) — `SubstitutionRule` with
+  Frettlöh's matrix and placeholder dissection geometry (every
+  child at origin, identity rotation). Pillar 1 acceptance verified:
+  matrix recovers exactly, is primitive, PF eigenvalue is
+  ZPhi(1, 2) = φ³. The inflation matrix on the rule encodes the
+  *linear* factor φ (not the volume factor φ³ — Claude (web)'s
+  2026-04-23 correction is locked in by metadata + tests).
+- **27B-β** — replace placeholder dissection geometry with real
+  child translations + rotations transcribed from Frettlöh
+  Figure 2 / Tilings Encyclopedia at tilings.math.uni-bielefeld.de
+  into a `candidates/danzer/dissection_notes.md` sidecar before
+  encoding. Open; requires a focused geometric-transcription
+  session.
 - **27C** — `candidates/danzer/fourth_pillar.py` stub
   (`NotImplementedError` impl of the protocol, citing Danzer 1989
   Thm 2 + Goodman-Strauss 1998).
@@ -65,7 +71,11 @@ quick orientation.
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
-- **27** (pending) — `feat(candidates/danzer)`: encode A/B/C/K
+- **28** (pending) — `feat(candidates/danzer)`: pillar-1 verification
+  via `SubstitutionRule` with Frettlöh's matrix + placeholder
+  dissection geometry; PF eigenvalue confirmed ZPhi(1, 2) = φ³
+  (sub-commit 27B-α).
+- **27** `18a8e57` — `feat(candidates/danzer)`: encode A/B/C/K
   prototiles per Frettlöh Table 1 + integration test (20 cases
   confirming tetrahedron shape, K stored at `scale_denom=2`).
 - **26** `0415ef9` — `feat(util)`: `@pillar(n)` decorator +
@@ -130,7 +140,7 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (pre-commit-27 working tree): 442 passing in 22.36 s under
+Test totals (pre-commit-28 working tree): 450 passing in 23.83 s under
 venv pytest 9.0.3.
 
 ---
