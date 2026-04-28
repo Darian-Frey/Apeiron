@@ -511,3 +511,96 @@ class TestDanzerPillarsOneAndThree:
         result = inflation_argument(danzer_rule, bad_result)
         assert isinstance(result, InflationFailure)
         assert result.reason == "not recognisable"
+
+
+class TestDanzerPatchBridge:
+    """Exercise the algebraic→combinatorial pillar-2 bridge on Track
+    A's first candidate: ``patch_from_supertile`` on the Danzer rule
+    produces a ``TilePatch`` of the expected shape, even with the
+    placeholder geometry from sub-commit 27B-α.
+
+    With placeholder geometry (every child at origin / identity), the
+    squared-Euclidean oracle is degenerate (all leaves coincide), so
+    ``is_recognisable`` is forced to fail. Once 27B-β replaces the
+    placeholders with real Frettlöh dissection geometry, the same
+    bridge call will produce a non-degenerate patch and
+    ``is_recognisable`` becomes a meaningful pillar-2 query.
+    """
+
+    def test_level_one_patch_matches_dissection_size(
+        self, danzer_rule,
+    ) -> None:
+        from apeiron.hierarchy import patch_from_supertile
+        # σ(A) per Frettlöh column 0: 0 A + 3 B + 2 C + 6 K = 11.
+        patch = patch_from_supertile(
+            danzer_rule, prototile_index=0, level=1,
+            radius_step_squared=ZPhi(1, 0),
+        )
+        assert len(patch.tiles) == 11
+
+    def test_level_one_parent_ids_are_unique(
+        self, danzer_rule,
+    ) -> None:
+        # At level 1 each child IS its own level-1 supertile, so
+        # parent_supertile values are 0..k-1 with no repeats.
+        from apeiron.hierarchy import patch_from_supertile
+        patch = patch_from_supertile(
+            danzer_rule, prototile_index=0, level=1,
+            radius_step_squared=ZPhi(1, 0),
+        )
+        parent_ids = [t.parent_supertile for t in patch.tiles]
+        assert sorted(parent_ids) == list(range(11))
+
+    def test_level_two_count_matches_matrix_power(
+        self, danzer_rule,
+    ) -> None:
+        # σ²(A) leaf count = sum over level-1 children c of |σ(c)|.
+        # Frettlöh dissection sizes: |σ(A)|=11, |σ(B)|=7, |σ(C)|=5,
+        # |σ(K)|=2. σ(A) has 0 A + 3 B + 2 C + 6 K, so
+        # σ²(A) has 0·11 + 3·7 + 2·5 + 6·2 = 0 + 21 + 10 + 12 = 43.
+        from apeiron.hierarchy import patch_from_supertile
+        patch = patch_from_supertile(
+            danzer_rule, prototile_index=0, level=2,
+            radius_step_squared=ZPhi(1, 0),
+        )
+        assert len(patch.tiles) == 43
+
+    def test_level_two_parent_ids_partition_into_eleven_groups(
+        self, danzer_rule,
+    ) -> None:
+        # The 43 level-2 leaves descend from the 11 level-1 children;
+        # parent_supertile partitions them into 11 groups.
+        from collections import Counter
+        from apeiron.hierarchy import patch_from_supertile
+        patch = patch_from_supertile(
+            danzer_rule, prototile_index=0, level=2,
+            radius_step_squared=ZPhi(1, 0),
+        )
+        groups = Counter(t.parent_supertile for t in patch.tiles)
+        assert sorted(groups.keys()) == list(range(11))
+        # Group sizes are |σ(child_type)| for each level-1 child.
+        # σ(A) at column 0 has 3 B + 2 C + 6 K, so groups should
+        # contain 3 of size 7 (B), 2 of size 5 (C), 6 of size 2 (K).
+        size_counts = Counter(groups.values())
+        assert size_counts == Counter({7: 3, 5: 2, 2: 6})
+
+    def test_recognisable_fails_on_placeholder_geometry(
+        self, danzer_rule,
+    ) -> None:
+        # All level-1 children share the origin under placeholder
+        # geometry, so the Euclidean oracle declares everything
+        # within any radius. is_recognisable must report
+        # IndistinguishablePair (multiset signature can't separate
+        # tiles whose only distinction is their parent_supertile).
+        from apeiron.hierarchy import (
+            IndistinguishablePair,
+            is_recognisable,
+            patch_from_supertile,
+        )
+        patch = patch_from_supertile(
+            danzer_rule, prototile_index=0, level=1,
+            radius_step_squared=ZPhi(1, 0),
+        )
+        result = is_recognisable(patch, max_radius=3)
+        assert result.is_recognisable is False
+        assert isinstance(result.witness, IndistinguishablePair)
