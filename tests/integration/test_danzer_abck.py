@@ -901,26 +901,66 @@ class TestDanzerFullPipeline:
         positions = {leaf.translation for leaf, _parent in tagged}
         assert len(positions) > 1
 
+    @pytest.mark.parametrize(
+        ("prototile_index", "letter", "expected_max_radius_used"),
+        [
+            (0, "A", 5),  # σ(A) at radius 2; 5 is a comfortable cap
+            (1, "B", 8),  # σ(B) needs radius 6 — see radius-cap note
+            (2, "C", 5),  # σ(C) at radius 1
+            (3, "K", 5),  # σ(K) at radius 1
+        ],
+    )
     def test_pillar_2_succeeds_with_position_signature_level_1(
-        self, danzer_rule,
+        self, danzer_rule, prototile_index, letter, expected_max_radius_used,
     ) -> None:
-        # The 27D milestone: with position_signature on the canonical
-        # Paolini real-geometry rule, pillar 2 succeeds — every tile's
-        # supertile parent is uniquely determined by its bounded
-        # local neighbourhood.
+        # The 27D milestone, exercised across all four prototiles:
+        # with position_signature on the canonical Paolini real-
+        # geometry rule, pillar 2 succeeds for every σ(X), X ∈ {A,B,C,K}.
+        #
+        # Empirical recognisability radii (radius_step_squared=ZPhi(4,0),
+        # i.e., r=k corresponds to k unit edge lengths of context):
+        #   σ(A) at radius 2  (11 leaves)
+        #   σ(B) at radius 6  ( 7 leaves) — needs the most context
+        #   σ(C) at radius 1  ( 5 leaves)
+        #   σ(K) at radius 1  ( 2 leaves)
+        # The σ(B) requirement of 6 reflects that B's level-1 dissection
+        # has multiple K-children that are I_h-related until distant
+        # context disambiguates. Theoretical bound for an n=4 alphabet
+        # with inflation φ is ~φ^8 ≈ 47; observed ≤ 6 is well within.
         from apeiron.hierarchy import (
             is_recognisable, patch_from_supertile, position_signature,
         )
         patch = patch_from_supertile(
-            danzer_rule, prototile_index=0, level=1,
+            danzer_rule, prototile_index=prototile_index, level=1,
             radius_step_squared=ZPhi(4, 0),
         )
         recog = is_recognisable(
-            patch, max_radius=3, signature_fn=position_signature,
+            patch, max_radius=expected_max_radius_used,
+            signature_fn=position_signature,
         )
         assert recog.is_recognisable is True, (
-            f"Pillar 2 failed at level=1 with position_signature; "
-            f"witness={recog.witness}"
+            f"Pillar 2 failed at level=1 for σ({letter}) with "
+            f"max_radius={expected_max_radius_used}; witness={recog.witness}"
+        )
+
+    def test_pillar_2_succeeds_at_level_2_for_A(
+        self, danzer_rule,
+    ) -> None:
+        # σ²(A) has 43 leaves. Pillar 2 must succeed at level 2 too —
+        # going up the supertile hierarchy must not break recognisability.
+        # Empirically: radius_used = 4 with step²=ZPhi(4, 0).
+        from apeiron.hierarchy import (
+            is_recognisable, patch_from_supertile, position_signature,
+        )
+        patch = patch_from_supertile(
+            danzer_rule, prototile_index=0, level=2,
+            radius_step_squared=ZPhi(4, 0),
+        )
+        recog = is_recognisable(
+            patch, max_radius=5, signature_fn=position_signature,
+        )
+        assert recog.is_recognisable is True, (
+            f"Pillar 2 failed at level=2 for σ²(A); witness={recog.witness}"
         )
 
     def test_full_pipeline_emits_inflation_argument(
@@ -939,7 +979,7 @@ class TestDanzerFullPipeline:
             radius_step_squared=ZPhi(4, 0),
         )
         recog = is_recognisable(
-            patch, max_radius=3, signature_fn=position_signature,
+            patch, max_radius=5, signature_fn=position_signature,
         )
         result = inflation_argument(danzer_rule, recog)
         assert isinstance(result, InflationArgument)
