@@ -72,6 +72,7 @@ __all__ = [
     "make_euclidean_squared_oracle",
     "neighbourhood_signature",
     "patch_from_supertile",
+    "shell_neighbourhood_signature",
 ]
 
 
@@ -537,11 +538,71 @@ def neighbourhood_signature(
     return tuple(sorted(types))
 
 
+def shell_neighbourhood_signature(
+    patch: TilePatch,
+    tile_index: int,
+    radius: int,
+) -> tuple[tuple[int, ...], ...]:
+    """Refined signature: the per-distance multiset *sequence* up to
+    ``radius`` of the centre tile.
+
+    Returns ``(shell_0, shell_1, ..., shell_radius)``, where
+    ``shell_k`` is the sorted tuple of tile types at distance exactly
+    ``k`` from ``tile_index`` under the patch's neighbour oracle.
+    Distance ``k`` is ``"within radius k but not within radius k-1"``;
+    shell 0 is the centre tile alone.
+
+    Strictly more discriminating than ``neighbourhood_signature``: the
+    multiset signature at radius ``r`` is the disjoint union of
+    ``shell_0..shell_r``, while the shell signature preserves the
+    distance bucket each tile fell into. The Fibonacci tiling is the
+    canonical case where the multiset coalesces tiles that the shell
+    sequence separates.
+
+    Caller-supplied as the ``signature_fn`` argument to
+    ``is_recognisable`` for tilings where the multiset alone is
+    insufficient — see the function's docstring.
+
+    Assumes the oracle is *monotone in radius* — i.e., if tile ``j``
+    is within radius ``r``, it is within radius ``r + 1``. The
+    Euclidean oracle from ``make_euclidean_squared_oracle`` satisfies
+    this; combinatorial / BFS-based oracles must satisfy it for the
+    shell decomposition to be well-defined.
+
+    Raises ``IndexError`` for out-of-range ``tile_index`` and
+    ``ValueError`` for negative ``radius``.
+    """
+    n = len(patch.tiles)
+    if not 0 <= tile_index < n:
+        raise IndexError(
+            f"tile_index {tile_index} outside [0, {n})."
+        )
+    if radius < 0:
+        raise ValueError(f"radius must be ≥ 0; got {radius}.")
+    shells: list[tuple[int, ...]] = []
+    prev_ball: set[int] = set()
+    for r in range(radius + 1):
+        ball: set[int] = {
+            j for j in range(n)
+            if patch.neighbour_within(tile_index, j, r)
+        }
+        shell_indices = ball - prev_ball
+        shell_types = sorted(
+            patch.tiles[j].tile_type for j in shell_indices
+        )
+        shells.append(tuple(shell_types))
+        prev_ball = ball
+    return tuple(shells)
+
+
 @pillar(2)
 def is_recognisable(
     patch: TilePatch,
     *,
     max_radius: int = 5,
+    signature_fn: Callable[[TilePatch, int, int], tuple] = (
+        neighbourhood_signature
+    ),
 ) -> RecognisabilityResult:
     """Pillar 2: recognisability / border forcing.
 
@@ -568,6 +629,14 @@ def is_recognisable(
     impractically loose (~λ^(2n) for an ``n``-letter alphabet with
     inflation factor ``λ``).
 
+    The ``signature_fn`` keyword swaps the per-radius signature
+    function used to group tiles. Default is ``neighbourhood_signature``
+    (multiset of types within the radius — sufficient for tilings
+    with high local complexity). For tilings where the multiset
+    coalesces distinct configurations, pass
+    ``shell_neighbourhood_signature`` to refine by per-distance
+    shells; the Fibonacci tiling is the canonical example.
+
     Raises ``ValueError`` if ``max_radius < 1``.
     """
     if max_radius < 1:
@@ -576,9 +645,9 @@ def is_recognisable(
         )
     last_counterexample: IndistinguishablePair | None = None
     for r in range(1, max_radius + 1):
-        groups: dict[tuple[int, ...], list[int]] = {}
+        groups: dict[tuple, list[int]] = {}
         for i in range(len(patch.tiles)):
-            sig = neighbourhood_signature(patch, i, r)
+            sig = signature_fn(patch, i, r)
             groups.setdefault(sig, []).append(i)
         counter: IndistinguishablePair | None = None
         for indices in groups.values():
@@ -598,7 +667,7 @@ def is_recognisable(
             if counter is not None:
                 break
         if counter is None:
-            witness: dict[tuple[int, ...], int] = {
+            witness: dict[tuple, int] = {
                 sig: patch.tiles[indices[0]].parent_supertile
                 for sig, indices in groups.items()
             }

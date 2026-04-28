@@ -38,6 +38,7 @@ from apeiron.hierarchy import (
     make_euclidean_squared_oracle,
     neighbourhood_signature,
     patch_from_supertile,
+    shell_neighbourhood_signature,
 )
 from apeiron.polyhedron import Polyhedron
 from apeiron.substitution import PositionedTile, SubstitutionRule
@@ -598,6 +599,122 @@ class TestPipelineFibonacci:
         assert isinstance(result, InflationArgument)
         assert result.pf_eigenvalue == ZPhi(0, 1)
         assert result.recognisability_radius == 2
+
+    def test_pipeline_succeeds_with_shell_signature(self) -> None:
+        # Same geometric rule, same level-2 patch, but using the shell
+        # signature: pillar 2 succeeds at radius 1 (each level-1
+        # ancestor has a distinct shell-0 + shell-1 sequence — the
+        # shell signature catches the asymmetry the multiset misses).
+        # The full pipeline then produces a valid InflationArgument
+        # with PF = φ.
+        rule = _fibonacci_geometric_rule()
+        patch = patch_from_supertile(
+            rule, prototile_index=0, level=2,
+            radius_step_squared=ZPhi(4, 0),
+        )
+        recog = is_recognisable(
+            patch, max_radius=5,
+            signature_fn=shell_neighbourhood_signature,
+        )
+        assert recog.is_recognisable is True
+        assert recog.radius_used == 1
+        result = inflation_argument(rule, recog)
+        assert isinstance(result, InflationArgument)
+        assert result.pf_eigenvalue == ZPhi(0, 1)
+        assert result.recognisability_radius == 1
+
+
+# -- Shell-based neighbourhood signature ------------------------------
+
+
+class TestShellNeighbourhoodSignature:
+    """The refined per-distance shell signature used as an opt-in
+    ``signature_fn`` argument to ``is_recognisable``.
+    """
+
+    def _make_simple_patch(self) -> TilePatch:
+        # Three tiles at x = 0, 2, 4 (×2-stored). Step² = 4 means
+        # radius 1 = distance 2. Tile types 0, 1, 0 with arbitrary
+        # parents.
+        positions = (
+            Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(4, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(8, 0), ZPhi(0, 0), ZPhi(0, 0)),
+        )
+        tiles = (
+            PatchTile(tile_type=0, parent_supertile=0),
+            PatchTile(tile_type=1, parent_supertile=0),
+            PatchTile(tile_type=0, parent_supertile=1),
+        )
+        oracle = make_euclidean_squared_oracle(positions, ZPhi(4, 0))
+        return TilePatch(tiles=tiles, neighbour_within=oracle)
+
+    def test_radius_zero_is_centre_only(self) -> None:
+        patch = self._make_simple_patch()
+        sig = shell_neighbourhood_signature(patch, 0, 0)
+        assert sig == ((0,),)
+
+    def test_radius_one_includes_first_shell(self) -> None:
+        patch = self._make_simple_patch()
+        # Distances²: 0→1 = 16, 0→2 = 64. Step² = 4.
+        # r=1: threshold 4 — tile 1 not within (16 > 4); shell 1 = ().
+        # r=2: threshold 16 — tile 1 within (16 ≤ 16); shell 2 = (1,).
+        sig = shell_neighbourhood_signature(patch, 0, 2)
+        assert sig == ((0,), (), (1,))
+
+    def test_centre_tile_in_shell_zero(self) -> None:
+        # Tile in the middle: shell 0 is its own type; shell 1 sees
+        # both neighbours at distance² = 16 → step² · 4 → r=2 inclusive.
+        patch = self._make_simple_patch()
+        sig = shell_neighbourhood_signature(patch, 1, 2)
+        # tile 1 at x=2; tile 0 at x=0, tile 2 at x=4. Both at
+        # distance² = 16.
+        # r=0: shell {1} (S type). r=1: nobody at threshold 4. r=2:
+        # both at 16, both in shell 2 → shell 2 = (0, 0).
+        assert sig == ((1,), (), (0, 0))
+
+    def test_rejects_negative_radius(self) -> None:
+        patch = self._make_simple_patch()
+        with pytest.raises(ValueError, match="radius must be"):
+            shell_neighbourhood_signature(patch, 0, -1)
+
+    def test_rejects_out_of_range_index(self) -> None:
+        patch = self._make_simple_patch()
+        with pytest.raises(IndexError):
+            shell_neighbourhood_signature(patch, 99, 1)
+
+    def test_returns_tuple_of_tuples(self) -> None:
+        patch = self._make_simple_patch()
+        sig = shell_neighbourhood_signature(patch, 0, 2)
+        assert isinstance(sig, tuple)
+        for shell in sig:
+            assert isinstance(shell, tuple)
+
+    def test_strictly_more_discriminating_than_multiset(self) -> None:
+        # Two tiles with identical multiset signatures but different
+        # shell signatures: tile A has [self=0] then [neighbour=1] in
+        # consecutive shells; tile B has [self=0] and a co-located
+        # neighbour=1 in shell 1. Multiset signature at radius 1 is
+        # (0, 1) for both — they coalesce. Shell signature
+        # distinguishes by whether the neighbour is at shell 0 or 1.
+        # Here we use the Fibonacci level-2 patch to make the point
+        # against the actual pipeline.
+        rule = _fibonacci_geometric_rule()
+        patch = patch_from_supertile(
+            rule, prototile_index=0, level=2,
+            radius_step_squared=ZPhi(4, 0),
+        )
+        # Multiset at radius 2 coalesces tile 0 with tile 2 (both
+        # parent IDs 0 and 1, but signature (0, 1) for both).
+        ms_signatures = [
+            neighbourhood_signature(patch, i, 2) for i in range(3)
+        ]
+        assert ms_signatures[0] == ms_signatures[2]
+        # Shell at radius 2 separates them.
+        sh_signatures = [
+            shell_neighbourhood_signature(patch, i, 2) for i in range(3)
+        ]
+        assert sh_signatures[0] != sh_signatures[2]
 
 
 # -- Fourth pillar framework (pillar 4) -------------------------------
