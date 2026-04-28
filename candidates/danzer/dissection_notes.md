@@ -1,7 +1,42 @@
 # Danzer ABCK Substitution Dissections
 
-**Status: source-survey complete (2026-04-28); transcription pending Q4
-ruling from Claude (web).**
+**Status: Paolini transcription complete (2026-04-28, commit `b3d8e55`).
+Q4a–Q4c partially answered locally; final ruling pending from Claude
+(web). See "Status update" below.**
+
+## Status update (2026-04-28, post-`b7174b1`)
+
+The Paolini path has been fully executed locally:
+
+- ✅ Symbolic+numerical evaluator built
+  (`candidates/danzer/_paolini_extract.py`). Mirrors POV-Ray's
+  `transform { ... }` composition: `scale<-1,-1,-1>`, `translate`,
+  `Axis_Rotate_Trans` (Rodrigues), `Reorient_Trans`, and
+  `AllineaTriangoliTrans` (with `AVOIDINSTABILITY=0` per the Q4c
+  proposal — the 40°-randrot kludge is a numerical hack and is
+  disabled in our exact-arithmetic reading).
+- ✅ All 25 Paolini transforms evaluated. Every output rotation lands
+  in I_h (proper or improper); every translation snaps to ZPhi (×2
+  storage) within tolerance 1e-9. Saved as
+  `candidates/danzer/paolini_dissection.json`.
+- ✅ Volume conservation verified: sum of children's volumes = τ³·vol(parent)
+  for all four σ-rules, to machine precision. Tested in
+  `tests/integration/test_danzer_abck.py::TestPaoliniDissectionExtraction`.
+- ✅ Per-parent child counts match Frettlöh's matrix exactly (11/7/5/2).
+- ✅ Proper/improper distribution: 12 proper, 13 improper. Confirms
+  Track A operates in I_h, not I.
+
+**Q4a still requires Claude (web) confirmation that Paolini is the
+canonical source.** If Claude (web) prefers Koca, the existing JSON
+serves as Q4b cross-validation: per-child position-match under a
+single global isometry between the two sources. We have not yet
+determined the global isometry; that's a downstream task once Q4a is
+locked.
+
+**Q4c implicitly answered:** the `AVOIDINSTABILITY=1` flag is
+disabled in our extractor. Every transform produces a clean I_h
+isometry without the kludge — confirming the kludge is purely a POV-Ray
+floating-point hygiene measure, not a mathematical correction.
 
 This file is the working artifact for sub-commit 27B-β: the
 real geometric dissection of σ(X) for X ∈ {A, B, C, K} in
@@ -39,7 +74,7 @@ Local mirrors saved at `/tmp/d6_abck.txt`, `/tmp/frettloh_ikosa.txt`,
 matches our `candidates/danzer/{A,B,C,K}.json`:
 
 | vertex | Paolini | Frettlöh / our JSON |
-|---|---|---|
+| --- | --- | --- |
 | pt0 | `<0, 0, 0>` | A.V0 = B.V0 = C.V0 = K.V0 = (0, 0, 0) |
 | pt1 | `τ²<τ, 0, 1> = <τ³, 0, τ²>` | A.V1 = B.V1 |
 | pt2 | `τ²<1, 1, 1>` | A.V2 = B.V2 = C.V2 |
@@ -106,7 +141,7 @@ relay below.
 For each child of σ(X), record:
 
 | field | type | meaning |
-|---|---|---|
+| --- | --- | --- |
 | `prototile_index` | int 0–3 | A=0, B=1, C=2, K=3. |
 | `translation` | `[[a, b], [a, b], [a, b]]` | Child's origin position in the σ(X)-frame, ×2-stored ZPhi. |
 | `rotation` | `Rotation` or `ImproperRotation` | Child's isometry; orientation-preserving in I (60 elts) or orientation-reversing in I_h \\ I (60 elts). |
