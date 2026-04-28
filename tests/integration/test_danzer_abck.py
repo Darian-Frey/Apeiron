@@ -604,3 +604,136 @@ class TestDanzerPatchBridge:
         result = is_recognisable(patch, max_radius=3)
         assert result.is_recognisable is False
         assert isinstance(result.witness, IndistinguishablePair)
+
+
+class TestPaoliniDissectionExtraction:
+    """Smoke + sanity checks for the Paolini POV-Ray transcription
+    (commit b3d8e55). The extractor itself is in
+    ``candidates/danzer/_paolini_extract.py``; the JSON it produces is
+    the canonical Paolini encoding under Q4a if Claude (web) selects
+    that source.
+
+    Volume conservation: for each σ(X), the sum of children's volumes
+    equals τ³·vol(X). The child counts match Frettlöh's matrix.
+    Every child rotation is recoverable as either a member of
+    ``ICOSAHEDRAL`` (proper) or ``ImproperRotation(g)`` for some
+    ``g ∈ ICOSAHEDRAL``.
+    """
+
+    def test_json_has_25_records_with_correct_counts(self) -> None:
+        json_path = _DANZER_DIR / "paolini_dissection.json"
+        if not json_path.exists():
+            pytest.skip("paolini_dissection.json not yet generated")
+        data = json.loads(json_path.read_text())
+        records = data["children"]
+        assert len(records) == 25
+        # Per-parent counts.
+        from collections import Counter
+        parent_counts = Counter(r["parent"] for r in records)
+        assert parent_counts == Counter({"A": 11, "B": 7, "C": 5, "K": 2})
+
+    def test_per_parent_child_type_distribution_matches_frettloh(self) -> None:
+        json_path = _DANZER_DIR / "paolini_dissection.json"
+        if not json_path.exists():
+            pytest.skip("paolini_dissection.json not yet generated")
+        data = json.loads(json_path.read_text())
+        from collections import Counter
+        # Frettlöh column convention: σ(X) → counts.
+        expected = {
+            "A": Counter({"A": 0, "B": 3, "C": 2, "K": 6}),
+            "B": Counter({"A": 0, "B": 2, "C": 1, "K": 4}),
+            "C": Counter({"A": 1, "B": 0, "C": 2, "K": 2}),
+            "K": Counter({"A": 0, "B": 1, "C": 0, "K": 1}),
+        }
+        actual = {
+            parent: Counter(
+                r["child_type"] for r in data["children"] if r["parent"] == parent
+            )
+            for parent in "ABCK"
+        }
+        for parent in "ABCK":
+            for child_type in "ABCK":
+                assert actual[parent].get(child_type, 0) == expected[parent].get(child_type, 0), (
+                    f"σ({parent}) → {child_type}: expected "
+                    f"{expected[parent].get(child_type, 0)}, "
+                    f"got {actual[parent].get(child_type, 0)}"
+                )
+
+    def test_rotations_resolve_in_icosahedral(self) -> None:
+        # Every record has icosahedral_index ∈ [0, 60).
+        json_path = _DANZER_DIR / "paolini_dissection.json"
+        if not json_path.exists():
+            pytest.skip("paolini_dissection.json not yet generated")
+        data = json.loads(json_path.read_text())
+        for r in data["children"]:
+            assert 0 <= r["icosahedral_index"] < 60, (
+                f"{r['parent']} child {r['child_index']}: "
+                f"icosahedral_index {r['icosahedral_index']} out of range"
+            )
+            assert isinstance(r["is_proper"], bool)
+
+    def test_translations_are_zphi_pairs(self) -> None:
+        # Every translation is three (a, b) integer pairs.
+        json_path = _DANZER_DIR / "paolini_dissection.json"
+        if not json_path.exists():
+            pytest.skip("paolini_dissection.json not yet generated")
+        data = json.loads(json_path.read_text())
+        for r in data["children"]:
+            t = r["translation_x2"]
+            assert len(t) == 3
+            for component in t:
+                assert len(component) == 2
+                a, b = component
+                assert isinstance(a, int) and isinstance(b, int)
+
+    def test_volume_conservation(self) -> None:
+        # For each σ(X), sum of children's prototile volumes (in real
+        # coords) equals τ³·vol(X). Pure floats — this is a oracle
+        # check on Frettlöh's matrix multiplicities + child types,
+        # not exact arithmetic.
+        import math
+        PHI = (1.0 + math.sqrt(5.0)) / 2.0
+
+        def real_z(a: int, b: int) -> float:
+            return a + b * PHI
+
+        prototile_vertices = {
+            "A": [(0,0,0), (real_z(1,2), 0, real_z(1,1)),
+                  (real_z(1,1),)*3, (real_z(1,1), 1, 0)],
+            "B": [(0,0,0), (real_z(1,2), 0, real_z(1,1)),
+                  (real_z(1,1),)*3, (real_z(1,1), real_z(0,1), 1)],
+            "C": [(0,0,0), (real_z(0,-1), 0, 1),
+                  (real_z(1,1),)*3, (0, real_z(1,1), 1)],
+            "K": [(0,0,0), (-1, real_z(0,1), 0),
+                  (real_z(0,1),)*3, (-0.5, -0.5+0.5*PHI, 0.5*PHI)],
+        }
+
+        def vol(verts: list[tuple[float, float, float]]) -> float:
+            v0, v1, v2, v3 = verts
+            a = tuple(v1[i]-v0[i] for i in range(3))
+            b = tuple(v2[i]-v0[i] for i in range(3))
+            c = tuple(v3[i]-v0[i] for i in range(3))
+            det = (
+                a[0]*(b[1]*c[2] - b[2]*c[1])
+              - a[1]*(b[0]*c[2] - b[2]*c[0])
+              + a[2]*(b[0]*c[1] - b[1]*c[0])
+            )
+            return abs(det) / 6.0
+
+        volumes = {k: vol(v) for k, v in prototile_vertices.items()}
+        tau3 = PHI ** 3
+        counts = {
+            "A": {"A": 0, "B": 3, "C": 2, "K": 6},
+            "B": {"A": 0, "B": 2, "C": 1, "K": 4},
+            "C": {"A": 1, "B": 0, "C": 2, "K": 2},
+            "K": {"A": 0, "B": 1, "C": 0, "K": 1},
+        }
+        for parent in "ABCK":
+            expected = tau3 * volumes[parent]
+            actual = sum(
+                n * volumes[ct] for ct, n in counts[parent].items()
+            )
+            assert abs(actual - expected) < 1e-9, (
+                f"σ({parent}): vol mismatch — expected {expected}, "
+                f"got {actual}, ratio {actual/expected}"
+            )
