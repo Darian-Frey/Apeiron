@@ -452,3 +452,33 @@ reason the denominator never grows under composition.
   outward-oriented faces. scipy's output is documented as outward-
   normal consistent; if this ever turns out to be wrong we'll see it
   immediately via `is_in_hull` rejecting all inputs.
+- **CLAUDE.md §3.4 wording on canonical inflation.** §3.4 says
+  "λ = φ² is the canonical choice" for icosahedral substitution
+  systems, but the Danzer ABCK rule has linear inflation φ (not φ²)
+  with volume scaling φ³ (which becomes the PF eigenvalue of the
+  substitution matrix). Both quantities are valid in different
+  rules — Penrose P3 uses linear inflation φ² with PF eigenvalue
+  φ²; Danzer uses linear inflation φ with PF eigenvalue φ³. §3.4's
+  wording should clarify the linear / volume-PF distinction so a
+  future reader doesn't expect every primitive icosahedral rule to
+  satisfy `pf_eigenvalue == ZPhi(1, 1)`. Relay to Claude (web) for
+  a one-sentence §3.4 patch when next other CLAUDE.md edits land.
+- **27B-β: Danzer geometric dissection transcription pending.**
+  The matrix-only `SubstitutionRule` from sub-commit 27B-α uses
+  placeholder children at origin / identity rotation. Pillar 1
+  verifies (matrix recovers, primitive, PF = φ³) but pillar 2
+  needs real geometry to produce a `TilePatch` for
+  `is_recognisable`. Source: Frettlöh Figure 2 + Tilings
+  Encyclopedia interactive view at tilings.math.uni-bielefeld.de.
+  Template at `candidates/danzer/dissection_notes.md` is ready for
+  the focused transcription session. Until 27B-β lands, sub-commit
+  27D (full pipeline run on Danzer) is blocked.
+- **`corona_2` cube setup is 10 s.** Single largest contributor to
+  the 23 s suite runtime. The `_complete_corona_around` function is
+  called once per first-shell tile (26 calls for the cube),
+  rebuilding `placed_vertex_lists` each time. A single shared
+  vertex-list table re-framed per first-shell tile, plus
+  bounding-box pre-rejection in `_has_overlap_with_chosen`, would
+  likely save 5–8 s. Not on the critical path — the suite is fine
+  at 23 s — but a candidate optimisation if iteration speed ever
+  matters more.
