@@ -38,6 +38,7 @@ from apeiron.hierarchy import (
     make_euclidean_squared_oracle,
     neighbourhood_signature,
     patch_from_supertile,
+    position_signature,
     shell_neighbourhood_signature,
 )
 from apeiron.polyhedron import Polyhedron
@@ -1368,6 +1369,202 @@ class TestPatchTilePlacement:
                 shell_neighbourhood_signature(placed_patch, i, 1)
                 == shell_neighbourhood_signature(unplaced_patch, i, 1)
             )
+
+
+# -- Q5a: position_signature (Goodman-Strauss atlas form) -------------
+
+
+class TestPositionSignature:
+    """Per Claude (web) Q5a ruling 2026-04-29: refined recognisability
+    signature using exact ℤ[φ] relative-position-and-rotation tuples,
+    sorted in ZPhi-lex order. No floats anywhere in the canonical-form
+    computation.
+    """
+
+    def _make_placed_patch(
+        self, positions: tuple[Vec3, ...],
+        rotations: tuple, types: tuple[int, ...],
+        parents: tuple[int, ...],
+    ) -> TilePatch:
+        from apeiron.hierarchy import make_euclidean_squared_oracle
+        tiles = tuple(
+            PatchTile(
+                tile_type=t, parent_supertile=p,
+                translation=pos, rotation=rot,
+            )
+            for t, p, pos, rot in zip(types, parents, positions, rotations, strict=True)
+        )
+        oracle = make_euclidean_squared_oracle(positions, ZPhi(1, 0))
+        return TilePatch(tiles=tiles, neighbour_within=oracle)
+
+    def test_centre_type_is_first_entry(self) -> None:
+        positions = (Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),)
+        patch = self._make_placed_patch(
+            positions=positions,
+            rotations=(Rotation.identity(),),
+            types=(7,), parents=(0,),
+        )
+        sig = position_signature(patch, 0, radius=1)
+        assert sig[0] == 7
+        assert sig[1] == ()  # No neighbours within radius 1 (only the centre).
+
+    def test_translation_invariance(self) -> None:
+        # Two centres of the same type with the same neighbour
+        # configuration should produce the same signature regardless
+        # of absolute position. Build two identical pairs of tiles
+        # offset from each other; signatures must agree.
+        from apeiron.hierarchy import make_euclidean_squared_oracle
+        # Centre 0 at origin, neighbour at (10, 0, 0); centre 2 at
+        # (100, 0, 0), neighbour at (110, 0, 0). Same relative layout.
+        positions = (
+            Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),    # centre A
+            Vec3(ZPhi(10, 0), ZPhi(0, 0), ZPhi(0, 0)),   # neighbour of A
+            Vec3(ZPhi(100, 0), ZPhi(0, 0), ZPhi(0, 0)),  # centre B (far away)
+            Vec3(ZPhi(110, 0), ZPhi(0, 0), ZPhi(0, 0)),  # neighbour of B
+        )
+        rotations = (Rotation.identity(),) * 4
+        types = (0, 1, 0, 1)
+        parents = (0, 0, 1, 1)
+        # Step² so each centre catches its neighbour but not the others:
+        # |10|² = 100; |90|² = 8100. Threshold at r=1 with step² = 100.
+        tiles = tuple(
+            PatchTile(
+                tile_type=t, parent_supertile=p,
+                translation=pos, rotation=rot,
+            )
+            for t, p, pos, rot in zip(types, parents, positions, rotations, strict=True)
+        )
+        oracle = make_euclidean_squared_oracle(positions, ZPhi(100, 0))
+        patch = TilePatch(tiles=tiles, neighbour_within=oracle)
+        sig_a = position_signature(patch, 0, radius=1)
+        sig_b = position_signature(patch, 2, radius=1)
+        assert sig_a == sig_b
+
+    def test_rotation_distinguishes_signatures(self) -> None:
+        # Two centres with same neighbour positions but different
+        # rotations should produce different signatures (relative
+        # positions differ when expressed in centre's local frame).
+        from apeiron.hierarchy import make_euclidean_squared_oracle
+        from apeiron.symmetry import ICOSAHEDRAL
+        positions = (
+            Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(2, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(4, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(6, 0), ZPhi(0, 0), ZPhi(0, 0)),
+        )
+        # Tile 0: identity. Tile 2: ROT_5 (a non-trivial 5-fold).
+        rotations = (
+            Rotation.identity(),
+            Rotation.identity(),
+            ICOSAHEDRAL[5],
+            Rotation.identity(),
+        )
+        types = (0, 1, 0, 1)
+        parents = (0, 0, 1, 1)
+        tiles = tuple(
+            PatchTile(
+                tile_type=t, parent_supertile=p,
+                translation=pos, rotation=rot,
+            )
+            for t, p, pos, rot in zip(types, parents, positions, rotations, strict=True)
+        )
+        oracle = make_euclidean_squared_oracle(positions, ZPhi(4, 0))
+        patch = TilePatch(tiles=tiles, neighbour_within=oracle)
+        sig_a = position_signature(patch, 0, radius=1)
+        sig_b = position_signature(patch, 2, radius=1)
+        assert sig_a != sig_b
+
+    def test_unplaced_patch_rejected(self) -> None:
+        # Unplaced patches raise TypeError — the explicit guard against
+        # silent None-propagation.
+        patch = TilePatch(
+            tiles=(
+                PatchTile(tile_type=0, parent_supertile=0),
+                PatchTile(tile_type=1, parent_supertile=0),
+            ),
+            neighbour_within=lambda i, j, r: True,
+        )
+        with pytest.raises(TypeError, match="placed TilePatch"):
+            position_signature(patch, 0, radius=1)
+
+    def test_negative_radius_rejected(self) -> None:
+        positions = (Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),)
+        patch = self._make_placed_patch(
+            positions=positions,
+            rotations=(Rotation.identity(),),
+            types=(0,), parents=(0,),
+        )
+        with pytest.raises(ValueError, match="radius must be"):
+            position_signature(patch, 0, radius=-1)
+
+    def test_out_of_range_index_rejected(self) -> None:
+        positions = (Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),)
+        patch = self._make_placed_patch(
+            positions=positions,
+            rotations=(Rotation.identity(),),
+            types=(0,), parents=(0,),
+        )
+        with pytest.raises(IndexError):
+            position_signature(patch, 99, radius=1)
+
+    def test_no_floats_in_signature(self) -> None:
+        # Every value in the signature must be an exact ZPhi or an
+        # int — no floats. The signature is a hashable tuple of
+        # (centre_type_int, tuple of (Vec3, Rotation|ImproperRotation, int)).
+        rule = _danzer_placeholder_rule()
+        patch = patch_from_supertile(
+            rule, 0, level=1, radius_step_squared=ZPhi(1, 0),
+        )
+        sig = position_signature(patch, 0, radius=1)
+        # First entry: centre's type (int).
+        assert isinstance(sig[0], int)
+        # Second entry: tuple of (Vec3, Rotation|ImproperRotation, int).
+        from apeiron.symmetry import ImproperRotation
+        for entry in sig[1]:
+            rel_T, rel_g, type_j = entry
+            assert isinstance(rel_T, Vec3)
+            for comp in (rel_T.x, rel_T.y, rel_T.z):
+                assert isinstance(comp, ZPhi)
+                assert isinstance(comp.a, int)
+                assert isinstance(comp.b, int)
+            assert isinstance(rel_g, (Rotation, ImproperRotation))
+            assert isinstance(type_j, int)
+
+    def test_sorted_in_zphi_lex_order(self) -> None:
+        # Build a placed patch with multiple neighbours; check that
+        # the entries in the signature are in non-decreasing ZPhi-lex
+        # order on translations.
+        rule = _danzer_placeholder_rule()
+        patch = patch_from_supertile(
+            rule, 0, level=2, radius_step_squared=ZPhi(1, 0),
+        )
+        sig = position_signature(patch, 0, radius=2)
+        prev = None
+        for rel_T, _rel_g, _type_j in sig[1]:
+            if prev is not None:
+                # Lex compare translations: prev <= current.
+                # Use the ZPhi total order on each component.
+                pairs = [(prev.x, rel_T.x), (prev.y, rel_T.y), (prev.z, rel_T.z)]
+                ok = False
+                for a, b in pairs:
+                    if a < b:
+                        ok = True; break
+                    if a > b:
+                        ok = False; break
+                else:
+                    ok = True
+                assert ok, f"out-of-order: {prev} > {rel_T}"
+            prev = rel_T
+
+    def test_signature_is_hashable(self) -> None:
+        # Required for use as a dict key in is_recognisable.
+        rule = _danzer_placeholder_rule()
+        patch = patch_from_supertile(
+            rule, 0, level=1, radius_step_squared=ZPhi(1, 0),
+        )
+        sig = position_signature(patch, 0, radius=1)
+        d = {sig: 42}
+        assert d[sig] == 42
 
 
 # -- Pillar 2 / 3 / 4 tag coverage -----------------------------------

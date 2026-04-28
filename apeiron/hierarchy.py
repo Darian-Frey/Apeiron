@@ -48,7 +48,7 @@ from apeiron.substitution import (
     perron_frobenius_in_zphi,
     substitution_matrix,
 )
-from apeiron.symmetry import ImproperRotation, Rotation, Vec3
+from apeiron.symmetry import ImproperRotation, Mat3, Rotation, Vec3
 from apeiron.util import pillar
 from apeiron.zphi import ZPhi
 
@@ -72,6 +72,7 @@ __all__ = [
     "make_euclidean_squared_oracle",
     "neighbourhood_signature",
     "patch_from_supertile",
+    "position_signature",
     "shell_neighbourhood_signature",
 ]
 
@@ -642,6 +643,164 @@ def shell_neighbourhood_signature(
         shells.append(tuple(shell_types))
         prev_ball = ball
     return tuple(shells)
+
+
+# -- ZPhi lexicographic ordering for canonical-form signatures --------
+
+
+def _zphi_cmp(a: ZPhi, b: ZPhi) -> int:
+    """Compare two ZPhi values by their real embedding. Returns -1, 0, +1.
+
+    Uses ``ZPhi._sign`` on the difference, which decides the sign of
+    ``(a + b·φ) ∈ ℝ`` purely in integer arithmetic via the irrational
+    sqrt(5) embedding (CLAUDE.md §3.2 / zphi.py). No floats.
+    """
+    return (a - b)._sign()
+
+
+def _vec3_cmp(a: Vec3, b: Vec3) -> int:
+    """Lexicographic compare on (x, y, z) using ``_zphi_cmp``."""
+    for ai, bi in ((a.x, b.x), (a.y, b.y), (a.z, b.z)):
+        c = _zphi_cmp(ai, bi)
+        if c != 0:
+            return c
+    return 0
+
+
+def _mat3_cmp(a: Mat3, b: Mat3) -> int:
+    """Lexicographic compare on (row0, row1, row2)."""
+    for r_a, r_b in ((a.row0, b.row0), (a.row1, b.row1), (a.row2, b.row2)):
+        c = _vec3_cmp(r_a, r_b)
+        if c != 0:
+            return c
+    return 0
+
+
+def _isometry_cmp(
+    a: Rotation | ImproperRotation,
+    b: Rotation | ImproperRotation,
+) -> int:
+    """Total order on I_h: proper before improper, then matrix lex.
+
+    The proper-vs-improper tag is compared before the matrix entries,
+    so all 60 ``Rotation`` elements of I sort before all 60
+    ``ImproperRotation`` elements. Within each parity, lex order on
+    the underlying ``matrix`` decides.
+    """
+    a_proper = isinstance(a, Rotation)
+    b_proper = isinstance(b, Rotation)
+    if a_proper != b_proper:
+        return -1 if a_proper else 1
+    if a_proper:
+        return _mat3_cmp(a.matrix, b.matrix)
+    return _mat3_cmp(a.rotation.matrix, b.rotation.matrix)
+
+
+def _signature_entry_cmp(
+    a: tuple[Vec3, Rotation | ImproperRotation, int],
+    b: tuple[Vec3, Rotation | ImproperRotation, int],
+) -> int:
+    """Lex compare on (rel_translation, rel_rotation, type)."""
+    c = _vec3_cmp(a[0], b[0])
+    if c != 0:
+        return c
+    c = _isometry_cmp(a[1], b[1])
+    if c != 0:
+        return c
+    return (a[2] > b[2]) - (a[2] < b[2])
+
+
+def position_signature(
+    patch: TilePatch,
+    tile_index: int,
+    radius: int,
+) -> tuple:
+    """Goodman-Strauss atlas signature: per-neighbour
+    ``(rel_translation, rel_rotation, neighbour_type)`` tuples in
+    centre-frame coordinates, sorted by pure ℤ[φ] lexicographic order.
+
+    The signature for centre tile ``c`` at placement
+    ``(T_c, g_c)`` of type ``type_c`` consists of:
+
+    - The centre's own type as the leading scalar entry, so two
+      patches with different centre types produce different signatures.
+    - For each neighbour ``j`` within ``radius`` of ``c``, the tuple
+      ``(g_c⁻¹·(T_j - T_c), g_c⁻¹·g_j, type_j)`` — the neighbour's
+      placement transformed into the centre's local frame. The
+      tuples are sorted lex by ZPhi entries (translation first
+      component-wise, then rotation matrix entries row-major, then
+      integer type tag).
+
+    Per Claude (web) Q5a ruling 2026-04-29: this is the
+    Goodman-Strauss "local pattern" form (his §3 atlas construction),
+    the right shape for 3D substitution-tiling recognisability.
+    Senechal's vertex-figure approach was rejected as a structural
+    mismatch with ``TilePatch`` (her stars are around vertices, not
+    around tiles).
+
+    **Stabiliser quotient.** Goodman-Strauss quotients by the full
+    symmetry group ``I_h`` acting on the centre's frame. For
+    candidates with trivial centre stabiliser ``Stab(prototile_c) =
+    {identity}`` the quotient is automatic — applying ``g_c⁻¹``
+    pins the centre at canonical pose uniquely. ABCK has trivial
+    Stab for all four prototiles (verified by
+    ``test_only_identity_fixes_tile`` in the Danzer integration
+    suite, per Q5b). Candidates with non-trivial Stab need an
+    additional pass: enumerate the Stab-orbit of the sorted-tuple
+    list and pick the lex-min representative. Not implemented here;
+    a future helper will add it when the first non-trivial-Stab
+    candidate appears.
+
+    **Exactness.** Every comparison is via ``_zphi_cmp`` /
+    ``_vec3_cmp`` / ``_mat3_cmp`` / ``_isometry_cmp``, which use
+    ``ZPhi._sign`` on integer arithmetic only. No floats anywhere
+    in the canonical-form computation — per CLAUDE.md §7.3.
+
+    **Precondition.** Requires a *placed* ``TilePatch``: every tile
+    must have ``has_placement`` True. Raises ``TypeError`` on
+    unplaced patches; for those, use ``neighbourhood_signature`` or
+    ``shell_neighbourhood_signature``.
+
+    Raises ``IndexError`` for out-of-range ``tile_index`` and
+    ``ValueError`` for negative ``radius``.
+    """
+    n = len(patch.tiles)
+    if not 0 <= tile_index < n:
+        raise IndexError(
+            f"tile_index {tile_index} outside [0, {n})."
+        )
+    if radius < 0:
+        raise ValueError(f"radius must be ≥ 0; got {radius}.")
+    if not all(t.has_placement for t in patch.tiles):
+        raise TypeError(
+            "position_signature requires a placed TilePatch (every "
+            "tile must have translation + rotation set). Use "
+            "neighbourhood_signature or shell_neighbourhood_signature "
+            "for unplaced patches."
+        )
+    from functools import cmp_to_key
+
+    centre = patch.tiles[tile_index]
+    # mypy/type narrowing: post-has_placement, both fields are non-None.
+    assert centre.translation is not None
+    assert centre.rotation is not None
+    g_c_inv = centre.rotation.inverse()
+
+    entries: list[tuple[Vec3, Rotation | ImproperRotation, int]] = []
+    for j in range(n):
+        if j == tile_index:
+            continue
+        if not patch.neighbour_within(tile_index, j, radius):
+            continue
+        nb = patch.tiles[j]
+        assert nb.translation is not None
+        assert nb.rotation is not None
+        rel_translation = g_c_inv.apply(nb.translation - centre.translation)
+        rel_rotation = g_c_inv.compose(nb.rotation)
+        entries.append((rel_translation, rel_rotation, nb.tile_type))
+
+    entries.sort(key=cmp_to_key(_signature_entry_cmp))
+    return (centre.tile_type, tuple(entries))
 
 
 @pillar(2)
