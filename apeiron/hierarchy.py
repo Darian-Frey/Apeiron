@@ -48,7 +48,7 @@ from apeiron.substitution import (
     perron_frobenius_in_zphi,
     substitution_matrix,
 )
-from apeiron.symmetry import Rotation, Vec3
+from apeiron.symmetry import ImproperRotation, Rotation, Vec3
 from apeiron.util import pillar
 from apeiron.zphi import ZPhi
 
@@ -406,6 +406,8 @@ def patch_from_supertile(
         PatchTile(
             tile_type=leaf.prototile_index,
             parent_supertile=parent_id,
+            translation=leaf.translation,
+            rotation=leaf.rotation,
         )
         for leaf, parent_id in tagged
     )
@@ -479,10 +481,57 @@ class PatchTile:
     next-level decomposition. Recognisability tests whether this
     parent is determinable from the tile's bounded neighbourhood
     alone.
+
+    ``translation`` and ``rotation`` are the tile's *placement* in
+    the patch's coordinate frame — translation in ×2-stored ℤ[φ]³
+    (CLAUDE.md §3.2), rotation in I (``Rotation``) or I_h \\ I
+    (``ImproperRotation``). Both default to ``None`` for *unplaced*
+    patches — patches built from abstract type-and-radius oracles
+    where exact coordinates aren't available (Ammann–Beenker
+    silver-ratio inflation, which is not in ℤ[φ]; the Fibonacci 1D
+    oracle ported to test fixtures; etc.). The
+    ``has_placement`` property is the explicit gate: signature
+    functions that need exact coordinates
+    (``position_signature``, per Claude (web) Q5a 2026-04-29)
+    must check it and raise on unplaced patches; signature
+    functions that don't (``neighbourhood_signature``,
+    ``shell_neighbourhood_signature``) ignore the fields.
+
+    Per Claude (web) Q5c ruling 2026-04-29: making placement
+    optional rather than mandatory keeps existing callers
+    (Fibonacci-oracle test, Ammann–Beenker shell tests) working
+    while letting Goodman-Strauss-atlas signatures consume placed
+    patches. Using ``None`` sentinel + ``has_placement`` check is
+    a deliberate guard against silent ``None``-propagation into
+    a coordinate-aware signature.
     """
 
     tile_type: int
     parent_supertile: int
+    translation: Vec3 | None = None
+    rotation: Rotation | ImproperRotation | None = None
+
+    @property
+    def has_placement(self) -> bool:
+        """True iff both ``translation`` and ``rotation`` are present.
+
+        Mixed states (one set, one not) are forbidden by
+        ``__post_init__``; this property only ever returns True
+        when both are set, False when both are None.
+        """
+        return self.translation is not None
+
+    def __post_init__(self) -> None:
+        # Reject mixed placement state — either both fields are set
+        # or neither. A half-placed PatchTile is meaningless and
+        # would silently corrupt position_signature output.
+        if (self.translation is None) != (self.rotation is None):
+            raise ValueError(
+                "PatchTile.translation and .rotation must be "
+                "either both set or both None; got "
+                f"translation={self.translation!r}, "
+                f"rotation={self.rotation!r}."
+            )
 
 
 @dataclass(frozen=True, slots=True)

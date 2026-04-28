@@ -1275,6 +1275,101 @@ class TestPatchFromSupertile:
                 assert patch.neighbour_within(i, j, 0) is True
 
 
+class TestPatchTilePlacement:
+    """Q5c (Claude (web) ruling 2026-04-29): PatchTile carries optional
+    placement (translation + rotation) populated by
+    ``patch_from_supertile`` for use by ``position_signature`` etc.;
+    unplaced patches retain ``None`` for callers that don't need the
+    coordinates.
+    """
+
+    def test_placeholder_constructor_unplaced(self) -> None:
+        # Direct construction with only type / parent leaves placement
+        # fields at None — for unplaced patches (Fibonacci 1D oracle,
+        # Ammann–Beenker shell tests).
+        tile = PatchTile(tile_type=1, parent_supertile=2)
+        assert tile.translation is None
+        assert tile.rotation is None
+        assert tile.has_placement is False
+
+    def test_explicit_placement_constructor(self) -> None:
+        from apeiron.symmetry import ICOSAHEDRAL
+        tile = PatchTile(
+            tile_type=0,
+            parent_supertile=0,
+            translation=Vec3(ZPhi(2, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            rotation=ICOSAHEDRAL[5],
+        )
+        assert tile.translation is not None
+        assert tile.rotation == ICOSAHEDRAL[5]
+        assert tile.has_placement is True
+
+    def test_mixed_placement_state_rejected(self) -> None:
+        # Both fields must be set or neither — rejecting half-placed
+        # tiles prevents silent None-propagation into signatures.
+        with pytest.raises(ValueError, match="both set or both None"):
+            PatchTile(
+                tile_type=0,
+                parent_supertile=0,
+                translation=Vec3(ZPhi(2, 0), ZPhi(0, 0), ZPhi(0, 0)),
+                rotation=None,
+            )
+        with pytest.raises(ValueError, match="both set or both None"):
+            PatchTile(
+                tile_type=0,
+                parent_supertile=0,
+                translation=None,
+                rotation=Rotation.identity(),
+            )
+
+    def test_patch_from_supertile_populates_placement(self) -> None:
+        # patch_from_supertile is a *placed* constructor — every
+        # PatchTile it produces has translation + rotation set,
+        # matching the leaf returned by expand_supertile_with_parents.
+        rule = _danzer_placeholder_rule()
+        patch = patch_from_supertile(
+            rule, 0, level=1, radius_step_squared=ZPhi(1, 0),
+        )
+        tagged = expand_supertile_with_parents(rule, 0, 1)
+        assert len(patch.tiles) == len(tagged)
+        for tile, (leaf, _parent) in zip(
+            patch.tiles, tagged, strict=True,
+        ):
+            assert tile.has_placement is True
+            assert tile.translation == leaf.translation
+            assert tile.rotation == leaf.rotation
+
+    def test_existing_signatures_ignore_placement(self) -> None:
+        # neighbourhood_signature and shell_neighbourhood_signature
+        # don't consult the placement fields, so they continue to work
+        # on both placed and unplaced patches.
+        rule = _two_prototile_rule()
+        placed_patch = patch_from_supertile(
+            rule, 0, level=1, radius_step_squared=ZPhi(1, 0),
+        )
+        # An unplaced equivalent: copy types + parents only.
+        unplaced_tiles = tuple(
+            PatchTile(
+                tile_type=t.tile_type,
+                parent_supertile=t.parent_supertile,
+            )
+            for t in placed_patch.tiles
+        )
+        unplaced_patch = TilePatch(
+            tiles=unplaced_tiles,
+            neighbour_within=placed_patch.neighbour_within,
+        )
+        for i in range(len(placed_patch.tiles)):
+            assert (
+                neighbourhood_signature(placed_patch, i, 1)
+                == neighbourhood_signature(unplaced_patch, i, 1)
+            )
+            assert (
+                shell_neighbourhood_signature(placed_patch, i, 1)
+                == shell_neighbourhood_signature(unplaced_patch, i, 1)
+            )
+
+
 # -- Pillar 2 / 3 / 4 tag coverage -----------------------------------
 
 
