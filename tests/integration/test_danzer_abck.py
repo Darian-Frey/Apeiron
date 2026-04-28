@@ -875,101 +875,73 @@ class TestPaoliniDissectionExtraction:
             )
 
 
-class TestPaoliniRealGeometryPipeline:
-    """End-to-end pipeline on the Paolini real-geometry Danzer rule.
-    *Contingent on Q4a ruling from Claude (web).* Until Q4a confirms
-    Paolini, this test exercises 27D infrastructure on what may turn
-    out not to be the canonical encoding — but the structural checks
-    (pillar 1 unchanged, recognisability runs, inflation_argument
-    composes) are encoding-independent and worth running now to catch
-    bridge bugs early.
+class TestDanzerFullPipeline:
+    """27D — full end-to-end four-pillar pipeline on the canonical
+    Paolini Danzer rule. Pillars 1 + 2 (position_signature) + 3 in
+    one chain.
+
+    Per Claude (web) Q5a 2026-04-29: position_signature is the
+    Goodman-Strauss atlas form, the canonical pillar-2 signature
+    for 3D substitution tilings. Earlier multiset / shell signatures
+    are too coarse for ABCK and produce IndistinguishablePair
+    counterexamples; position_signature uses exact ℤ[φ] relative-
+    position-and-rotation tuples and should resolve them.
     """
 
-    def test_real_rule_has_same_substitution_matrix_as_placeholder(self) -> None:
-        rule = _build_danzer_rule_from_paolini_dissection()
-        if rule is None:
-            pytest.skip("paolini_dissection.json not yet generated")
-        from apeiron.substitution import substitution_matrix
-        import numpy as np
-        # The placeholder rule's substitution matrix is the source of
-        # truth for the multiplicities (Frettlöh's matrix). The real-
-        # geometry rule must agree exactly — geometry doesn't affect
-        # the matrix, only the placement.
-        placeholder = _build_danzer_rule_with_placeholder_geometry()
-        assert (substitution_matrix(rule) == substitution_matrix(placeholder)).all()
-
-    def test_real_rule_is_primitive_with_phi_cubed_pf(self) -> None:
-        rule = _build_danzer_rule_from_paolini_dissection()
-        if rule is None:
-            pytest.skip("paolini_dissection.json not yet generated")
-        from apeiron.substitution import (
-            is_primitive,
-            perron_frobenius_in_zphi,
-            substitution_matrix,
-        )
-        m = substitution_matrix(rule)
-        assert is_primitive(m)
-        assert perron_frobenius_in_zphi(m) == ZPhi(1, 2)
-
-    def test_patch_from_real_supertile_is_non_degenerate(self) -> None:
-        # With real geometry, leaves at level >= 1 should land at
-        # distinct positions (unlike placeholder geometry where they
-        # all coincide at origin).
-        rule = _build_danzer_rule_from_paolini_dissection()
-        if rule is None:
-            pytest.skip("paolini_dissection.json not yet generated")
+    def test_level_one_leaves_are_geometrically_distinct(
+        self, danzer_rule,
+    ) -> None:
+        # σ(A) = 11 children — at level 1 they land at distinct
+        # ℤ[φ]³ positions (×2-stored). Some siblings may share a
+        # translation if face-glued at the same vertex, so we don't
+        # require 11 unique positions; we DO require > 1 (placeholder
+        # rule had all leaves at origin, giving exactly 1).
         from apeiron.hierarchy import expand_supertile_with_parents
-        tagged = expand_supertile_with_parents(rule, 0, 1)
+        tagged = expand_supertile_with_parents(danzer_rule, 0, 1)
         positions = {leaf.translation for leaf, _parent in tagged}
-        # σ(A) = 11 children. Some children may share a position (if
-        # two children of different rotation but same translation are
-        # face-glued), so we don't require all 11 to be distinct, but
-        # we DO require strictly more than 1 (placeholder gave 1).
-        assert len(positions) > 1, (
-            "Paolini geometry produced all-coincident positions — "
-            "extraction bug or all-zero translations"
-        )
+        assert len(positions) > 1
 
-    def test_full_pipeline_runs_to_completion(self) -> None:
-        # Smoke test: SubstitutionRule → patch → is_recognisable
-        # (shell signature) → inflation_argument. The pillar-2 result
-        # may be positive or negative depending on the radius cap and
-        # patch level; we don't require recognisability to succeed —
-        # only that the chain composes without errors.
-        rule = _build_danzer_rule_from_paolini_dissection()
-        if rule is None:
-            pytest.skip("paolini_dissection.json not yet generated")
+    def test_pillar_2_succeeds_with_position_signature_level_1(
+        self, danzer_rule,
+    ) -> None:
+        # The 27D milestone: with position_signature on the canonical
+        # Paolini real-geometry rule, pillar 2 succeeds — every tile's
+        # supertile parent is uniquely determined by its bounded
+        # local neighbourhood.
         from apeiron.hierarchy import (
-            InflationArgument,
-            InflationFailure,
-            inflation_argument,
-            is_recognisable,
-            patch_from_supertile,
-            shell_neighbourhood_signature,
+            is_recognisable, patch_from_supertile, position_signature,
         )
-        # Use a level-1 patch with a generous radius_step_squared so
-        # the multiset signature has room to grow with radius.
-        # ZPhi(4, 0) is the squared edge length of a unit-edge tile.
         patch = patch_from_supertile(
-            rule, prototile_index=0, level=1,
+            danzer_rule, prototile_index=0, level=1,
             radius_step_squared=ZPhi(4, 0),
         )
         recog = is_recognisable(
-            patch, max_radius=3,
-            signature_fn=shell_neighbourhood_signature,
+            patch, max_radius=3, signature_fn=position_signature,
         )
-        # Recognisability could be positive or negative; both are fine
-        # for a smoke test. The important thing is that
-        # inflation_argument composes cleanly off the result.
-        result = inflation_argument(rule, recog)
-        assert isinstance(result, (InflationArgument, InflationFailure))
-        if isinstance(result, InflationArgument):
-            # If positive, PF must be ZPhi(1, 2) = φ³.
-            assert result.pf_eigenvalue == ZPhi(1, 2)
-        # Always log the outcome (visible only on -v).
-        print(
-            f"Paolini real-geometry pipeline at level=1: "
-            f"recognisable={recog.is_recognisable} "
-            f"(radius_used={recog.radius_used}); "
-            f"pillar 3 → {type(result).__name__}"
+        assert recog.is_recognisable is True, (
+            f"Pillar 2 failed at level=1 with position_signature; "
+            f"witness={recog.witness}"
         )
+
+    def test_full_pipeline_emits_inflation_argument(
+        self, danzer_rule,
+    ) -> None:
+        # Pillars 1 + 2 + 3 in one chain on the canonical rule. The
+        # resulting InflationArgument is the Track A baseline witness
+        # for sub-commit 27D: the rule is primitive, recognisable, and
+        # therefore aperiodic by the inflation argument.
+        from apeiron.hierarchy import (
+            InflationArgument, inflation_argument, is_recognisable,
+            patch_from_supertile, position_signature,
+        )
+        patch = patch_from_supertile(
+            danzer_rule, prototile_index=0, level=1,
+            radius_step_squared=ZPhi(4, 0),
+        )
+        recog = is_recognisable(
+            patch, max_radius=3, signature_fn=position_signature,
+        )
+        result = inflation_argument(danzer_rule, recog)
+        assert isinstance(result, InflationArgument)
+        assert result.pf_eigenvalue == ZPhi(1, 2)  # φ³
+        assert result.recognisability_radius == recog.radius_used
