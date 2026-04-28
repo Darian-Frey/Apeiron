@@ -95,6 +95,13 @@ Sub-commit plan for Track A's first candidate (Danzer):
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
+- **27D-extended** `875ba02` — `test(danzer)`: pillar 2 succeeds
+  uniformly across all four prototiles at level 1 and at level 2
+  for σ(A). Empirical radii (with radius_step_squared = ZPhi(4, 0)):
+  σ(A) → 2, σ(B) → 6, σ(C) → 1, σ(K) → 1, σ²(A) → 4. The σ(B)
+  requirement of 6 reflects I_h-related K-children needing distant
+  context to disambiguate; theoretical bound for n=4 alphabet with
+  inflation φ is ~φ^8 ≈ 47, observed ≤ 6 is well within.
 - **27D** `5bfa3a5` — `test(danzer)`: full four-pillar pipeline on
   the canonical Paolini Danzer rule returns `InflationArgument`.
   Pillars 1 + 2 + 3 chained: `SubstitutionRule → patch_from_supertile
@@ -266,14 +273,11 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (post-27D): 544 passing in ~19.4 s under venv
-pytest 9.0.3. The 17 % suite-runtime drop from commit 40's perf
-work is holding; the 84 new tests (commits 41–27D, including the
-13-commit Q4a/Q5a-c/Q4b/27D burst) added ~1 s. Slow-test
-distribution unchanged: `cube_corona_2` setup ~7 s, `RD corona_1`
-setup ~5.5 s, `cube corona_1` setup ~2.3 s, `RTH face-to-face
-counts` ~1.5 s. The rest of the 544 tests run in well under a
-second combined.
+Test totals (post-27D-extended): 548 passing in ~19.6 s under venv
+pytest 9.0.3. Slow-test distribution unchanged: `cube_corona_2`
+setup ~7 s, `RD corona_1` setup ~5.5 s, `cube corona_1` setup
+~2.3 s, `RTH face-to-face counts` ~1.5 s. The rest of the 548
+tests run in well under a second combined.
 
 ---
 
