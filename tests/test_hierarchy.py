@@ -482,6 +482,124 @@ class TestInflationArgumentStructure:
             f.reason = "z"  # type: ignore[misc]
 
 
+# -- End-to-end pipeline compose (Fibonacci 1D oracle) ----------------
+
+
+def _fibonacci_geometric_rule() -> SubstitutionRule:
+    """1D Fibonacci substitution embedded in 3D for end-to-end pipeline
+    testing.
+
+    Two prototiles, L (long, length φ) and S (short, length 1), with
+    rules σ(L) = LS and σ(S) = L. Inflation scales x by φ, leaves y/z
+    fixed. Positions on x-axis only; ×2-stored per CLAUDE.md §3.2.
+
+    Substitution matrix [[1, 1], [1, 0]] (from σ(L) = LS at column 0,
+    σ(S) = L at column 1); primitive (M² is all-positive) with
+    Perron–Frobenius eigenvalue φ = ZPhi(0, 1). The 1D embedding is
+    enough to drive the algebraic-pillar pipeline end-to-end on a
+    rule with known PF in ℤ[φ].
+    """
+    phi = ZPhi(0, 1)
+    zero = ZPhi(0, 0)
+    inflation = Mat3(
+        Vec3(phi, zero, zero),
+        Vec3(zero, ZPhi(1, 0), zero),
+        Vec3(zero, zero, ZPhi(1, 0)),
+    )
+    # Positions are ×2-stored: real x → ZPhi(0, 0) and ZPhi(0, 2) for
+    # x = 0 and x = phi respectively.
+    L_at_origin = PositionedTile(
+        prototile_index=0,
+        translation=Vec3(zero, zero, zero),
+        rotation=Rotation.identity(),
+    )
+    S_at_phi = PositionedTile(
+        prototile_index=1,
+        translation=Vec3(ZPhi(0, 2), zero, zero),
+        rotation=Rotation.identity(),
+    )
+    return SubstitutionRule(
+        n_prototiles=2,
+        inflation=inflation,
+        dissections=(
+            (L_at_origin, S_at_phi),  # σ(L) = LS
+            (L_at_origin,),            # σ(S) = L
+        ),
+    )
+
+
+class TestPipelineFibonacci:
+    """End-to-end compose test of the algebraic-pillar pipeline:
+    SubstitutionRule → patch_from_supertile → is_recognisable →
+    inflation_argument.
+
+    Uses Fibonacci as a 1D oracle. The multiset signature in
+    ``neighbourhood_signature`` is provably insufficient for
+    Fibonacci recognisability (each tile only sees a tile-type
+    multiset, not relative position), so this test asserts the
+    *expected failure mode* — pillar 2 reports an
+    ``IndistinguishablePair``; pillar 3 then reports
+    ``InflationFailure(reason="not recognisable")``. A future
+    refinement of ``neighbourhood_signature`` (e.g., adding relative
+    position) would let the test flip to a positive integration
+    success.
+    """
+
+    def test_pillar_1_and_3_compose_via_failure(self) -> None:
+        rule = _fibonacci_geometric_rule()
+        # Step² = ZPhi(4, 0) (= 4 in ×2-stored, = 1 in real coords) so
+        # radius 1 corresponds to the unit (S-tile) length.
+        patch = patch_from_supertile(
+            rule, prototile_index=0, level=2,
+            radius_step_squared=ZPhi(4, 0),
+        )
+        # σ²(L) = LSL: 3 tiles, parents 0, 0, 1.
+        assert len(patch.tiles) == 3
+        assert [t.parent_supertile for t in patch.tiles] == [0, 0, 1]
+        # Recognisability fails (multiset signature too weak for
+        # Fibonacci): expect IndistinguishablePair witness.
+        recog = is_recognisable(patch, max_radius=5)
+        assert recog.is_recognisable is False
+        assert isinstance(recog.witness, IndistinguishablePair)
+        # Pillar 3 propagates the failure with the expected reason.
+        result = inflation_argument(rule, recog)
+        assert isinstance(result, InflationFailure)
+        assert result.reason == "not recognisable"
+
+    def test_pillar_1_succeeds_independently(self) -> None:
+        # Pillar 1 (primitivity + PF in ℤ[φ]) doesn't depend on
+        # pillar 2; it must succeed for Fibonacci regardless of the
+        # multiset-signature limitation.
+        from apeiron.substitution import (
+            is_primitive,
+            perron_frobenius_in_zphi,
+            substitution_matrix,
+        )
+        rule = _fibonacci_geometric_rule()
+        M = substitution_matrix(rule)
+        assert is_primitive(M)
+        pf = perron_frobenius_in_zphi(M)
+        assert pf == ZPhi(0, 1)  # φ
+
+    def test_inflation_argument_succeeds_with_synthetic_recog(self) -> None:
+        # If pillar 2 *had* succeeded, pillar 3 would produce a valid
+        # InflationArgument carrying φ as the eigenvalue. Verifies the
+        # pipeline's positive branch is wired correctly — the failure
+        # in the main test is from the multiset signature, not from
+        # the algebraic side.
+        rule = _fibonacci_geometric_rule()
+        synthetic = RecognisabilityResult(
+            is_recognisable=True,
+            radius_used=2,
+            radius_cap_reached=False,
+            witness={(0,): 0, (1,): 1},
+        )
+        result = inflation_argument(rule, synthetic)
+        assert isinstance(result, InflationArgument)
+        assert result.pf_eigenvalue == ZPhi(0, 1)
+        assert result.recognisability_radius == 2
+
+
 # -- Fourth pillar framework (pillar 4) -------------------------------
 
 
