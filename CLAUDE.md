@@ -29,7 +29,25 @@ We work with three increasingly strong notions of aperiodicity. Every function, 
 - **Strong aperiodic (Einstein):** every tiling by *P* is non-periodic.
 - **Strict Einstein:** strong, using only orientation-preserving isometries of ℝ³ (SO(3) plus translations — no reflections, no screw displacements).
 
-**The target of Apeiron is the Strong Einstein definition**, with the Strict Einstein version as a stretch goal. The Weak definition is insufficient (the Schmitt-Conway-Danzer biprism already satisfies it via screw symmetry).
+**The target of Apeiron is the Strong Einstein definition**, with the Strict Einstein
+version as a stretch goal.
+
+Track A (Danzer deformation, §6.1) starts from a baseline that is Strong but not Strict:
+the published ABCK substitution uses orientation-reversing isometries (I_h, order 120),
+confirmed by both Koca et al. (arXiv 2003.13449, eqs. 19–31) and Paolini's POV-Ray
+source (`danzer.dmf.unicatt.it`). Any single-tile Einstein candidate derived by merging
+ABCK tiles inherits this I_h structure unless the deformation specifically eliminates all
+orientation-reversing children. Strict Einstein status for a Track A candidate is
+achievable only if such elimination is demonstrated; it is not guaranteed by the merge
+alone and should be treated as a secondary check, not an assumption.
+
+Track B (substitution-first, §6.2) begins with no constraint on I vs I_h and may produce
+candidates of either type. The I-only (Strict) constraint should be imposed explicitly
+when searching for Track B substitution rules if Strict Einstein is the goal.
+
+The Schmitt-Conway-Danzer biprism is excluded from consideration not because it uses
+I_h but because it satisfies only the Weak definition (every tiling is non-periodic, but
+some tilings exist only via screw symmetry rather than being forced aperiodic).
 
 ### 2.2 What counts as a tile
 
