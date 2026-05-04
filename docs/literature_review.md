@@ -14,6 +14,38 @@ authorises any pivot.
 
 ---
 
+## Headline result (post-Q14a, 2026-05-04)
+
+**Precisely-scoped negative result.** Per Q14a's ruling, the
+empirical finding is now stated with explicit scope:
+
+> No icosahedral substitution monotile with PF eigenvalue φ³
+> exists among n ≤ 3 prototile rules with integer entries ≤ 3 and
+> prototile shapes drawn from the 9 H₃-compatible tetrahedral
+> classes derivable from the Paolini ABCK vertex pool. This is the
+> first systematic computational survey of this family.
+
+Evidence: 78 candidates (13 at max_entry=2, 65 at max_entry=3) ran
+exhaustive realisation against every volume-compatible shape
+triple in the 9-class pool; every one returned NoRealisation
+within the per-step DFS pruning + 30s/triple budget at k_max=7.
+Plus 9 + 144 = 153 SKIPPED_TAXONOMY_GAP candidates whose left-
+eigenvector ratios fall outside the 9-class volume set; their
+realisability is the *separate* question that the 15-class
+extension would address. Logs at
+[notebooks/n3_phi3_max_entry_3_2026-05-04.log](../notebooks/n3_phi3_max_entry_3_2026-05-04.log)
+and the prior `notebooks/n3_phi3_exhaustive_2026-04-29.log`.
+
+**What this scoping does NOT claim.** Not "no 3D icosahedral
+monotile exists." Not "the icosahedral substitution route is
+exhausted." Not "the H₃ taxonomy is the wrong shape family." The
+result holds within the named slice; broader claims require either
+(a) the 15-class extension, (b) larger max_entry, or (c) a
+genuinely different shape family (e.g., the cut-and-project pivot
+under investigation per Q14b).
+
+---
+
 ## (a) What the literature says about 3D icosahedral monotile substitution
 
 **Direct results: none.** None of the four papers in the read

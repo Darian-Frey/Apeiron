@@ -113,6 +113,93 @@ tile paper (arXiv:1003.4279) as the canonical reference for that theme.
 
 ---
 
+## 6. Kramer & Neri, *On periodic and non-periodic space fillings of E^m obtained by projection* (1984) — **NOT DOWNLOADED**
+
+- **Authors:** Peter Kramer, Reinhardt Neri
+- **Year:** 1984
+- **Venue:** Acta Crystallographica Section A, 40(5), 580–587
+- **DOI:** 10.1107/S0108767384001203
+- **Erratum:** Acta Cryst. A41 (1985), DOI 10.1107/S0108767385001350
+- **Source URL (paywalled):** https://doi.org/10.1107/S0108767384001203
+  (IUCr abstract page: https://journals.iucr.org/paper?S0108767384001203;
+  publisher PDF requires subscription; Wiley mirror likewise paywalled).
+- **Local file:** *not downloaded* (closed-access; no open-access copy
+  exists per Unpaywall and OpenAlex queries on 2026-05-04).
+- **Why on the read list (Q11c / Q14b):** seminal paper introducing the
+  D6 → R^3 cut-and-project method for icosahedral quasilattices — the
+  upstream construction underlying Frettlöh's "Icosahedral tilings in R³"
+  Theorem 1.3 result that ABCK is a model set from D6 via CPS. Q11c
+  (algebraic CPS structure) and Q14b (window characterisation) require
+  the original window definition from §3 of this paper, which subsequent
+  papers cite without re-deriving.
+
+---
+
+## 7. Kramer, Papadopolos, Schlottmann & Zeidler, *Projection of the Danzer tiling* (1994) — **NOT DOWNLOADED**
+
+- **Authors:** Peter Kramer, Zorka Papadopolos, Martin Schlottmann,
+  Dieter Zeidler
+- **Year:** 1994
+- **Venue:** Journal of Physics A: Mathematical and General, 27(13),
+  4505–4517
+- **DOI:** **10.1088/0305-4470/27/13/024** (correction: the user-provided
+  DOI 10.1088/0305-4470/27/13/021 actually resolves to Wong–Tomonaga,
+  *Shell-model matrix elements in a neutron-proton quasi-spin formalism* —
+  unrelated. The correct article ID for the Danzer projection paper is
+  /024, verified via OpenAlex exact-title search.)
+- **Source URL (paywalled):** https://doi.org/10.1088/0305-4470/27/13/024
+  (IOPscience landing page; PDF requires subscription).
+- **Local file:** *not downloaded* (closed-access; no open-access copy
+  exists per Unpaywall and OpenAlex queries on 2026-05-04. No arXiv
+  preprint exists — Papadopolos's earliest arXiv submission is 1998
+  (math-ph/9909012, *Tiles–Inflation Rules for the Class of Canonical
+  Tilings T*(2F)*); Schlottmann never uploaded to arXiv. Kramer's
+  Tübingen publications page lists the paper but has no PDF link.)
+- **Why on the read list (Q11c / Q14b):** the explicit construction of
+  the Danzer ABCK tiling as a D6 → R^3 cut-and-project model set, with
+  windows fully specified in §3–4. This is the paper that bridges
+  Kramer–Neri 1984 (general projection method) and the modern statement
+  in Frettlöh "Icosahedral tilings in R³" Theorem 1.3 that triggered the
+  Q9c gate. Q14b (window characterisation in the internal space) cannot
+  be answered from secondary sources alone.
+
+### Recommended open-access substitutes
+
+Both papers are subscription-only with no preprint, no faculty-page PDF,
+no arXiv version, and no Wayback capture of the PDF (Wayback only
+captured the IUCr 301/401 redirect page, never the actual PDF). The
+following open-access papers cover the same material and should be read
+in their place pending acquisition through institutional access:
+
+1. **Al-Siyabi, Koca & Koca (2020),** *Icosahedral Polyhedra from D6
+   lattice and Danzer's ABCK tiling*, arXiv:2003.13449 — explicitly
+   reconstructs the ABCK tiling as a D6 projection with full window
+   specifications (eqs. 19–31), and is already cited in CLAUDE.md §2.1.
+   Open-access PDF: https://arxiv.org/pdf/2003.13449.
+2. **Frettlöh, Harriss & Gähler (eds.), Tilings Encyclopedia entry
+   "Danzer's ABCK tilings",** open-access at
+   https://tilings.math.uni-bielefeld.de/substitution/danzers-abck-tiling/
+   — consolidates the Kramer-Papadopolos-Schlottmann-Zeidler results in
+   modern notation.
+3. **Frettlöh,** *Icosahedral tilings in R³: The ABCK tilings*,
+   https://www.math.uni-bielefeld.de/~frettloe/papers/ikosa.pdf —
+   contains Theorem 1.3 (model-set status of ABCK) and references
+   Kramer et al 1994 for the projection details. Open-access.
+
+### Acquisition options for the originals
+
+- Institutional library subscription to Acta Crystallographica A and
+  J. Phys. A.
+- Inter-library loan via any university library.
+- Direct request to Z. Papadopolos (Universität Tübingen, retired) or
+  the Kramer estate. Kramer (1933–2024) maintained an active
+  publications page until ca. 2010; Papadopolos's contributions are
+  archived at researchain.net.
+
+Sci-hub and pirate sources were **not** used and should not be used.
+
+---
+
 ## Source-discovery notes
 
 - **Goodman-Strauss:** open-access PDF on Arkansas faculty page;
@@ -126,7 +213,19 @@ tile paper (arXiv:1003.4279) as the canonical reference for that theme.
   "local-vs-nonlocal enforcement" theme on Socolar's arXiv list (which
   showed no 2019 paper) and the 2019 arXiv listing for the relevant
   keywords.
+- **Kramer & Neri 1984; Kramer, Papadopolos, Schlottmann & Zeidler 1994:**
+  closed-access. Searched IUCr (Cloudflare-protected, subscription-gated),
+  IOPscience (subscription-gated), Wiley Online Library (subscription),
+  arXiv (no preprint exists for either paper), Wayback Machine (no PDF
+  capture; only redirect/401 captures of IUCr), Unpaywall API
+  (`is_oa=false` for both), OpenAlex API (`oa_status=closed` for both,
+  `any_repository_has_fulltext=false`), Google Scholar (no [PDF] link),
+  ResearchGate (publication-page access blocked), Semantic Scholar
+  (`openAccessPdf.status=CLOSED`), Z. Papadopolos's Tübingen and
+  ResearchGate pages, Kramer's Tübingen publications listing
+  (`homepages.uni-tuebingen.de/peter.kramer/Sx1.SSx1.html` — paper is
+  listed in bibliography but no PDF link). All paths exhausted.
 
-All downloads verified with `file <path>` (PDF document) and `pdfinfo`
-(page counts match expected venue pagination). No HTML error pages, no
-sci-hub or pirate sources used.
+All successful downloads verified with `file <path>` (PDF document) and
+`pdfinfo` (page counts match expected venue pagination). No HTML error
+pages, no sci-hub or pirate sources used.
