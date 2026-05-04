@@ -30,11 +30,25 @@ from apeiron.track_b.geometric_prefilter import (
     vertex_class_consistent,
 )
 from apeiron.track_b.matrix_search import enumerate_primitive_matrices
+from apeiron.track_b.realisation import (
+    ChildPlacement,
+    Inconclusive,
+    NoRealisation,
+    Realised,
+    SearchProgress,
+    realise,
+)
 
 __all__ = [
+    "ChildPlacement",
+    "Inconclusive",
+    "NoRealisation",
     "PrefilterResult",
+    "Realised",
+    "SearchProgress",
     "enumerate_primitive_matrices",
     "pf_eigenvector_in_zphi",
     "prefilter",
+    "realise",
     "vertex_class_consistent",
 ]
