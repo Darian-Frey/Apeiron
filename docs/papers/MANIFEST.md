@@ -200,6 +200,101 @@ Sci-hub and pirate sources were **not** used and should not be used.
 
 ---
 
+## 8. Frettlöh, *Icosahedral tilings in R³: The ABCK tilings* (Bielefeld internal report)
+
+- **Authors:** Dirk Frettlöh
+- **Year:** undated (post-2008, pre-2013 by reference list)
+- **Venue:** Bielefeld internal report
+- **Source URL:** https://www.math.uni-bielefeld.de/~frettloe/papers/ikosa.pdf
+  (author's faculty page; open-access PDF, 9 pages including refs)
+- **Local file:** `frettloh_icosahedral_ABCK_D6_CPS.pdf`
+- **Why on the read list (Q14b):** Theorem 1.3 — ABCK tilings are model
+  sets from D₆ via CPS, with three explicit windows (regular dodecahedron,
+  great dodecahedron, custom 5-fold-star polyhedron). Most direct
+  open-access substitute for §7.4 of Baake-Grimm Vol. 1. Read in full
+  during Q14b post-(c.1) literature phase; notes at
+  `docs/literature_notes.md` §6 + §7.2.
+
+---
+
+## 9. Moody, *Model sets: a survey* (2000)
+
+- **Authors:** Robert V. Moody
+- **Year:** 2000
+- **Venue:** Survey article (chapter in *From Quasicrystals to More
+  Complex Systems*, Centre de Physique des Houches, ed. F. Axel,
+  F. Dénoyer, J.-P. Gazeau)
+- **arXiv:** math/0002020
+- **Source URL:** https://arxiv.org/pdf/math/0002020 (28 pages)
+- **Local file:** `moody_2000_model_sets_survey.pdf`
+- **Why on the read list (Q15 substitute for Baake-Grimm Ch. 7):** "The
+  canonical model-set survey" cited by Baake-Grimm Vol. 1; the most
+  expository open-access treatment of cut-and-project schemes and model
+  sets in the mathematical-quasicrystals tradition. Strongest substitute
+  for §7.2 (Cut and project schemes and model sets).
+
+---
+
+## 10. Baake, Damanik & Grimm, *What is... aperiodic order?* (2015)
+
+- **Authors:** Michael Baake, David Damanik, Uwe Grimm
+- **Year:** 2015
+- **Venue:** Notices of the American Mathematical Society
+- **arXiv:** 1512.05104
+- **Source URL:** https://arxiv.org/pdf/1512.05104 (5 pages)
+- **Local file:** `baake_damanik_grimm_2015_what_is_aperiodic_order.pdf`
+- **Why on the read list (Q15 substitute):** Light Notices-style
+  introduction by two of the three Baake-Grimm Vol. 1 authors; surveys
+  the same conceptual ground at a much higher level. Useful for
+  cross-referencing language and framing only.
+
+---
+
+## 11. Richard & Strungaru (Baake-cite), *A short guide to pure point diffraction in cut-and-project sets*
+
+- **Authors:** Christoph Richard, Nicolae Strungaru
+- **Source URL:** open-access PDF (32 pages)
+- **Local file:** `baake_short_guide_pure_point_diffraction_CPS.pdf`
+- **Why on the read list (Q15 substitute):** Diffraction-focused; covers
+  the spectral side of CPS in detail. Less directly relevant to the
+  structural-multi-prototile question but worth keeping for the
+  diffraction angle.
+
+---
+
+## Note on the Baake-Grimm Vol. 1 Ch. 7 acquisition
+
+The target chapter (Baake & Grimm 2013, *Aperiodic Order, Vol. 1*, Ch. 7
+"Tilings, Coverings and Their Diffraction") is **closed-access**.
+
+Cambridge Core hosts no open sample chapter. Google Books preview was
+inaccessible at the time of the agent's fetch. Author homepages do not
+host draft chapters.
+
+TOC confirmed via the CUP frontmatter PDF
+(https://assets.cambridge.org/97805218/69911/frontmatter/9780521869911_frontmatter.pdf,
+16 pages, open-access):
+
+- 7.1 Silver mean chain via projection (p. 251)
+- 7.2 Cut and project schemes and model sets (p. 263)
+- 7.3 Cyclotomic model sets (p. 272)
+- **7.4 Icosahedral model sets and beyond (p. 283)** — directly relevant
+- 7.5 Alternative constructions (p. 289)
+
+**Acquisition options:**
+
+- UK: Cambridge UL, Oxford Bodleian, Open University (Grimm's home),
+  Bielefeld (Baake's home).
+- US: any R1 mathematics library (MIT, Stanford, Berkeley, UIUC,
+  Princeton).
+- Inter-library loan via any university library is the standard path.
+
+**Fallback if institutional access not pursued:** treat entries §6 (Frettlöh
+ABCK), §7 (Al-Siyabi-Koca-Koca 2020), §9 (Moody 2000) as the working
+substitute for §7.4 + §7.2.
+
+---
+
 ## Source-discovery notes
 
 - **Goodman-Strauss:** open-access PDF on Arkansas faculty page;
