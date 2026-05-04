@@ -37,6 +37,7 @@ from apeiron.track_b.realisation import (
     Realised,
     SearchProgress,
     realise,
+    translation_offset_from_face_match,
 )
 
 __all__ = [
@@ -50,5 +51,6 @@ __all__ = [
     "pf_eigenvector_in_zphi",
     "prefilter",
     "realise",
+    "translation_offset_from_face_match",
     "vertex_class_consistent",
 ]

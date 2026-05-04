@@ -22,6 +22,7 @@ from apeiron.track_b import (
     SearchProgress,
     enumerate_primitive_matrices,
     realise,
+    translation_offset_from_face_match,
 )
 from apeiron.zphi import ZPhi
 
@@ -178,6 +179,136 @@ class TestPlaceholderForGeneralInputs:
             assert isinstance(result, Inconclusive)
             count += 1
         assert count == 5
+
+
+class TestTranslationOffsetFromFaceMatch:
+    """Per Q8a 2026-04-29: per-edge constraint solver. Given fixed
+    rotations and a triangular face match between two prototiles,
+    recover ``t_b − t_a`` exactly in ZPhi.
+    """
+
+    def _unit_tetrahedron_vertices(self) -> tuple[Vec3, Vec3, Vec3, Vec3]:
+        # ×2-stored unit tetrahedron with one vertex at origin and the
+        # other three on the positive coordinate axes at (1, 0, 0),
+        # (0, 1, 0), (0, 0, 1). All in pure ℤ.
+        z = ZPhi(0, 0)
+        two = ZPhi(2, 0)
+        return (
+            Vec3(z, z, z),
+            Vec3(two, z, z),
+            Vec3(z, two, z),
+            Vec3(z, z, two),
+        )
+
+    def test_identity_gluing_yields_zero_offset(self) -> None:
+        # Two identical tetrahedra placed at identity / identity-rot,
+        # sharing the face opposite vertex 0. Trivial offset (0, 0, 0).
+        verts = self._unit_tetrahedron_vertices()
+        offset = translation_offset_from_face_match(
+            rotation_a=Rotation.identity(),
+            rotation_b=Rotation.identity(),
+            face_indices_a=(1, 2, 3),
+            face_indices_b=(1, 2, 3),
+            vertices_a=verts, vertices_b=verts,
+        )
+        assert offset == Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0))
+
+    def test_incongruent_faces_return_none(self) -> None:
+        # Tetrahedron face (0, 1, 2) is the right triangle in z=0
+        # plane (legs 2 along x, y). Face (0, 1, 3) is a different
+        # right triangle. Not congruent — no permutation matches.
+        verts = self._unit_tetrahedron_vertices()
+        offset = translation_offset_from_face_match(
+            rotation_a=Rotation.identity(),
+            rotation_b=Rotation.identity(),
+            face_indices_a=(0, 1, 2),
+            face_indices_b=(0, 1, 3),
+            vertices_a=verts, vertices_b=verts,
+        )
+        assert offset is None
+
+    def test_recovers_paolini_sigma_k_offset(self) -> None:
+        # Real-world cross-check: σ(K)'s B-child + K-child face-
+        # adjacency in the canonical Paolini Danzer rule. The helper
+        # recovers exactly cj.translation − ci.translation.
+        import json
+        from pathlib import Path
+        from apeiron.deformation import face_adjacent_pairs, placed_vertices
+        from apeiron.symmetry import ICOSAHEDRAL, ImproperRotation, Mat3
+        from apeiron.substitution import PositionedTile, SubstitutionRule
+        from apeiron.util import load_candidate
+
+        DANZER = Path("candidates/danzer")
+        prototiles = [load_candidate(DANZER / f"{x}.json") for x in "ABCK"]
+        z = ZPhi(0, 0)
+        phi = ZPhi(0, 1)
+        inflation = Mat3(
+            Vec3(phi, z, z), Vec3(z, phi, z), Vec3(z, z, phi),
+        )
+        data = json.loads((DANZER / "paolini_dissection.json").read_text())
+        type_to_idx = {"A": 0, "B": 1, "C": 2, "K": 3}
+        by_parent: dict[str, list] = {p: [] for p in "ABCK"}
+        for r in data["children"]:
+            by_parent[r["parent"]].append(r)
+        dissections = []
+        for parent in "ABCK":
+            children = []
+            for r in sorted(
+                by_parent[parent], key=lambda r: r["child_index"],
+            ):
+                t = r["translation_x2"]
+                translation = Vec3(
+                    ZPhi(*t[0]), ZPhi(*t[1]), ZPhi(*t[2]),
+                )
+                proper = ICOSAHEDRAL[r["icosahedral_index"]]
+                rotation = (
+                    proper if r["is_proper"] else ImproperRotation(proper)
+                )
+                children.append(PositionedTile(
+                    prototile_index=type_to_idx[r["child_type"]],
+                    translation=translation, rotation=rotation,
+                ))
+            dissections.append(tuple(children))
+        rule = SubstitutionRule(
+            n_prototiles=4, inflation=inflation,
+            dissections=tuple(dissections),
+        )
+
+        # σ(K)'s only face-adjacent pair: i=0 (B-child, ImproperRotation),
+        # j=1 (K-child, proper Rotation).
+        pair = face_adjacent_pairs(rule, 3, prototiles)[0]
+        ci = rule.dissections[3][pair.i]
+        cj = rule.dissections[3][pair.j]
+        proto_a = prototiles[ci.prototile_index]
+        proto_b = prototiles[cj.prototile_index]
+        placed_a = placed_vertices(proto_a, (ci.translation, ci.rotation))
+        placed_b = placed_vertices(proto_b, (cj.translation, cj.rotation))
+        face_a_idx = tuple(
+            i for i, v in enumerate(placed_a) if v in pair.shared_vertices
+        )
+        face_b_idx = tuple(
+            j for j, v in enumerate(placed_b) if v in pair.shared_vertices
+        )
+        assert len(face_a_idx) == 3 and len(face_b_idx) == 3
+
+        offset = translation_offset_from_face_match(
+            ci.rotation, cj.rotation,
+            face_a_idx, face_b_idx,
+            proto_a.vertices, proto_b.vertices,
+        )
+        expected = cj.translation - ci.translation
+        assert offset == expected
+
+    def test_rejects_non_triangular_face(self) -> None:
+        verts = self._unit_tetrahedron_vertices()
+        with pytest.raises(ValueError, match="exactly 3"):
+            translation_offset_from_face_match(
+                rotation_a=Rotation.identity(),
+                rotation_b=Rotation.identity(),
+                face_indices_a=(0, 1, 2, 3),  # type: ignore[arg-type]
+                face_indices_b=(1, 2, 3),
+                vertices_a=verts, vertices_b=verts,
+            )
 
 
 class TestInputValidation:

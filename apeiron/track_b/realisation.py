@@ -24,6 +24,8 @@ choice for early NoRealisation discovery per Q8 meta-3).
 
 from __future__ import annotations
 
+import itertools
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Final
 
@@ -40,6 +42,7 @@ __all__ = [
     "Realised",
     "SearchProgress",
     "realise",
+    "translation_offset_from_face_match",
 ]
 
 
@@ -133,6 +136,81 @@ class Inconclusive:
     fraction_searched: ZPhi
     partial: SearchProgress | None
     reason: str = "search budget exhausted"
+
+
+def translation_offset_from_face_match(
+    rotation_a: Rotation | ImproperRotation,
+    rotation_b: Rotation | ImproperRotation,
+    face_indices_a: tuple[int, int, int],
+    face_indices_b: tuple[int, int, int],
+    vertices_a: Sequence[Vec3],
+    vertices_b: Sequence[Vec3],
+) -> Vec3 | None:
+    """Recover ``t_b − t_a`` from a triangular face-match constraint.
+
+    Per Claude (web)'s Q8a 2026-04-29 — the per-edge sub-routine of
+    the rotation-search-with-linear-translation-recovery backtracker.
+
+    Setup. Let placed-A be the prototile-A vertices placed at
+    ``rotation_a · v + t_a``, and placed-B similarly for prototile-B
+    with rotation ``rotation_b`` and translation ``t_b``. If A's face
+    indexed by ``face_indices_a`` (3 vertex indices into
+    ``vertices_a``) matches B's face indexed by ``face_indices_b``
+    (3 indices into ``vertices_b``) — i.e., the placed face vertex
+    sets are equal — then for some permutation ``π ∈ S_3``::
+
+        rotation_a · vertices_a[face_indices_a[k]] + t_a
+            == rotation_b · vertices_b[face_indices_b[π(k)]] + t_b
+            for k ∈ {0, 1, 2}.
+
+    Rearranging::
+
+        t_b − t_a == rotation_a · vertices_a[face_indices_a[k]]
+                   − rotation_b · vertices_b[face_indices_b[π(k)]].
+
+    For the match to be consistent, the RHS must give the same Vec3
+    across all three ``k``. We try each of the 6 permutations and
+    return the offset on the first consistent one. Return None if no
+    permutation works.
+
+    Returns
+    -------
+    Vec3 | None
+        The exact ZPhi offset ``t_b − t_a`` (×2-stored), or ``None``
+        if no permutation of ``face_indices_b`` produces a
+        consistent match.
+
+    Notes
+    -----
+    Pure ZPhi arithmetic; no floats. The output is unique up to the
+    permutation symmetry of the matched triangle — multiple
+    permutations could in principle produce the SAME offset (a
+    triangle with non-trivial stabiliser under the rotation
+    pair). For ABCK-style irregular triangles this won't happen;
+    for regular triangles it can. The function returns the first
+    consistent offset found.
+    """
+    if len(face_indices_a) != 3 or len(face_indices_b) != 3:
+        raise ValueError(
+            "Triangular face requires exactly 3 vertex indices each; "
+            f"got A={face_indices_a}, B={face_indices_b}."
+        )
+    placed_a = [
+        rotation_a.apply(vertices_a[i]) for i in face_indices_a
+    ]
+    for perm in itertools.permutations(range(3)):
+        placed_b = [
+            rotation_b.apply(vertices_b[face_indices_b[perm[k]]])
+            for k in range(3)
+        ]
+        offset_candidate = placed_a[0] - placed_b[0]
+        consistent = all(
+            placed_a[k] - placed_b[k] == offset_candidate
+            for k in range(1, 3)
+        )
+        if consistent:
+            return offset_candidate
+    return None
 
 
 def _is_fibonacci_oracle(
