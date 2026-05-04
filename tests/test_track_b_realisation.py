@@ -582,37 +582,36 @@ class TestSearchLoopIntegration:
         assert isinstance(result, Inconclusive)
         assert "k_max" in result.reason or "k=" in result.reason
 
-    def test_penrose_p3_search_loop_executes(self) -> None:
-        # M=[[1,1],[1,2]] (Penrose P3): σ(P_0) k=2, σ(P_1) k=3 — both
-        # within k_max=3. With synthetic prototiles the loop returns
-        # *some* result (likely Realised by trivial bounding-box-pass
-        # placement, but exercise confirms machinery runs).
+    def test_penrose_p3_with_identical_protos_rejected_by_volume(
+        self,
+    ) -> None:
+        # M=[[1,1],[1,2]] (Penrose P3): σ(P_0) sum-of-vols = 2·V if
+        # P_0 and P_1 are identical-volume; required pf·V where
+        # pf=φ². 2 ≠ φ² so the volume-sum check rejects.
         m = np.array([[1, 1], [1, 2]])
         proto = self._unit_tetrahedron()
         result = realise(
             m, ZPhi(1, 1),
             prototile_shapes=(proto, proto),
-            max_search_seconds=60,
+            max_search_seconds=10,
         )
-        # Must terminate with one of the three result types — no exception.
-        assert isinstance(result, (Realised, NoRealisation, Inconclusive))
+        assert isinstance(result, NoRealisation)
 
-    def test_realised_carries_correct_child_count(self) -> None:
-        # If realise returns Realised on Penrose P3, the per-parent
-        # children counts must match the substitution matrix columns.
-        m = np.array([[1, 1], [1, 2]])
+    def test_trivial_pf2_passes_volume_check(self) -> None:
+        # M=[[2]] (PF=2): single prototile, σ(P_0) = 2 P_0. Volume
+        # sum = 2·V = pf·V. Volume check passes; the search returns
+        # Realised (caveat: bounding-box-only validation; the
+        # placement is likely a degenerate overlap until SAT-based
+        # non-overlap detection lands).
+        m = np.array([[2]])
         proto = self._unit_tetrahedron()
         result = realise(
-            m, ZPhi(1, 1),
-            prototile_shapes=(proto, proto),
-            max_search_seconds=60,
+            m, ZPhi(2, 0),
+            prototile_shapes=(proto,),
+            max_search_seconds=10,
         )
-        if isinstance(result, Realised):
-            assert len(result.children_per_parent) == 2
-            # σ(P_0) column = [1, 1] → 2 children.
-            assert len(result.children_per_parent[0]) == 2
-            # σ(P_1) column = [1, 2] → 3 children.
-            assert len(result.children_per_parent[1]) == 3
+        assert isinstance(result, Realised)
+        assert len(result.children_per_parent[0]) == 2
 
 
 class TestInputValidation:

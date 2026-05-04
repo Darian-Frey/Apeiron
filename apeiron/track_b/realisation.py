@@ -404,6 +404,41 @@ def _vec3_lex_lt(a: Vec3, b: Vec3) -> bool:
     return False
 
 
+def _tetrahedron_volume_x6(verts: Sequence[Vec3]) -> ZPhi:
+    """Six times the (signed) volume of a tetrahedron.
+
+    For a 4-vertex tetrahedron with vertices ``v_0, v_1, v_2, v_3``,
+    the signed volume is ``(1/6) · det([v_1−v_0, v_2−v_0, v_3−v_0])``.
+    Returning ``6·volume`` keeps everything in ℤ[φ] (no division).
+    The sign reflects orientation; ``abs()`` recovers the
+    unsigned magnitude for tile-volume comparisons.
+
+    Per CLAUDE.md §3.2, vertices are ×2-stored, so the result is
+    ``6 · volume_storage = 6 · (2³ · volume_real) = 48 · volume_real``.
+    The factor of 48 is global and cancels in volume-sum-equality
+    checks across the same storage convention.
+    """
+    if len(verts) != 4:
+        raise ValueError(
+            f"Tetrahedron requires 4 vertices; got {len(verts)}."
+        )
+    a = verts[1] - verts[0]
+    b = verts[2] - verts[0]
+    c = verts[3] - verts[0]
+    # det = a · (b × c)
+    bxc_x = b.y * c.z - b.z * c.y
+    bxc_y = b.z * c.x - b.x * c.z
+    bxc_z = b.x * c.y - b.y * c.x
+    return a.x * bxc_x + a.y * bxc_y + a.z * bxc_z
+
+
+def _abs_zphi(z: ZPhi) -> ZPhi:
+    """Component-wise absolute value (in real-number sense). ``z._sign()``
+    decides the case; if negative, returns ``-z``.
+    """
+    return -z if z._sign() < 0 else z
+
+
 def _bounding_box(vertices: Sequence[Vec3]) -> tuple[Vec3, Vec3]:
     """Min and max corners (component-wise) over a vertex sequence.
     Pure ZPhi; no floats. Uses ``ZPhi._sign`` on differences.
@@ -446,6 +481,7 @@ def _search_realisation_for_parent(
     rotation_pool: Sequence[Rotation],
     deadline: float,
     k_max: int,
+    expected_volume_x6: ZPhi | None = None,
 ) -> tuple[ChildPlacement, ...] | None | str:
     """Search for a face-to-face placement of ``children_types`` inside
     a parent whose inflated bounding box is ``inflated_parent_bbox``.
@@ -497,6 +533,21 @@ def _search_realisation_for_parent(
     z = ZPhi(0, 0)
     origin = Vec3(z, z, z)
     identity = Rotation.identity()
+
+    # Pre-compute child volume sum (×6, signed) for validation. Same
+    # value across all rotation/translation assignments since rotations
+    # preserve volume and translations don't change it. If
+    # expected_volume_x6 is provided and the sum doesn't match, no
+    # rotation assignment can possibly Realise — bail immediately.
+    if expected_volume_x6 is not None:
+        child_vol_sum_x6 = ZPhi(0, 0)
+        for t in children_types:
+            v = _abs_zphi(_tetrahedron_volume_x6(
+                prototile_shapes[t].vertices,
+            ))
+            child_vol_sum_x6 = child_vol_sum_x6 + v
+        if child_vol_sum_x6 != expected_volume_x6:
+            return None
 
     # Special case: k=1. One child, placed at identity/origin. Just
     # check vertex containment.
@@ -851,6 +902,22 @@ def realise(
             ) for v in parent_proto.vertices
         ]
         bbox = _bounding_box(inflated_verts)
+        # Volume-sum constraint: total child volume must equal
+        # det(Λ) × parent volume. For substitution rules,
+        # pf_target IS det(Λ) (the PF eigenvalue of M equals the
+        # volume scaling — Perron–Frobenius theorem applied to
+        # the substitution-matrix interpretation): so
+        # 6·sum_child_vol = pf_target × 6·parent_vol.
+        try:
+            parent_vol_x6 = _abs_zphi(_tetrahedron_volume_x6(
+                parent_proto.vertices,
+            ))
+        except ValueError:
+            parent_vol_x6 = None
+        if parent_vol_x6 is not None:
+            expected_x6 = pf_target * parent_vol_x6
+        else:
+            expected_x6 = None
         result = _search_realisation_for_parent(
             children_types=children_types,
             prototile_shapes=prototile_shapes,
@@ -858,6 +925,7 @@ def realise(
             rotation_pool=rotation_pool,
             deadline=deadline,
             k_max=3,
+            expected_volume_x6=expected_x6,
         )
         if result == "k_too_large":
             return Inconclusive(
