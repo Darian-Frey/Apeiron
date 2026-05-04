@@ -77,14 +77,26 @@ property.
       mismatch is decisive. Concrete: σ(A)+σ(B) = (0, 5, 3, 10),
       no factorisation through (1, 1, 0, 0). Tested in
       `tests/test_deformation.py::TestPrioritiseMergeCandidateOnDanzer::test_passes_all_aggregate_is_zero_for_danzer`.
-- [ ] **Phase 1.6** — extension to 3-tile / 4-tile face-merges.
-      Same enumeration framework, larger composition space.
-      Combinatorial feasibility on ABCK σ-count vectors:
-      need a partition of (A, B, C, K) into multisets that sum
-      to a multiple of σ-counts. e.g., (1A, 1B, 1C, 1K) might
-      have viable k for σ(A)+σ(B)+σ(C)+σ(K) — check.
-- [ ] No-go theorem write-up if Phase 1.6 also exhausts without a
-      survivor. Track B (CLAUDE.md §6.2) becomes the alternative.
+- [x] **Phase 1.6** done in `42b3d9a` — closed-form no-go on the
+      entire face-merge track for ABCK at every composition size.
+      Per Claude (web)'s Q7a/b 2026-04-29 ruling: a face-merge
+      produces a valid 1-prototile substitution iff the substitution
+      matrix has a positive-integer eigenvalue (with a non-negative-
+      integer eigenvector). M_ABCK's eigenvalues are
+      {φ³, φ, -1/φ, -1/φ³}; none is a positive integer. Therefore
+      no face-merge of any number of children yields a 1-prototile
+      substitution rule with PF in ℤ[φ].
+      Implementation: ``feasibility_upper_bound(rule)`` does the
+      closed-form check via the rational root theorem on the integer
+      characteristic polynomial; ``enumerate_face_merge_compositions``
+      short-circuits to empty for any rule that fails the check.
+      Tested at k_max up to 8 on the canonical Paolini Danzer rule.
+- [x] **Track A no-go theorem (face-merge formalism)** — recorded.
+      The face-merge deformation search over Danzer's ABCK is closed
+      with no survivors. Either (i) Track B (substitution-first), (ii)
+      vertex perturbation around a hypothetical near-solution, or
+      (iii) a different Track A formalism entirely (continuous
+      parametric families per Q6a's secondary path).
 
 ## Phase 2 — Track B (substitution-first)
 

@@ -14,11 +14,18 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-**Track A** (CLAUDE.md §6.1) baseline complete + Phase 1.5
-2-tile-face-merge deformation search exhausted with no survivors.
-Remaining options: Phase 1.6 extension to 3-/4-tile face-merges
-(per `docs/roadmap.md`), or fall back to Track B (CLAUDE.md §6.2)
-substitution-first search. Direction-pick deferred to Claude (web).
+**Track A** (CLAUDE.md §6.1) face-merge formalism is **closed**
+end-to-end. Phase 1.5 (2-tile) exhausted in `4406900`; Phase 1.6
+(all k via closed-form) closed in `42b3d9a` per Claude (web)'s
+Q7a/b 2026-04-29 ruling. M_ABCK has no positive-integer eigenvalue
+(eigenvalues {φ³, φ, -1/φ, -1/φ³}), so no face-merge of any
+composition size yields a 1-prototile substitution rule with PF
+in ℤ[φ].
+
+Next: Track B (CLAUDE.md §6.2) per Claude (web) Q7c — primitive
+matrix enumerator + geometric pre-filter + vertex-placement CSP.
+First concrete piece: ``apeiron/track_b/matrix_search.py`` with
+``enumerate_primitive_matrices(n, pf_target, max_entry)``.
 
 Sub-commit plan for Track A's first candidate (Danzer):
 
@@ -97,6 +104,14 @@ Sub-commit plan for Track A's first candidate (Danzer):
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
+- **Phase 1.6** `42b3d9a` — `feat(deformation)`: closed-form
+  face-merge no-go for all k. ``feasibility_upper_bound(rule)``
+  checks for positive-integer eigenvalues via the rational root
+  theorem on the integer char poly; ``enumerate_face_merge_compositions``
+  short-circuits to empty when the check fails. M_ABCK fails:
+  eigenvalues {φ³, φ, -1/φ, -1/φ³}, no positive integer. The
+  face-merge deformation track is closed for ABCK at every
+  composition size, k-independent.
 - **Phase 1.5** `27f84f1` + `6732fbc` + `4406900` —
   `feat(deformation)`: face-merge deformation-search infrastructure
   per Claude (web)'s Q6a/b/c 2026-04-29 ruling. New module
@@ -293,13 +308,11 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (post-Phase 1.5): 586 passing in ~19.4 s under venv
+Test totals (post-Phase 1.6): 594 passing in ~19.9 s under venv
 pytest 9.0.3. Slow-test distribution unchanged: `cube_corona_2`
 setup ~7 s, `RD corona_1` setup ~5.5 s, `cube corona_1` setup
-~2.3 s, `RTH face-to-face counts` ~1.5 s. The rest of the 586
-tests run in well under a second combined. The 38 new tests in
-the Phase 1.5 burst (`24371c2..4406900`) all run in well under a
-second.
+~2.3 s, `RTH face-to-face counts` ~1.5 s. The rest of the 594
+tests run in well under a second combined.
 
 ---
 
