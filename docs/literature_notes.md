@@ -963,6 +963,207 @@ unanswered:
 
 ---
 
+---
+
+## 8. Moody (2000), *Model Sets: A Survey* — read with structural multi-prototile conjecture active
+
+arXiv:math/0002020. 28 pages. Read in full. Per Path A
+authorisation 2026-05-04 as the strongest open-access substitute
+for Baake-Grimm Vol. 1 §7.2.
+
+### §§1-3 Definitions and geometric basics (pp.1-7)
+
+- **Definition.** Cut and project scheme: ℝ^d ←π_1 ℝ^d × G →π_2 G
+  with lattice L̃ ⊂ ℝ^d × G. π_1|L̃ injective; π_2(L̃) dense in G.
+  Star map *: L → G, u ↦ π_2(π_1|L⁻¹(u)).
+- **Model set.** Λ(W) = {π_1(x) : x ∈ L̃, π_2(x) ∈ W} for a
+  *window* W ⊂ G satisfying:
+  - **W1:** W nonempty, W = closure(int(W)) is compact.
+  - **W2:** generic if ∂W ∩ π_2(L̃) = ∅.
+  - **W3:** regular if ∂W has Haar measure 0.
+- Theorem 1: Any Meyer set is a Delone subset of some model set.
+- Model sets are Delone, FLC, repetitive (under genericity).
+
+### §4.1 The icosian model sets (pp.8-9) — directly relevant
+
+> "The root and weight lattices of types A_4 and D_6 could be used
+> as the lattices for projection in cut and project schemes for
+> dihedral D_5 and icosahedral symmetries in 2 and 3 dimensions."
+>
+> "Restricting everything to the pure quaternions we get a new cut
+> and project scheme based on the 6-dimensional root lattice D_6
+> and an icosahedral symmetry. Restricting further to the planes
+> orthogonal to the 5-fold axes brings us back to A_4 and the
+> related dihedral D_5 symmetry. A step further, and we arrive at
+> the Fibonacci chain in 1 dimension. Thus all three families as
+> well as the fundamental Fibonacci model sets fit together in
+> this quaternionic model. **Not only is this very pretty, it also
+> essentially encompasses the generic situation for icosahedral
+> symmetry in model sets: the only other relevant lattices in
+> 6-space are the D_6 weight lattice and the lattices lying
+> between the root and weight lattices.**"
+>
+> Relevance to the structural multi-prototile conjecture: Moody
+> claims D_6 root + weight + intermediate lattices essentially
+> exhaust the icosahedral CPS framework. Implication for the
+> conjecture's scope: if the structural conjecture is true for
+> D_6 root lattice, escape routes within icosahedral CPS are
+> limited to (a) D_6 weight lattice, (b) intermediate lattices.
+
+### §4.2 p-adic model sets — Robinson tiling example (pp.10-13)
+
+The Robinson square tiling has 6 tile types. Each tile type's
+*centres* form a model set with internal space ℤ_2² (2-adic).
+
+**Critical observation:** Each of the 6 tile types corresponds to a
+distinct open subset W_j ⊂ ℤ_2² of the internal space. The full
+window of the tiling-vertex model set is the **union**:
+
+```text
+W := ⋃_{k=1}^∞ c_k + 2^k ℤ_2²    (eq. 14)
+```
+
+Verbatim (p.13): *"The entire tiling is determined by the vertices
+of the various squares and hence by the window W."*
+
+> **Direct partial answer to Q14b(e).** In Moody's framework, a
+> multi-prototile tiling corresponds to a window decomposable into
+> distinct open subsets, one per tile type. A monotile tiling
+> would correspond to a model set whose window is a *single*
+> connected/coherent open subset (no decomposition).
+>
+> **However**, this is partial: Frettlöh's ABCK uses 3 vertex-
+> class windows (I, II, III) but produces 4 prototiles (A, B, C,
+> K). So "one window component = one prototile" is not exact.
+> The relation is: window components determine *vertex classes*;
+> tile types arise from the **combinatorial arrangement** of
+> vertex classes plus the H₃ fundamental-region structure.
+
+### §5 Analytic side and self-similarity (pp.14-16)
+
+- Self-similarity t_{Q,v}: x ↦ Qx + v on ℝ^d that maps Λ into
+  itself. Q = qR with |q| > 1 (inflation).
+- Q gives lattice automorphism Q̃ on L̃ and a contractive map Q^*
+  on internal space.
+- W_Q := {u ∈ ℝ^n | Q^* W + u ⊂ W}. Q "compatible" with Λ if
+  int(W_Q) ≠ ∅.
+- "T_Q := {v ∈ L : v^* ∈ W_Q}" — the affine inflations with
+  factor Q.
+
+> Relevance: this is the formal CPS-side description of
+> substitution self-similarity. Apeiron's Track B substitution
+> matrix M corresponds to such a Q (with q = pf_target = φ³ for
+> ABCK). The window-side condition (Q^* W + u ⊂ W) is the CPS
+> equivalent of substitution-rule consistency.
+
+### §6 Dynamical systems side (pp.16-19)
+
+- Theorem 9 (torus parametrisation): generic model set Λ →
+  ℝ^d × T → T is a minimal uniquely ergodic dynamical system
+  with T = (ℝ^d × G)/L̃.
+- *"The action of ℝ^d on T... corresponds to model sets that
+  differ only by translation. The action of G on T corresponds to
+  translating the window around."*
+- Theorem 11: regular generic model set ⇒ D(Λ) uniquely ergodic;
+  L²(D(Λ)) ≅ L²(D_tor) as ℝ^d-spaces.
+
+> Relevance to Q14b(c) window-deformation: the only "deformation"
+> Moody discusses is **translation** of the window (continuous,
+> parameterised by G). Shape deformation is not addressed
+> explicitly. Translating the window does not generate
+> structurally different model sets — the resulting model sets
+> are all in the same LI class as Λ.
+
+### §7 Diffraction (pp.20-24)
+
+- Theorem 12: any regular model set has pure point spectrum.
+- Theorem 13: spectrum w(k) = |χ̂(-π̂_2(k))|² / vol(W)² where χ
+  is the indicator of W.
+- §7.1 closing comment: model sets in more general locally
+  compact abelian groups; many results generalise.
+
+### Bottom-line answers to the three Q15b/Q14b questions
+
+**(1) Is there a theorem ruling out icosahedral CPS monotiles?**
+
+*No.* Moody never raises the question of whether a model set must
+be multi-prototile when interpreted as a tiling. Model sets are
+*point sets*, and the connection to tilings (and prototile
+counts) is not Moody's subject. The §4.2 p-adic example does
+illustrate one direction: for a tiling whose vertex set is a
+model set, multi-prototile-ness corresponds to window
+decomposition. But no theorem stating that this decomposition
+*must* be non-trivial appears.
+
+**(2) Is window-deformation discussed as a candidate-generation
+strategy?**
+
+*Partially.* Translation of the window is a continuous
+deformation parameterised by G; it generates the LI class of a
+generic model set but does not produce structurally new tilings.
+**Shape-deformation of the window is NOT discussed as a
+deformation type.** The §4.2 example shows that different
+window-shapes generate different model sets / tilings, but Moody
+does not treat shape as a continuous degree of freedom — windows
+are picked once and held fixed.
+
+**(3) Does it answer Q14b(d) and (e)?**
+
+*Partial.*
+
+- **Q14b(d) — windows continuous vs discrete.** The window in
+  Moody's framework is a *set* (subset of internal space G), not
+  a parameter from a discrete or continuous family. Translations
+  of the window are continuous; shape variations are not
+  parameterised in any standard way. **The "window-shape parameter
+  space" is not formalised in Moody.** Whether it is in the
+  closed-access Kramer-Papadopolos 1994 paper is unclear.
+
+- **Q14b(e) — window → prototile-shape map.** *Sharper answer:*
+  for tilings whose vertex sets are model sets (the §4.2
+  paradigm), each prototile type corresponds to a distinct open
+  subset of internal space. **For ABCK the relation is more
+  complex:** Frettlöh's 3 vertex-class windows (I, II, III)
+  produce 4 prototiles (A, B, C, K) via the H₃ tetrahedral
+  fundamental-region structure. The map "window → tile" is
+  therefore *indirect*: window decomposition picks vertex
+  classes; tile shapes emerge from how vertex classes arrange
+  combinatorially under the H₃ root system.
+
+### Refined version of the structural multi-prototile conjecture
+
+The original conjecture from `strategy_pivot.md`:
+
+> Every D₆ CPS tiling of ℝ³ with icosahedral symmetry requires
+> more than one prototile type.
+
+Per Moody's framework, the conjecture refines to:
+
+> **Refined conjecture.** For every D₆ cut-and-project tiling of
+> ℝ³ with icosahedral symmetry where the prototile-shape structure
+> is determined by the H₃ tetrahedral fundamental region (the
+> ABCK / icosian-model-set family per Moody §4.1), the tiling
+> requires more than one prototile type.
+
+This is a more concrete, more falsifiable version. The escape
+routes — the things that would refute the refined conjecture —
+are:
+
+1. A D₆ vertex-class arrangement that yields a single tile type
+   (a counterexample to the conjecture as stated).
+2. A non-H₃-fundamental-region prototile-shape structure on a D₆
+   model set (would falsify the conjecture's *scope* by exhibiting
+   a different shape family).
+3. The D₆ weight lattice or an intermediate D₆ lattice yielding a
+   monotile (would falsify by exhibiting a sibling case in the
+   broader icosahedral CPS framework).
+
+Each escape route is in principle pursuable. Route 1 is a finite
+combinatorial check on D₆ vertex-class arrangements; routes 2
+and 3 require new framework work.
+
+---
+
 ## Reading log
 
 | Paper                                  | Status            | Pages read |

@@ -520,3 +520,134 @@ authorisation is for a decision among (d.1), (d.2), (d.3), or a
 combination. Acting on any one without authorisation is the
 failure mode the Q10 sequencing commitment was designed to
 prevent.
+
+---
+
+## (e) Moody (2000) read result — Gate decision (post-Path A, 2026-05-04)
+
+**Context.** Path A (substitute reading) authorised by user
+2026-05-04 in lieu of acquiring closed-access Baake-Grimm Vol. 1
+Ch. 7. Moody (2000) read in full as the strongest open-access
+substitute for §7.2 of Baake-Grimm. Notes at
+[literature_notes.md §8](literature_notes.md).
+
+### Findings against the three Q15b/Q14b gate questions
+
+**(1) Theorem ruling out icosahedral CPS monotiles?** *No.* Moody
+never raises the question. Model sets are point sets; the
+connection from model sets to tilings (and prototile counts) is
+not Moody's subject. The §4.2 p-adic Robinson example
+illustrates *one direction* — for tilings whose vertex sets are
+model sets, multi-prototile-ness corresponds to window
+decomposition into one open subset per tile type — but this is
+not a theorem, just an illustration.
+
+**(2) Window-deformation as candidate-generation strategy?**
+*Partially.* Translation of the window is continuous and
+parameterised by G (internal space group); but it produces only
+the LI class of a generic model set, not structurally new
+tilings. *Shape-deformation* of the window is **not** discussed
+as a deformation type. Moody's framework treats windows as fixed
+once chosen, not as continuous parameters of a search space.
+
+**(3) Q14b(d) and (e)?** *Partial.*
+
+- **Q14b(d) — windows continuous vs discrete.** The window is a
+  *set* in Moody's framework, not a parameter from a
+  parameterised family. Translation is continuous; shape
+  variation is not formalised. **Window-shape parameter space is
+  not in Moody.**
+- **Q14b(e) — window → prototile-shape map.** Sharper answer
+  via §4.2: in tilings whose vertex sets are model sets, each
+  prototile type corresponds to a distinct open subset of internal
+  space. **For ABCK the relation is more complex:** Frettlöh's 3
+  vertex-class windows produce 4 prototiles via the H₃
+  fundamental-region structure. Window decomposition determines
+  *vertex classes*; tile shapes emerge from *combinatorial
+  arrangement of vertex classes* under H₃.
+
+### Refined structural multi-prototile conjecture
+
+The original conjecture is sharpened by Moody's framework into:
+
+> **Refined conjecture (post-Moody).** For every D₆ cut-and-
+> project tiling of ℝ³ with icosahedral symmetry where the
+> prototile-shape structure is determined by the H₃ tetrahedral
+> fundamental region (the ABCK / icosian-model-set family per
+> Moody §4.1), the tiling requires more than one prototile type.
+
+Three escape routes that would refute it:
+
+1. A D₆ vertex-class arrangement that yields a single tile type
+   (counterexample to the conjecture as stated).
+2. A non-H₃-fundamental-region prototile-shape structure on a D₆
+   model set (would refute the *scope* by exhibiting a different
+   shape family).
+3. The D₆ weight lattice or an intermediate D₆ lattice yielding
+   a monotile (would refute by exhibiting a sibling case).
+
+Moody §4.1 explicitly notes (verbatim, p.9): "the only other
+relevant lattices in 6-space are the D_6 weight lattice and the
+lattices lying between the root and weight lattices." So the
+conjecture's scope is well-defined: D₆ root + weight +
+intermediates exhaust the icosahedral CPS framework per Moody.
+
+### Gate resolution
+
+Per [strategy_pivot.md §5](strategy_pivot.md):
+
+- **Gate A** (Branch A, conjecture false) requires Baake-Grimm to
+  contain a counterexample, a window-deformation theorem, or an
+  explicit "monotile windows admitted" remark. Moody contains
+  none of these. **Gate A NOT activated by this read.**
+- **Gate B** (Branch B, conjecture true) requires Baake-Grimm to
+  contain a no-go theorem, a minimum-prototile-count theorem, or
+  an explicit no-go remark. Moody contains *partial inferential
+  support* (the window-decomposition correspondence + "no
+  monotile candidate appears anywhere in the published F-type
+  family") but **no theorem proving the conjecture.** Gate B
+  partially activated; not fully resolved.
+- **Gate C** (Branch C, undecidable) requires Baake-Grimm to
+  contain discussion without resolution, OR silence on the
+  structural question, OR a reference to Kramer-Papadopolos as
+  containing the resolution. Moody is **largely silent on the
+  structural question**. Gate C is the closest match for what
+  Moody returned: he refines the framework and gives partial
+  evidence consistent with the conjecture, but does not settle
+  it.
+
+### Verdict: Gate C activated
+
+The Moody read does **not** resolve the structural conjecture.
+What it does:
+
+1. **Sharpens** the conjecture to a more falsifiable form (the
+   refined version above) by clarifying the window → prototile-
+   shape relationship.
+2. **Bounds** the framework's scope (D₆ root + weight +
+   intermediates exhaust icosahedral CPS per Moody §4.1).
+3. **Confirms** that no shape-deformation literature exists in
+   the open-access substitutes; if it exists, it's in
+   Kramer-Papadopolos 1994 (closed-access).
+
+### Recommended next step (post-Moody)
+
+Per Q15b's authorised sequence, Gate C activates the **(d.1)
+acquire-the-originals** option. The recommended next move:
+
+- **Pursue institutional access** to Kramer-Papadopolos-
+  Schlottmann-Zeidler (1994) *Projection of the Danzer Tiling*,
+  *J. Phys. A* 27, 4505–4517. The DOI is
+  10.1088/0305-4470/27/13/024 (per the agent's correction of an
+  earlier typo). Inter-library loan via any UK or US R1 maths
+  library. Allow days to weeks.
+- **In parallel**: pursue *one* of the three escape routes
+  computationally, since they are concrete and Apeiron's existing
+  D₆ infrastructure could be adapted. Specifically Route 1 (test
+  whether any vertex-class arrangement under H₃ yields a single
+  tile type) is a finite combinatorial check, ~weeks of
+  engineering on top of existing Apeiron primitives.
+
+The user's authorisation is the gate for either of these. Until
+authorised, no infrastructure work or paper-acquisition activity
+lands. The conjecture stands as "open, refined, and bounded."
