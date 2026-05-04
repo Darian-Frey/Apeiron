@@ -66,8 +66,24 @@ def pf_eigenvector_in_zphi(
     matrix: np.ndarray,
     pf_target: ZPhi,
 ) -> tuple[ZPhi, ...] | None:
-    """Compute the right PF eigenvector of ``matrix`` over ℤ[φ], or
-    return ``None`` if it isn't ZPhi-expressible.
+    """Compute the **right** PF eigenvector of ``matrix`` over ℤ[φ],
+    or return ``None`` if it isn't ZPhi-expressible.
+
+    **Right vs left eigenvector — semantics warning.** For a
+    substitution matrix ``M`` with column convention
+    ``M[j, i] = #type-j in σ(prototile_i)``:
+
+    - The **right** eigenvector ``v`` (``M·v = λ·v``) gives the
+      *frequency* vector — long-range relative occurrences of each
+      prototile in tilings.
+    - The **left** eigenvector ``w`` (``M^T·w = λ·w``) gives the
+      *volume* vector — vol(P_i) ∝ w_i, since
+      ``vol(σ(P_i)) = Σ_j M[j, i]·vol(P_j) = (M^T·w)[i] = λ·w_i``.
+
+    For symmetric ``M`` the two coincide; for asymmetric they
+    differ. Callers needing the volume vector should pass
+    ``M.T`` (the transpose) to recover the left eigenvector via
+    this same function.
 
     For an n×n integer matrix with eigenvalue ``pf_target ∈ ZPhi``,
     the kernel of ``matrix − pf_target · I`` is a ZPhi-module. We

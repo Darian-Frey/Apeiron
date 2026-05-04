@@ -1017,6 +1017,7 @@ def realise(
     prototile_shapes: tuple[Polyhedron, ...] | None = None,
     *,
     max_search_seconds: float = 300.0,
+    k_max: int = 3,
 ) -> Realised | NoRealisation | Inconclusive:
     """Decide whether a substitution-matrix candidate admits a 3D
     polyhedral realisation with ℤ[φ]³ vertices.
@@ -1153,7 +1154,7 @@ def realise(
             inflated_parent_faces=inflated_faces,
             rotation_pool=rotation_pool,
             deadline=deadline,
-            k_max=3,
+            k_max=k_max,
             expected_volume_x6=expected_x6,
         )
         if result == "k_too_large":

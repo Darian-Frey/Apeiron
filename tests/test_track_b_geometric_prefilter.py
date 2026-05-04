@@ -75,6 +75,29 @@ class TestPfEigenvectorInZPhi:
                 mv_i = mv_i + ZPhi(int(M[i, j]), 0) * result[j]
             assert mv_i == ZPhi(1, 2) * result[i]
 
+    def test_right_vs_left_eigenvector_for_asymmetric_M(self) -> None:
+        # Bug-prevention: pf_eigenvector_in_zphi returns the RIGHT
+        # eigenvector (frequency vector). For asymmetric M the LEFT
+        # eigenvector (volume vector) is different. Callers needing
+        # volumes pass M.T explicitly.
+        M = np.array([[0, 0, 1], [1, 2, 2], [1, 2, 2]])
+        right = pf_eigenvector_in_zphi(M, ZPhi(1, 2))
+        left = pf_eigenvector_in_zphi(M.T, ZPhi(1, 2))
+        assert right is not None
+        assert left is not None
+        # For this asymmetric M they must NOT be parallel as vectors;
+        # if both were the same up to scale, the test is trivially
+        # passed by symmetric Ms only.
+        # Cross-multiply to detect proportionality: a/c == b/d iff
+        # a*d == b*c.
+        a, b, c = right
+        x, y, z = left
+        # Two vectors are parallel iff every cross-product component
+        # is zero.
+        assert not (
+            a * y == x * b and a * z == x * c and b * z == y * c
+        )
+
     def test_higher_n_not_yet_supported(self) -> None:
         # n=4+ still raises NotImplementedError; cross-product
         # shortcut works only for n=3.
