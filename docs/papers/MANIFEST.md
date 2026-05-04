@@ -295,6 +295,54 @@ substitute for §7.4 + §7.2.
 
 ---
 
+## 12. Hayashi et al. (2011), *Notes on Vertex Atlas of Danzer Tiling*
+
+- **Authors:** Hiroko Hayashi, Yuu Kawachi, Kazushi Komatsu, Aya
+  Konda, Miho Kurozoe, Fumihiko Nakano, Naomi Odawara, Rika Onda,
+  Akinobu Sugio, Masatetsu Yamauchi
+- **Year:** 2011
+- **Venue:** Nihonkai Math. J. 22 (2011), 49–58
+- **Source URL:** Local file (origin unspecified)
+- **Local file:** `1339694050.pdf`
+- **Topic:** **Different Danzer tiling** — the 2D Nischke-Danzer
+  7-fold construction with 6 prototiles (three 2D triangles and
+  their reflections). Theorem 1.1: 39 vertex atlases with arrows,
+  29 without. Discussion of up-down generation and comparison
+  with Penrose 5-fold.
+- **Why on the read list (post-Q16 user contribution):** Added by
+  user 2026-05-04 as a candidate substitute for
+  Kramer-Papadopolos-Schlottmann-Zeidler 1994. **Off-topic:** does
+  not address 3D Danzer ABCK, D₆ cut-and-project, window
+  deformation, or the structural multi-prototile conjecture. The
+  shared keyword "Danzer" refers to a different tiling from the
+  same author. Documented here for completeness but not used in
+  the synthesis.
+
+---
+
+## Note on duplicates added 2026-05-04
+
+User contributed five files; three are duplicates of papers
+already in this manifest, one is a duplicate of the Frettlöh
+ikosa paper, and one is the Hayashi 2D paper (entry §12 above).
+Verified by md5:
+
+- `2003.13449v3.pdf`,
+  `Icosahedral_Polyhedra_from_D6_lattice_and_Danzers.pdf`,
+  `al_siyabi_koca_koca_2020_icosahedral_polyhedra_d6.pdf` — all
+  md5 `0e0af0f0a08d2b0bf014ab719a4c0b79`. Same arXiv content
+  (v3 ≡ v1 byte-identically; the apparent v1 we initially
+  downloaded is in fact the v3).
+- `ikosa.pdf`, `frettloh_icosahedral_ABCK_D6_CPS.pdf` — both md5
+  `e214d8fd3b06dff6038b45e16d485bf4`. Same Frettlöh paper.
+- `symmetry-12-01983-v2.pdf` — published *Symmetry* 12 (12) 1983
+  version of arXiv:2003.13449. 15 pages (vs arXiv v1's 19 pages,
+  due to journal two-column formatting). Subject metadata
+  identical to the arXiv version's abstract. Treat as the same
+  paper for synthesis purposes; no re-read required.
+
+---
+
 ## Source-discovery notes
 
 - **Goodman-Strauss:** open-access PDF on Arkansas faculty page;
