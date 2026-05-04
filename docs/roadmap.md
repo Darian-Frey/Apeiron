@@ -170,11 +170,28 @@ direction per Claude (web)'s Q7c ruling. Sub-package layout
           becomes intractable past k=3 without fail-first ordering
           per Q8 meta-3. The CSP body is a complete decision
           procedure for k ≤ 3 today.
-- [ ] **Fail-first rotation ordering** to lift the k_max=3 ceiling.
-      Per Q8 meta-3: order I_h elements by how many face-match
-      constraints they immediately violate when placed first; try
-      most-constraining rotation first so NoRealisation
-      (the expected outcome for most candidates) is decided early.
+- [x] **DFS-style backtracker with face-match pruning** ✅ in
+      `551510a`. Replaces the triple-nested
+      ``trees × face-pair-seqs × rotation-seqs`` iteration with a
+      recursive DFS that explores ``(face_pair, rotation)`` triples
+      per edge and prunes inconsistent face-match choices at the
+      source via ``translation_offset_from_face_match``. All 5
+      n=2 PF=φ³ candidates now answered definitively (in 0.00s
+      with synthetic identical-volume tets — volume mismatch
+      rejects every candidate by design).
+- [ ] **Shape derivation from eigenvector** to close the loop on
+      ``realise(matrix, pf_target)`` without requiring caller-supplied
+      prototile_shapes. Per Q8e's "fix canonical shape from volume
+      ratio first": derive icosahedral-compatible tetrahedra whose
+      volume ratio matches the left eigenvector of M. Currently
+      realise() rejects wrong shapes definitively; with shape
+      derivation it could attempt the *right* shapes too.
+- [ ] **Fail-first rotation ordering optimisation** for k > 3:
+      sort rotation pool by per-rotation constraint score (number of
+      face-match violations when placed first). Currently DFS
+      explores rotations in fixed order; sorting could give 5–10×
+      speedup for large k. Optional; the existing DFS handles
+      k=2–3 in seconds.
 - [ ] Integration test on the n=2 PF=φ³ survey: run
       `realise` on each of the 5 candidates with appropriately-shaped
       prototiles. Most or all are expected to return NoRealisation;

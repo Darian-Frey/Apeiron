@@ -25,19 +25,26 @@ Track B sub-package `apeiron/track_b/` houses:
   (Penrose P3), 5 at PF=φ³.
 - `geometric_prefilter.py` ✅ — filter 1 (ZPhi eigenvector)
   for n=2. All 5 PF=φ³ candidates pass.
-- `realisation.py` ✅ — **complete decision procedure for k ≤ 3**.
-  Search composes `translation_offset_from_face_match` (per-edge)
-  → `propagate_translations_along_tree` (tree DFS) → outer iteration
-  (tree topology × face pairs × rotation pool) with FOUR validation
-  layers: volume-sum (entire-search bail) → AABB → polytope
-  containment → SAT pairwise disjoint. Together these are
-  necessary-and-sufficient: vol-sum + non-overlap + containment ⇒
-  coverage by inclusion-exclusion, so "Realised" at this commit
-  IS a face-to-face dissection (k_max permitting).
+- `realisation.py` ✅ — **complete decision procedure for k ≤ 3**
+  with DFS-style backtracker (commit `551510a`). Search structure:
+  per-edge face-match consistency check prunes inconsistent
+  rotations at the source. Four validation layers: volume-sum
+  (entire-search bail) → AABB → polytope containment → SAT
+  pairwise disjoint. Volume check runs *before* the k_max gate, so
+  candidates with wrong-shape prototiles get a definite
+  NoRealisation regardless of k.
 
-Next concrete piece: fail-first rotation ordering per Q8 meta-3 to
-lift the k_max=3 ceiling, enabling search on the n=2 PF=φ³
-candidates (which have k=4–7 σ-rules).
+All 5 n=2 PF=φ³ candidates now answered (NoRealisation with
+synthetic identical-volume tets — volume mismatch by design).
+Penrose P3 likewise.
+
+Next concrete piece: shape-derivation for the eigenvector ratio.
+Currently realise() requires caller-supplied prototile_shapes; the
+search definitively rejects wrong shapes but cannot CHOOSE shapes.
+Q8e's "fix canonical shape from volume ratio first" — derive
+icosahedral-compatible tetrahedra whose volume ratio matches the
+eigenvector — would close the loop for an end-to-end "given a
+matrix, decide realisability" function.
 
 Sub-commit plan for Track A's first candidate (Danzer):
 
@@ -116,6 +123,15 @@ Sub-commit plan for Track A's first candidate (Danzer):
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
+- **Track B realisation DFS backtracker** `551510a` —
+  `feat(track_b)`: refactored from triple-nested iteration to
+  recursive DFS with per-edge face-match pruning. Inconsistent
+  rotation choices fail at the source rather than being tested
+  for every face-pair-seq. Plus volume-sum check reordered before
+  k_max gate, turning "Inconclusive (k>k_max)" into definite
+  NoRealisation for wrong-shape candidates. All 5 n=2 PF=φ³
+  candidates now answered (NoRealisation with synthetic
+  identical-volume tets); search runs in 0.00s–5s for k=2,3.
 - **Track B realisation: complete decision procedure for k ≤ 3**
   `15c8790` — `feat(track_b)`: polytope containment via centroid-
   relative inside-half-space test. With all four validation layers
