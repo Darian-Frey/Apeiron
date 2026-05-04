@@ -128,21 +128,47 @@ direction per Claude (web)'s Q7c ruling. Sub-package layout
       witness; non-Fibonacci inputs return Inconclusive with
       ``fraction_searched=0`` and a reason string referencing the
       pending CSP.
-- [ ] **Realisation CSP body** (next sub-commit). Per Q8a/c:
-      structured rotation-search with linear translation recovery
-      in ZPhi. Fix child 0's rotation to identity (WLOG by global
-      I_h symmetry per Q8 meta) and search ``I_h^(k−1)`` for
-      remaining children with face-match pruning. For each
-      rotation assignment solve the translation linear system
-      exactly via Gaussian elimination over ℤ[φ]; on inconsistency,
-      backtrack. Q8 meta-3: fail-first rotation ordering biased
-      toward early NoRealisation (the expected outcome for most
-      candidates). Coroutine-style internal generator yielding
-      `SearchProgress`; outer `max_search_seconds` wrapper consumes
-      until timeout.
+- [x] **Realisation CSP body** ✅ in commits `72d222f`, `589c4ca`,
+      `d49c3d7`, `6949bec`, `c0ef1d9` per Claude (web)'s Q8a/c
+      ruling. Three building blocks plus three validation layers
+      now compose end-to-end:
+
+      Building blocks:
+        * `translation_offset_from_face_match` — per-edge ZPhi
+          offset solver (6 vertex permutations).
+        * `propagate_translations_along_tree` — tree-DFS chain of
+          per-edge offsets.
+        * `FaceMatchEdge` dataclass.
+
+      Search loop (`_search_realisation_for_parent`):
+        * Iterates DFS-discovery-ordered tree topologies.
+        * Per edge: 4×4 face-pair sequence.
+        * Per non-root child: rotation pool (60 proper).
+        * Child 0's rotation fixed to identity, translation to
+          origin (Q8 meta-1).
+
+      Validation layers (in order, with early bail):
+        1. Volume sum: pure ℤ[φ] check that
+           ``Σ vol(child) = pf_target × vol(parent)``. Bails entire
+           search if mismatched (saves all rotation iterations).
+        2. Bounding-box: every placed vertex inside inflated parent.
+        3. SAT (Separating Axis Theorem): pairwise interior-disjoint
+           check on all C(k,2) pairs. Tangent-at-boundary counts as
+           disjoint per face-to-face semantics.
+
+      Limitations to address:
+        * **Coverage**: union(placed children) = λ·parent not yet
+          checked. Volume-sum + non-overlap is *necessary*; full
+          coverage is the missing *sufficient* condition.
+        * **k > 3**: outer iteration (k-1)! × 16^(k-1) × 60^(k-1)
+          becomes intractable past k=3 without fail-first ordering
+          per Q8 meta-3.
+- [ ] **Coverage check** + **fail-first rotation ordering** —
+      remaining pieces to make `realise` a complete decision
+      procedure for tetrahedral candidates with k ≤ 5.
 - [ ] Integration test on the n=2 PF=φ³ survey: run
-      `realise` on each of the 5 candidates after the CSP body is
-      filled in. Most or all are expected to return NoRealisation;
+      `realise` on each of the 5 candidates with appropriately-shaped
+      prototiles. Most or all are expected to return NoRealisation;
       any survivor is a major Track B finding.
 
 ## Phase 3 — Recognisability and beyond

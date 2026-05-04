@@ -25,14 +25,17 @@ Track B sub-package `apeiron/track_b/` houses:
   (Penrose P3), 5 at PF=φ³.
 - `geometric_prefilter.py` ✅ — filter 1 (ZPhi eigenvector)
   for n=2. All 5 PF=φ³ candidates pass.
-- `realisation.py` ✅ (API + Fibonacci oracle) per Q8 ruling.
-  Body is a placeholder for non-Fibonacci inputs; structured
-  rotation-search backtracker per Q8a/c is the next sub-commit.
+- `realisation.py` ✅ — full CSP body per Q8a/c.
+  `translation_offset_from_face_match` (per-edge),
+  `propagate_translations_along_tree` (tree DFS),
+  `_search_realisation_for_parent` (rotation iteration with
+  3-layer validation: volume-sum + bounding-box + SAT overlap).
+  k_max=3 limit; coverage check + fail-first ordering pending.
 
-Next concrete piece: `realisation.py`'s CSP body — fix child 0's
-rotation to identity, search ``I_h^(k−1)`` with fail-first
-ordering, recover translations by Gaussian elimination in ZPhi
-per face-match equations.
+Next concrete piece: coverage check (union of placed children =
+λ·parent) plus fail-first rotation ordering per Q8 meta-3.
+Together these would make `realise` a complete decision
+procedure for tetrahedral candidates at k ≤ 5.
 
 Sub-commit plan for Track A's first candidate (Danzer):
 
@@ -111,6 +114,15 @@ Sub-commit plan for Track A's first candidate (Danzer):
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
+- **Track B realisation CSP body** `c0ef1d9` — `feat(track_b)`:
+  three-layer validation (volume-sum + bounding-box + SAT overlap)
+  on top of the rotation-search backtracker. Composes
+  `translation_offset_from_face_match` (per-edge,
+  `72d222f`) → `propagate_translations_along_tree` (tree DFS,
+  `589c4ca`) → outer iteration over (tree, face-pairs, rotations)
+  in `_search_realisation_for_parent` (`d49c3d7`) → volume check
+  (`6949bec`) → SAT overlap (`c0ef1d9`). k_max=3 limit; coverage
+  check + fail-first ordering remain pending.
 - **Track B realisation API** `f97d24c` — `feat(track_b)`: Q8
   result types (`Realised | NoRealisation | Inconclusive`,
   `ChildPlacement`, `SearchProgress`) and public
@@ -332,8 +344,8 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (post-Q8-realisation-API): 637 passing in ~20.2 s
-under venv pytest 9.0.3. Slow-test distribution unchanged: `cube_corona_2`
+Test totals (post-Q8-CSP-body): 658 passing in ~20.6 s under
+venv pytest 9.0.3. Slow-test distribution unchanged: `cube_corona_2`
 setup ~7 s, `RD corona_1` setup ~5.5 s, `cube corona_1` setup
 ~2.3 s, `RTH face-to-face counts` ~1.5 s. The rest of the 594
 tests run in well under a second combined.
