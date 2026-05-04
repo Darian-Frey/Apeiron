@@ -599,12 +599,13 @@ class TestSearchLoopIntegration:
         )
         assert isinstance(result, NoRealisation)
 
-    def test_trivial_pf2_passes_volume_check(self) -> None:
-        # M=[[2]] (PF=2): single prototile, σ(P_0) = 2 P_0. Volume
-        # sum = 2·V = pf·V. Volume check passes; the search returns
-        # Realised (caveat: bounding-box-only validation; the
-        # placement is likely a degenerate overlap until SAT-based
-        # non-overlap detection lands).
+    def test_trivial_pf2_volume_passes_overlap_rejects(self) -> None:
+        # M=[[2]] (PF=2) with identical-shape children: volume-sum
+        # passes (2V = pf·V), but pairwise SAT overlap-detection
+        # rejects every rotation assignment (two identical tetrahedra
+        # at the origin always overlap). Result: NoRealisation —
+        # confirming SAT correctly catches the trivial overlap that
+        # the previous bounding-box-only iteration missed.
         m = np.array([[2]])
         proto = self._unit_tetrahedron()
         result = realise(
@@ -612,8 +613,78 @@ class TestSearchLoopIntegration:
             prototile_shapes=(proto,),
             max_search_seconds=10,
         )
-        assert isinstance(result, Realised)
-        assert len(result.children_per_parent[0]) == 2
+        assert isinstance(result, NoRealisation)
+
+
+class TestSatOverlap:
+    """Per-pair separating-axis-theorem tests on tetrahedral
+    prototiles."""
+
+    def _unit_tet_verts(self) -> tuple[Vec3, ...]:
+        z = ZPhi(0, 0)
+        two = ZPhi(2, 0)
+        return (
+            Vec3(z, z, z),
+            Vec3(two, z, z),
+            Vec3(z, two, z),
+            Vec3(z, z, two),
+        )
+
+    def _unit_tet_faces(self) -> tuple[tuple[int, int, int], ...]:
+        return ((0, 1, 2), (0, 3, 1), (0, 2, 3), (1, 3, 2))
+
+    def test_identical_tets_at_origin_overlap(self) -> None:
+        from apeiron.track_b.realisation import (
+            _convex_polyhedra_interior_disjoint,
+        )
+        v = self._unit_tet_verts()
+        f = self._unit_tet_faces()
+        assert _convex_polyhedra_interior_disjoint(v, f, v, f) is False
+
+    def test_translated_apart_are_disjoint(self) -> None:
+        from apeiron.track_b.realisation import (
+            _convex_polyhedra_interior_disjoint,
+        )
+        v_a = self._unit_tet_verts()
+        z = ZPhi(0, 0)
+        offset = Vec3(ZPhi(10, 0), z, z)
+        v_b = tuple(p + offset for p in v_a)
+        f = self._unit_tet_faces()
+        assert _convex_polyhedra_interior_disjoint(v_a, f, v_b, f) is True
+
+    def test_face_tangent_is_disjoint(self) -> None:
+        # Two unit tetrahedra glued at the face (1, 2, 3) (face
+        # opposite the origin vertex). After reflecting B through
+        # this plane, their interiors are disjoint and they touch
+        # only on the shared face. SAT should report disjoint.
+        from apeiron.track_b.realisation import (
+            _convex_polyhedra_interior_disjoint,
+        )
+        v_a = self._unit_tet_verts()
+        # Reflect B's vertex 0 (= origin) through the (1, 2, 3) face
+        # plane x + y + z = 2. Reflection of (0,0,0) is (4/3, 4/3, 4/3)
+        # in real (= ZPhi(4, 0) / 3, not in ZPhi). Skip to a simpler
+        # gluing: place B's vertex 0 outside A, sharing face (1, 2, 3).
+        # Concretely, B is the mirror image of A across the plane
+        # through (1, 2, 3). For a regular-corner tet (1,2,3 at
+        # x+y+z=2 plane), B's vertex 0 lands at (4/3, 4/3, 4/3) — not
+        # ZPhi.  Instead build a tangent case via SAT directly: A and
+        # B both contain a shared face but their interiors are on
+        # opposite sides. Construct B as A's reflection across z=0:
+        z = ZPhi(0, 0)
+        two = ZPhi(2, 0)
+        v_b = (
+            Vec3(z, z, z),
+            Vec3(two, z, z),
+            Vec3(z, two, z),
+            Vec3(z, z, ZPhi(-2, 0)),  # mirror vertex 3 below z=0
+        )
+        f = self._unit_tet_faces()
+        # A and B share the face (0, 1, 2) (the z=0 triangle); their
+        # interiors are on opposite sides (z > 0 for A, z < 0 for B).
+        assert _convex_polyhedra_interior_disjoint(
+            v_a, f, v_b, f,
+        ) is True
 
 
 class TestInputValidation:

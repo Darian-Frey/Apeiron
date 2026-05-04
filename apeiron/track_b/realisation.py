@@ -464,6 +464,117 @@ def _bounding_box(vertices: Sequence[Vec3]) -> tuple[Vec3, Vec3]:
     return (Vec3(min_x, min_y, min_z), Vec3(max_x, max_y, max_z))
 
 
+def _cross(a: Vec3, b: Vec3) -> Vec3:
+    """Cross product of two ZPhi 3-vectors. Pure ZPhi."""
+    return Vec3(
+        a.y * b.z - a.z * b.y,
+        a.z * b.x - a.x * b.z,
+        a.x * b.y - a.y * b.x,
+    )
+
+
+def _is_zero_vec(v: Vec3) -> bool:
+    return (
+        v.x == ZPhi(0, 0)
+        and v.y == ZPhi(0, 0)
+        and v.z == ZPhi(0, 0)
+    )
+
+
+def _project_onto_axis(
+    vertices: Sequence[Vec3], axis: Vec3,
+) -> tuple[ZPhi, ZPhi]:
+    """Project vertices onto axis via dot product; return
+    ``(min, max)`` ZPhi pair using real-number ordering.
+
+    No floats; comparison via ``ZPhi._sign`` on differences.
+    """
+    if not vertices:
+        raise ValueError("Cannot project empty vertex set.")
+    first = vertices[0].dot(axis)
+    lo = hi = first
+    for v in vertices[1:]:
+        d = v.dot(axis)
+        if (d - lo)._sign() < 0:
+            lo = d
+        if (d - hi)._sign() > 0:
+            hi = d
+    return lo, hi
+
+
+def _convex_polyhedra_interior_disjoint(
+    verts_a: Sequence[Vec3],
+    faces_a: Sequence[Sequence[int]],
+    verts_b: Sequence[Vec3],
+    faces_b: Sequence[Sequence[int]],
+) -> bool:
+    """Separating-axis-theorem test: are two convex polyhedra
+    interior-disjoint?
+
+    Returns True iff the polyhedra share no 3D interior — they may
+    still touch at a face/edge/vertex boundary (face-to-face tilings
+    expressly require this). False if they overlap in 3D.
+
+    Candidate separating axes for two convex polyhedra:
+
+    1. Each face normal of A (computed on the placed vertices).
+    2. Each face normal of B.
+    3. Each cross product of an edge from A with an edge from B
+       (handles edge-edge contact configurations).
+
+    For tetrahedra: 4 + 4 = 8 face normals, 6 × 6 = 36 edge cross
+    products = 44 candidate axes. Per axis: project both polyhedra,
+    test ``max_proj_a ≤ min_proj_b ∨ max_proj_b ≤ min_proj_a``
+    (tangent = separated, per face-to-face semantics).
+
+    Pure ZPhi; no floats.
+    """
+    # Collect unique edges per polyhedron (for the edge × edge
+    # cross-product axes). For tetrahedra-with-triangular-faces the
+    # 6 distinct edges per tile match the unique pairs of vertex
+    # indices appearing in any face.
+    def _edges(verts: Sequence[Vec3], faces: Sequence[Sequence[int]]) -> list[Vec3]:
+        edge_set: set[tuple[int, int]] = set()
+        for face in faces:
+            n = len(face)
+            for k in range(n):
+                a, b = face[k], face[(k + 1) % n]
+                edge_set.add((min(a, b), max(a, b)))
+        return [verts[b] - verts[a] for a, b in edge_set]
+
+    def _face_normals(
+        verts: Sequence[Vec3], faces: Sequence[Sequence[int]],
+    ) -> list[Vec3]:
+        out: list[Vec3] = []
+        for face in faces:
+            if len(face) < 3:
+                continue
+            v0, v1, v2 = verts[face[0]], verts[face[1]], verts[face[2]]
+            normal = _cross(v1 - v0, v2 - v0)
+            if not _is_zero_vec(normal):
+                out.append(normal)
+        return out
+
+    candidate_axes: list[Vec3] = []
+    candidate_axes.extend(_face_normals(verts_a, faces_a))
+    candidate_axes.extend(_face_normals(verts_b, faces_b))
+    edges_a = _edges(verts_a, faces_a)
+    edges_b = _edges(verts_b, faces_b)
+    for ea in edges_a:
+        for eb in edges_b:
+            cross = _cross(ea, eb)
+            if not _is_zero_vec(cross):
+                candidate_axes.append(cross)
+
+    for axis in candidate_axes:
+        lo_a, hi_a = _project_onto_axis(verts_a, axis)
+        lo_b, hi_b = _project_onto_axis(verts_b, axis)
+        # Separated iff max_a ≤ min_b OR max_b ≤ min_a.
+        if (hi_a - lo_b)._sign() <= 0 or (hi_b - lo_a)._sign() <= 0:
+            return True  # found a separating axis
+    return False  # no separating axis → polyhedra overlap
+
+
 def _vertex_in_box(v: Vec3, lo: Vec3, hi: Vec3) -> bool:
     """Component-wise ``lo ≤ v ≤ hi`` in real-number ZPhi order."""
     return (
@@ -625,6 +736,30 @@ def _search_realisation_for_parent(
                     if not ok:
                         break
                 if not ok:
+                    continue
+                # SAT-based pairwise interior-disjoint check.
+                placed_verts_per_child: list[list[Vec3]] = []
+                for child_idx in range(k):
+                    proto = prototile_shapes[children_types[child_idx]]
+                    rot = rot_seq[child_idx]
+                    t = translations[child_idx]
+                    placed_verts_per_child.append(
+                        [rot.apply(v) + t for v in proto.vertices]
+                    )
+                pair_ok = True
+                for a in range(k):
+                    for b in range(a + 1, k):
+                        if not _convex_polyhedra_interior_disjoint(
+                            placed_verts_per_child[a],
+                            prototile_shapes[children_types[a]].faces,
+                            placed_verts_per_child[b],
+                            prototile_shapes[children_types[b]].faces,
+                        ):
+                            pair_ok = False
+                            break
+                    if not pair_ok:
+                        break
+                if not pair_ok:
                     continue
                 # Found a valid placement.
                 return tuple(
@@ -954,7 +1089,7 @@ def realise(
                 reason=(
                     f"σ(prototile_{parent_idx}) with {len(children_types)} "
                     "children admits no face-to-face placement under "
-                    "bounding-box validation."
+                    "volume-sum + bounding-box + SAT overlap validation."
                 ),
             )
         # result is a tuple of ChildPlacement.
