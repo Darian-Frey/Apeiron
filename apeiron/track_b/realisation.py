@@ -1229,10 +1229,7 @@ def realise(
                 partial=None,
                 reason=(
                     f"σ(prototile_{parent_idx}) has k="
-                    f"{len(children_types)} children > k_max=3. "
-                    "First-iteration search supports k ≤ 3 only; "
-                    "larger σ-rules await algorithmic refinement of "
-                    "the rotation-search backtracker."
+                    f"{len(children_types)} children > k_max={k_max}."
                 ),
             )
         if result == "timeout":

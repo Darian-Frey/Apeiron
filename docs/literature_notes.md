@@ -636,6 +636,131 @@ explained by either:
 
 ---
 
+---
+
+## 6. Frettlöh, *Icosahedral tilings in R³: The ABCK tilings* (Bielefeld internal report; PDF at `https://www.math.uni-bielefeld.de/~frettloe/papers/ikosa.pdf`)
+
+**Read context.** Q13b authorisation (Tilings Encyclopedia ABCK
+check, 15-min cap, dual-purpose). Encyclopedia front page gave no
+ABCK entry; web search located this Frettlöh paper directly. Pages
+1–7 read.
+
+### Q1: Is there a 15-class list with coordinates?
+
+**Confirmed in citable form: yes for the count, no for the
+coordinates.**
+
+Verbatim from §1.1 (p.1):
+
+> Consider the family 𝔉 of all tetrahedra whose faces are parallel
+> to the mirror planes of the icosahedron. Thus all faces have
+> normal vectors in Δ_{H₃}. **It turns out that there are exactly
+> 15 similarity classes A, B, ..., P of such tetrahedra.** All
+> dihedral angles are multiples of π/2, π/3 or π/5. Moreover, each
+> tetrahedron has at least one edge whose dihedral angle is a
+> proper multiple of π/2, π/3 or π/5. By dividing such a dihedral
+> angle into halves (resp. thirds), each tetrahedron is cut into
+> two (resp. three) tetrahedra. The resulting tetrahedra are still
+> contained in 𝔉.
+
+Page 2 then states that ABCK is the minimal closed substitution
+alphabet within 𝔉 (each ABCK class dissects only into ABCK
+classes). Other classes mentioned in dissection examples include
+B, D, L, N (e.g. "a tetrahedron in A might be dissected into two
+tetrahedra from L and N, or into two tetrahedra from B and D").
+
+**Coordinates available only for ABCK** (Table 1, p.2):
+
+```text
+A: (0,0,0), (τ³,0,τ²), (τ²,τ²,τ²), (τ²,1,0)         [classes I, III, II, III]
+B: (0,0,0), (τ³,0,τ²), (τ²,τ²,τ²), (τ²,τ,1)         [I, III, II, I]
+C: (0,0,0), (-τ,0,1), (τ²,τ²,τ²), (0,τ²,1)          [I, II, II, III]
+K: (0,0,0), (-1,τ,0), (τ,τ,τ), ½(-1,1/τ,τ)          [I, II, III, IV]
+```
+
+(These are the same 4 prototile coordinates Apeiron already has in
+`candidates/danzer/{A,B,C,K}.json`, mod the ×2 storage convention.)
+
+**Coordinates for the missing 11 classes (D, E, F, G, H, I, J, L,
+M, N, O, P or similar — "A, ..., P" minus ABCK, possibly with one
+letter elided in conventional indexing) are NOT in this paper.**
+Page 3: "many properties of the tetrahedra and their configurations
+in ABCK tilings are contained in the privately published book [8].
+Unfortunately, this book contains several errors, some of which we
+correct here."
+
+> **Resolution of Q11b's apocryphal-15 question.** The "15" count
+> is now citable from a publicly-available Frettlöh paper. The
+> coordinates for the missing 11 classes remain in the
+> privately-published Danzer-Sonneborn-van Ophuysen (1993)
+> ABCK-Book, which Frettlöh both cites and warns "contains several
+> errors." Operative count for Apeiron remains 9 (from Paolini
+> ABCK pool); the path to 15 still requires accessing the
+> ABCK-Book or coordinate-deriving the missing classes from
+> first-principles dihedral-bisection of A, B, C, K (which the
+> paper sketches at §1.1 but does not enumerate).
+
+### Q2: Is κ_ABCK stated?
+
+**Not stated in pages 1–7.** The paper covers (in this prefix):
+prototile geometry (§1.1), local matching rules (§1.2: "all tiles
+are required to meet face-to-face"; one mirror rule on blue
+edges), CPS for ⟨ABCK⟩ tilings (§1.3, with D₆ as the lattice).
+
+Goodman-Strauss's κ (recognisability depth) is not part of
+Frettlöh's discussion. Recognisability is discussed in the
+context of matching rules (Theorem 1.2: ⟨ABCK⟩ tilings can be
+obtained by a purely geometric local matching rule with face-to-
+face) but no integer-valued κ-style depth is computed.
+
+> **Resolution of Q11b's κ_ABCK question.** Not closed. κ_ABCK
+> remains uncomputed in the public Frettlöh literature. Apeiron's
+> conservative bound κ_ABCK ≤ 2 (per Goodman-Strauss p.15
+> empirical observation) stays as the operative assumption.
+
+### Bonus finding (highly relevant to Q11c)
+
+**ABCK is a model set from D₆ via CPS (Theorem 1.3, p.7).**
+
+§1.3 (p.5): "The ABCK tilings can be obtained by a CPS using the
+root lattice D₆. More precisely, the vertices of an ABCK tiling
+can be obtained by a CPS, except the vertices of class IV..."
+(Class IV are the half-integer coordinates of K's vertex 4; the
+mld ⟨ABCK⟩ tiling avoids them.)
+
+Theorem 1.3 (p.7): "Each of the vertex classes I, II, III of the
+⟨ABCK⟩ tilings are model sets, with internal space ℝ³ and lattice
+D₆. The union of the three vertex classes is a model set with
+internal space ℝ³ × C₄."
+
+The three windows are explicit (Figure 3, p.5): regular
+dodecahedron (class II, edge length 2), great dodecahedron
+(class III, long edge length 2τ), and a custom polyhedron (class
+I, "regular dodecahedron with five-fold stars engraved on each
+pentagonal face", long edge length 4τ/√(τ+2)).
+
+Window volumes are given numerically (p.7): 20(5τ+2),
+4(7τ+4), 20τ². Vertex-class densities follow.
+
+> **Direct paper-cited support for Q11c's cut-and-project pivot.**
+> The ABCK tilings are *literally* model sets from D₆. This means
+> Track A is already a cut-and-project tiling — and any 3D
+> icosahedral monotile candidate that arises from a different D₆
+> window would be a meaningful deformation in the cut-and-project
+> sense. Goodman-Strauss's earlier remark (1998 §0, p.3) — "the
+> tilings... can also be generated by inflation" — is reflected
+> here: ABCK is BOTH inflation-generated AND cut-and-project
+> generated.
+>
+> When the (c.4) Kramer-Neri / Kramer et al. literature read
+> begins, this is the natural anchor: the windows of D₆ → ℝ³ that
+> yield ABCK are documented in Frettlöh's paper §1.3, and varying
+> the window is the well-defined operation that produces other
+> F-type tilings. The "other F-type" tilings include the
+> Socolar-Steinhardt tiling (mentioned p.1) and Danzer's own.
+
+---
+
 ## Reading log
 
 | Paper                                  | Status            | Pages read |
