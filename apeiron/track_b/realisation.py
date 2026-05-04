@@ -699,8 +699,6 @@ def _search_realisation_for_parent(
     k = len(children_types)
     if k < 1:
         raise ValueError(f"children_types must be non-empty; got {k}.")
-    if k > k_max:
-        return "k_too_large"
     z = ZPhi(0, 0)
     origin = Vec3(z, z, z)
     identity = Rotation.identity()
@@ -710,6 +708,8 @@ def _search_realisation_for_parent(
     # preserve volume and translations don't change it. If
     # expected_volume_x6 is provided and the sum doesn't match, no
     # rotation assignment can possibly Realise — bail immediately.
+    # This check runs BEFORE the k_max gate: if volume rejects, we
+    # have a definitive NoRealisation answer regardless of k.
     if expected_volume_x6 is not None:
         child_vol_sum_x6 = ZPhi(0, 0)
         for t in children_types:
@@ -719,6 +719,9 @@ def _search_realisation_for_parent(
             child_vol_sum_x6 = child_vol_sum_x6 + v
         if child_vol_sum_x6 != expected_volume_x6:
             return None
+    # k_max gate: only after volume is consistent.
+    if k > k_max:
+        return "k_too_large"
 
     inflated_parent_bbox = _bounding_box(inflated_parent_verts)
 
@@ -755,94 +758,111 @@ def _search_realisation_for_parent(
         proto_face_verts.append(tuple(face_tuples))
 
     proto_vertex_tuples = [tuple(p.vertices) for p in prototile_shapes]
+    inflated_lo, inflated_hi = inflated_parent_bbox
 
-    # Outer iteration: tree, then face-pair sequence, then rotation
-    # sequence. Per Q8 meta-3, fail-first ordering (try the most-
-    # constraining options first) is a future optimisation; this
-    # iteration is straight DFS in the natural order.
-    for tree in trees:
-        for face_pair_seq in _iter_face_pair_sequences(tree, n_faces):
-            for rot_seq in _iter_rotation_sequences(k, rotation_pool):
-                if time.monotonic() > deadline:
-                    return "timeout"
-                edges = []
-                for edge_idx, parent in enumerate(tree):
-                    new_child = edge_idx + 1
-                    f_par_idx, f_new_idx = face_pair_seq[edge_idx]
-                    edges.append(FaceMatchEdge(
-                        parent=parent,
-                        new=new_child,
-                        face_indices_parent=proto_face_verts[
-                            children_types[parent]
-                        ][f_par_idx],
-                        face_indices_new=proto_face_verts[
-                            children_types[new_child]
-                        ][f_new_idx],
-                    ))
-                translations = propagate_translations_along_tree(
-                    rotations=list(rot_seq),
-                    edges=edges,
-                    prototile_indices=list(children_types),
-                    prototile_vertices=proto_vertex_tuples,
-                )
-                if translations is None:
-                    continue
-                # Bounding-box validation (cheap pre-filter), then
-                # strict polytope containment.
-                lo, hi = inflated_parent_bbox
-                ok = True
-                for child_idx in range(k):
-                    proto = prototile_shapes[children_types[child_idx]]
-                    rot = rot_seq[child_idx]
-                    t = translations[child_idx]
-                    for v in proto.vertices:
-                        placed = rot.apply(v) + t
-                        if not _vertex_in_box(placed, lo, hi):
-                            ok = False
-                            break
-                        if not _point_in_convex_polyhedron(
-                            placed, inflated_parent_verts,
-                            inflated_parent_faces,
-                        ):
-                            ok = False
-                            break
-                    if not ok:
-                        break
-                if not ok:
-                    continue
-                # SAT-based pairwise interior-disjoint check.
-                placed_verts_per_child: list[list[Vec3]] = []
-                for child_idx in range(k):
-                    proto = prototile_shapes[children_types[child_idx]]
-                    rot = rot_seq[child_idx]
-                    t = translations[child_idx]
-                    placed_verts_per_child.append(
-                        [rot.apply(v) + t for v in proto.vertices]
-                    )
-                pair_ok = True
-                for a in range(k):
-                    for b in range(a + 1, k):
-                        if not _convex_polyhedra_interior_disjoint(
-                            placed_verts_per_child[a],
-                            prototile_shapes[children_types[a]].faces,
-                            placed_verts_per_child[b],
-                            prototile_shapes[children_types[b]].faces,
-                        ):
-                            pair_ok = False
-                            break
-                    if not pair_ok:
-                        break
-                if not pair_ok:
-                    continue
-                # Found a valid placement.
+    def _validate_complete_assignment(
+        rotations: list[Rotation | ImproperRotation],
+        translations: list[Vec3],
+    ) -> bool:
+        """Containment + SAT non-overlap check on a fully-assigned
+        placement. Volume already pre-filtered at function entry.
+        Returns True iff the placement is a valid face-to-face
+        dissection.
+        """
+        # Containment.
+        placed_verts_per_child: list[list[Vec3]] = []
+        for child_idx in range(k):
+            proto = prototile_shapes[children_types[child_idx]]
+            rot = rotations[child_idx]
+            t = translations[child_idx]
+            placed = [rot.apply(v) + t for v in proto.vertices]
+            for v in placed:
+                if not _vertex_in_box(v, inflated_lo, inflated_hi):
+                    return False
+                if not _point_in_convex_polyhedron(
+                    v, inflated_parent_verts, inflated_parent_faces,
+                ):
+                    return False
+            placed_verts_per_child.append(placed)
+        # SAT pairwise.
+        for a in range(k):
+            for b in range(a + 1, k):
+                if not _convex_polyhedra_interior_disjoint(
+                    placed_verts_per_child[a],
+                    prototile_shapes[children_types[a]].faces,
+                    placed_verts_per_child[b],
+                    prototile_shapes[children_types[b]].faces,
+                ):
+                    return False
+        return True
+
+    # DFS-style backtracking with fail-first per Q8 meta-3:
+    # at each non-root child, iterate (face_par, face_new, rotation)
+    # triples and only descend into those producing a consistent
+    # face-match offset for the *current edge*. This prunes
+    # inconsistent choices at the source rather than testing every
+    # face-pair-seq × rotation-seq combination.
+    def _backtrack(
+        child_idx: int,
+        rotations: list[Rotation | ImproperRotation],
+        translations: list[Vec3],
+        tree: tuple[int, ...],
+    ) -> tuple[ChildPlacement, ...] | None | str:
+        if time.monotonic() > deadline:
+            return "timeout"
+        if child_idx == k:
+            if _validate_complete_assignment(rotations, translations):
                 return tuple(
                     ChildPlacement(
                         prototile_index=children_types[i],
                         translation=translations[i],
-                        rotation=rot_seq[i],
+                        rotation=rotations[i],
                     )
                     for i in range(k)
                 )
+            return None
+        parent_idx_in_tree = tree[child_idx - 1]
+        parent_rot = rotations[parent_idx_in_tree]
+        parent_t = translations[parent_idx_in_tree]
+        parent_proto_idx = children_types[parent_idx_in_tree]
+        new_proto_idx = children_types[child_idx]
+        # Try every (face_par, face_new, rotation) triple. Fail-fast
+        # via offset is None.
+        for f_par in range(n_faces):
+            for f_new in range(n_faces):
+                face_par = proto_face_verts[parent_proto_idx][f_par]
+                face_new = proto_face_verts[new_proto_idx][f_new]
+                for rot in rotation_pool:
+                    offset = translation_offset_from_face_match(
+                        parent_rot, rot,
+                        face_par, face_new,
+                        proto_vertex_tuples[parent_proto_idx],
+                        proto_vertex_tuples[new_proto_idx],
+                    )
+                    if offset is None:
+                        continue
+                    new_t = parent_t + offset
+                    rotations.append(rot)
+                    translations.append(new_t)
+                    result = _backtrack(
+                        child_idx + 1, rotations, translations, tree,
+                    )
+                    rotations.pop()
+                    translations.pop()
+                    if result == "timeout":
+                        return "timeout"
+                    if result is not None:
+                        return result
+        return None
+
+    for tree in trees:
+        rotations: list[Rotation | ImproperRotation] = [identity]
+        translations: list[Vec3] = [origin]
+        result = _backtrack(1, rotations, translations, tree)
+        if result == "timeout":
+            return "timeout"
+        if result is not None:
+            return result
     return None
 
 
