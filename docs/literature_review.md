@@ -1,0 +1,355 @@
+# Literature review — Q10 Output 2 (synthesis)
+
+**Status.** Synthesis of the four-paper read recorded in
+[literature_notes.md](literature_notes.md). Per the Q10 ruling
+(2026-04-29), this is Output 2 of the post-Q9c-gate literature
+deep-dive. After this commit, re-relay to Claude (web) with the
+synthesis result before any new code lands.
+
+**Authoritative claim level.** Section (a) reports what the
+literature says; section (b) interprets it against Apeiron's
+zero-Realised result; section (c) recommends the next move. The
+recommendation is a judgment call — the relay-back is what
+authorises any pivot.
+
+---
+
+## (a) What the literature says about 3D icosahedral monotile substitution
+
+**Direct results: none.** None of the four papers in the read
+list addresses the 3D icosahedral monotile substitution problem.
+Each addresses a related but distinct setting:
+
+| Paper                        | Setting             | Result type                    |
+|------------------------------|---------------------|--------------------------------|
+| Goodman-Strauss 1998         | E^d, d > 1, *any* substitution tiling | Sufficiency: substitution → matching rules     |
+| Frettlöh-Harriss 2013        | ℝ², parallelograms only          | Finite-orientations theorem                  |
+| Frettlöh 2008 EJC + companion| ℝ², infinite-orientation substitutions | Equidistribution and circular symmetry       |
+| Walton-Whittaker 2019        | ℝ², hexagonal monotile           | Edge-to-edge orientational matching example  |
+
+Goodman-Strauss covers d > 1 and is the only one whose theorem
+formally applies to ℝ³. The other three are 2D-specific.
+
+**Indirect results bearing on Apeiron's setting:**
+
+1. **Goodman-Strauss's main theorem is sufficiency-only.** It
+   asserts that *if* a substitution tiling satisfies sibling-edge-
+   to-edge with hereditary edges, *then* it can be enforced by
+   matching rules on a finite set of marked prototiles. It says
+   nothing about which substitutions exist, nor whether a single
+   unmarked prototile can carry the substitution.
+
+2. **The construction in Goodman-Strauss does not preserve
+   monotile-ness.** Even if the input substitution has n = 1
+   prototiles, the output decomposes into vertex tiles, edge
+   tiles, small tiles, and big tiles (§3.1). The theorem is about
+   *tile sets*, not monotiles.
+
+3. **The "mild condition" is stricter in 3D than 2D.** Lemma 1.3
+   (and the author's note on p.10) shows hereditary-vertex does
+   not imply hereditary-edge in d > 2. An example is anticipated
+   but not exhibited as of 1998.
+
+4. **The locking mechanism (vertex wires) requires shared sibling
+   vertices** (§4, p.37). The author leaves open whether
+   substitutions exist where sibling positions cannot be fixed at
+   all — i.e., whether there are substitutions that resist
+   matching-rule enforcement entirely.
+
+5. **Frettlöh-Harriss's parallelogram theorem does not generalise
+   to 3D for free.** The author explicitly notes (p.7) that
+   extending Lemma 2.4 to ℝ^d, d ≥ 2, by parallelotopes "would
+   require further objects... pseudo-planes (and pseudo-
+   hyperplanes) made up of linked parallelotopes sharing a
+   parallel edge in common." The 3D case is sketched, not proved.
+   And tetrahedra (Apeiron's H₃-compatible candidates) are NOT
+   parallelotopes; even the proven 2D theorem does not apply.
+
+6. **Frettlöh 2008 EJC + companion classify pinwheel-like
+   substitutions.** Proposition 3.4 (EJC) gives the test: a
+   primitive substitution σ in ℝ² is pinwheel-like iff some
+   σ^n(T_i) contains two same-type tiles with α(T) − α(T') ∉ πℚ.
+   Apeiron's icosahedral substitutions live in the order-60
+   icosahedral group I (or order-120 I_h); all rotation-angle
+   differences are rational multiples of π. **Therefore Apeiron's
+   substitutions are NOT pinwheel-like;** the Frettlöh 2008
+   machinery does not apply.
+
+7. **Walton-Whittaker 2019 is an existence proof for a 2D marked
+   monotile** (hexagonal, with edge decorations enforcing
+   aperiodicity by orientational matching rules). It does not
+   prove an *unmarked* 2D monotile exists, nor does it address 3D.
+   Its relevance is meta: it demonstrates that decoration is a
+   valid route to aperiodicity when shape alone does not enforce
+   it. (The hat/spectre 2023 papers, not in the read list, do
+   prove an unmarked 2D monotile exists by shape alone — but for
+   3D no such result exists.)
+
+**Bottom line of (a):** the literature has no direct theorem
+about 3D icosahedral monotile substitution; the closest results
+are sufficiency-only (Goodman-Strauss) or 2D-specific (Frettlöh,
+Walton-Whittaker, Frettlöh-Harriss).
+
+---
+
+## (b) Is any known obstruction consistent with the exhaustive NoRealisation result?
+
+**Apeiron's exhaustive-sweep result.** 170 (cand, triple) pairs
+across 13 candidates from the n=3 PF=φ³ algebraic survey
+(max_entry=2). Result: 0 Realised, 13 (all triples) NoRealisation,
+0 Inconclusive, 2 Skipped (k > k_max=5). Source:
+[notebooks/n3_phi3_exhaustive_2026-04-29.log](../notebooks/n3_phi3_exhaustive_2026-04-29.log).
+
+**No obstruction in the read literature explains this.** None of
+the four papers contains a theorem that would predict zero
+realisable n=3 PF=φ³ icosahedral monotile substitutions. This is
+significant: if the result is genuine, it is not a corollary of
+known mathematics in the read sample.
+
+**Three structural possibilities are consistent with what we know:**
+
+### (b.1) The result is genuinely novel
+
+The zero-Realised across 170 shape triples could be the first
+recorded computational evidence for non-existence of
+unmarked 3D icosahedral monotile substitutions in this slice of
+the search space. This would be a meaningful negative result —
+not a no-go theorem yet, but a substantive empirical input.
+
+**Confidence in this reading: low to moderate.** The slice of
+the search space is narrow (max_entry=2, n=3, PF=φ³). The
+zero-Realised might evaporate with broader search bounds. Until
+broader search confirms or refutes, this is hypothesis, not
+result.
+
+**Path to confirmation:** extend max_entry to 3, then 4, ...
+The Q10 relay deferred this for compute reasons. If the result
+is structural, the same outcome should hold at higher
+max_entry. If structural, this is a publishable negative
+result.
+
+### (b.2) The result is an artefact of pipeline gaps
+
+Three documented gaps in Apeiron's search that could in principle
+mask realisable candidates:
+
+- **Taxonomy gap.** 9 H₃ tetrahedron similarity classes from the
+  Paolini ABCK pool, vs Frettlöh's reported 15. 6 candidate
+  matrices in the n=3 survey have left-eigenvector volume ratios
+  that do not match any of the 9 known classes — the search never
+  attempts realisation for them.
+- **k_max gap.** k_max=5 in the realisation backtracker. 2 of 13
+  candidates at max_entry=2 require k > 5 (sum of matrix entries
+  exceeds 5). They are skipped, not refuted.
+- **Realisation pipeline gap.** Apeiron's `realise()` checks
+  matchings of given prototile shapes against a given matrix. It
+  does not yet *derive* shape candidates from the eigenvector
+  ratio. The current pipeline assumes the answer to "what shapes"
+  is in a finite list it knows about (the Paolini-derived 9-class
+  taxonomy), which is the same list as gap 1.
+
+**Confidence in this reading: moderate.** Each gap is documented
+and addressable. The Q10c discussion noted that closing all
+three is bounded compute, not new mathematics.
+
+**Path to confirmation:** close the gaps and re-run. If after
+closure some candidates Realise, the zero-Realised was an
+artefact. If after closure the result remains zero, (b.1) is
+strengthened.
+
+### (b.3) The result is signal that we are searching the wrong space
+
+Walton-Whittaker 2019 is a marked monotile. The hat/spectre
+papers (2023, not in read list but cited in CLAUDE.md §9) are
+unmarked monotiles. The hat-spectre route works in 2D. In 3D no
+analogous unmarked monotile is known.
+
+If 3D unmarked icosahedral monotile substitutions genuinely do
+not exist, but 3D *marked* monotiles can carry the substitution
+via decoration (à la Walton-Whittaker generalised to 3D), then
+the entire Track B search has been on the wrong target. The right
+target would be: marked icosahedral monotiles.
+
+**Confidence in this reading: low.** The 2D unmarked monotile
+exists (hat). If a 2D shape-alone monotile exists, no a priori
+obstruction prevents a 3D one. But the 2D case took until 2023 to
+exhibit; 3D could plausibly require decoration, and the absence
+of any 3D unmarked monotile in the literature for 50+ years is at
+least suggestive.
+
+**Path to confirmation:** generalise Apeiron's `realise()` to
+search for matched (decorated) candidates. This requires
+modelling decoration as part of the prototile shape. Significant
+infrastructure work.
+
+### Bottom line of (b)
+
+The exhaustive NoRealisation is **not explained** by the read
+literature. (b.1), (b.2), (b.3) are all consistent with what we
+know. The natural next step is to discriminate between them,
+because each implies a different next move.
+
+---
+
+## (c) What new candidate families or formalisms emerge?
+
+The Q10c spec called for one of three deliverable types: new
+candidate matrices, infrastructure changes for a different
+formalism, or a `strategy_pivot.md` documenting a known
+obstruction. The literature read produced none of the three
+directly, but it does generate three candidate next-moves keyed
+to (b.1)-(b.3) above.
+
+### (c.1) Close the documented Q9c gaps before pivoting
+
+This corresponds to (b.2). Three discrete tasks:
+
+1. **Extend the H₃ tetrahedron taxonomy to 15 classes.** Frettlöh's
+   reported count is 15; Apeiron has 9 from the Paolini ABCK pool.
+   The missing 6 require a richer vertex pool. Action: grep the
+   Frettlöh papers (esp. the Bielefeld Tilings Encyclopedia) for
+   the explicit 15-class list and import it.
+
+2. **Lift k_max from 5 to 7 (or 8).** The 2 SKIPped n=3 candidates
+   need k = 6 or 7. Compute cost: per-candidate budget grows roughly
+   exponentially in k_max (since the DFS-tree branching factor is
+   bounded by orbit size × matching-shape count). Probably affordable
+   for the 2 specific candidates; not affordable as a default.
+
+3. **Run n=3 at max_entry=3.** Survey produces 209 candidates
+   (28.6 s of enumeration). Feasibility: ≈ 8 hours of realisation
+   search at the current rate of 30 s/triple budget × ~17 triples per
+   candidate avg × 209 candidates. Acceptable but not cheap.
+
+**Cost.** Bounded engineering, no new mathematics. Output is a
+fresh exhaustive-sweep result at the closed gaps. If still zero
+Realised, (b.1) hypothesis strengthens; if some Realise, (b.2)
+hypothesis is the answer.
+
+**Risk.** None to the project; some compute time.
+
+### (c.2) Pivot to marked icosahedral monotile candidates
+
+This corresponds to (b.3). The infrastructure change is
+substantial:
+
+- Add a **decoration model** to `Polyhedron`: a finite set of
+  edge / face / vertex decorations from a discrete alphabet (e.g.
+  charges as in Walton-Whittaker, or color-matchings as in classic
+  Wang/Berger constructions).
+- Extend `realise()` to **search over decoration assignments** as
+  well as shape matchings. The combinatorial cost is multiplicative
+  in the alphabet size.
+- Generalise `face_match_consistency` and the per-step DFS pruning
+  to handle decoration constraints.
+
+**Cost.** Significant infrastructure work, weeks-of-development
+scope. Branching factor in the search increases.
+
+**Risk.** Moderate. Decoration is a strict superset of unmarked,
+so if the unmarked search has artefactually missed candidates,
+decoration will too. But decoration opens a search space we know
+contains existing solutions (Walton-Whittaker analogues).
+
+### (c.3) Audit Apeiron's pipeline against Goodman-Strauss
+
+This is a `strategy_pivot.md`-flavoured deliverable but smaller
+in scope than (c.2). Two specific audits derived from the
+Goodman-Strauss read:
+
+- **Sibling-edge-to-edge audit.** Verify Apeiron's
+  Frettlöh-derived Danzer ABCK rule satisfies sibling-edge-to-edge
+  (not just sibling-vertex-to-vertex). If not, the four-pillar
+  pipeline is operating on a substitution outside Goodman-Strauss's
+  enforcement scope, and Track A's pillar 2 (recognisability)
+  may be on shakier ground than assumed.
+- **Recognisability radius vs κ.** Goodman-Strauss's κ can be
+  arbitrarily large (Sadun's pinwheel). Apeiron's `is_recognisable`
+  takes a fixed radius (currently 2). If our search's radius bound
+  is below the true κ for some candidate, we are implicitly
+  rejecting realisable rules. Action: characterise the
+  relationship between our radius and Goodman-Strauss's κ;
+  potentially make the radius adaptive.
+
+**Cost.** Bounded; ≈ 1-2 days of code review and test additions.
+No new infrastructure.
+
+**Risk.** Low. Either an audit passes (small good news) or
+identifies a real gap (which then informs further work).
+
+### Recommended next move
+
+The three options are not mutually exclusive. The recommended
+sequence is:
+
+1. **(c.3) audit first** — bounded scope, immediate. Either
+   confirms the pipeline is sound or identifies a fixable gap.
+   Outcome informs whether (b.1)/(b.2) is more likely.
+2. **Then (c.1) gap-closure** — bounded compute. Output: an
+   exhaustive sweep at max_entry=3 with k_max=7 and 15-class
+   taxonomy. This is the empirical resolution between (b.1) and
+   (b.2).
+3. **Only if both above leave the result intact: (c.2) pivot to
+   marked candidates** — this is the major pivot. The relay-back
+   to Claude (web) should authorise it explicitly, not slip into
+   it by default.
+
+**Rationale for ordering.** (c.3) is cheapest and most likely to
+inform; (c.1) is the empirical-completeness step before any
+strategy pivot is justified; (c.2) is the most expensive and
+requires architectural buy-in. Acting on (c.2) before (c.3) and
+(c.1) risks pivoting on incomplete data — exactly the failure
+mode Claude (web) flagged at the end of the Q10 ruling ("the
+pattern of this project has been: build infrastructure, find no
+survivors, build more infrastructure. The literature read breaks
+that loop only if the findings are synthesised into an explicit
+direction-change before the next build phase starts.").
+
+The synthesis above is the explicit direction. The relay-back is
+the authorisation.
+
+---
+
+## What this synthesis does NOT claim
+
+- **Not claimed:** that no 3D icosahedral monotile substitution
+  exists. The result is a slice of the search space, not a proof.
+- **Not claimed:** that the Goodman-Strauss theorem implies an
+  obstruction. The notes flag two relevant signals (sibling-edge-
+  to-edge stricter in 3D; construction does not preserve monotile-
+  ness) but neither is a derived obstruction.
+- **Not claimed:** that decoration is necessary. Walton-Whittaker
+  is a sufficiency demonstration in 2D, not a 3D necessity proof.
+- **Not claimed:** that the Frettlöh circular-symmetry framework
+  is irrelevant. It is irrelevant for *this question* (icosahedral
+  finite-orientation case), not for substitution tilings in
+  general.
+
+## What is still unread (deferred per scope-limit)
+
+- Goodman-Strauss 1998 Appendix (pp. 39–45): worked example.
+  Deferred unless the relay-back flags need.
+- Walton-Whittaker §6.3+: spectral / model-set details. Deferred.
+- Frettlöh's "direct product variation" papers: the relay
+  identified these as candidates but the agent's MANIFEST notes
+  the construction is Frank-Robinson, not Frettlöh. The
+  Baake-Frank-Grimm 2022 *Fibonacci direct product variation
+  tilings* paper (arXiv 2203.07743) is the canonical DPV
+  reference; not yet downloaded. Deferred unless the synthesis
+  recommends it.
+- Hat/spectre 2023 papers (Smith-Myers-Kaplan-Goodman-Strauss).
+  In CLAUDE.md §9 minimum reading list. Deferred from the Q10
+  cycle; relevant if (c.2) decoration-pivot becomes active.
+- Senechal 1995 *Quasicrystals and Geometry* Chapter 7
+  (cross-check on Frettlöh ABCK transcription). Already used in
+  Track A; not directly relevant to the Q10 synthesis question.
+
+---
+
+## Re-relay action
+
+Per the Q10 sequencing commitment, the next concrete step is to
+relay this synthesis to Claude (web) with the recommended next
+move (c.3 → c.1 → c.2). Authorisation for (c.1) gap-closure work
+is the natural ask; authorisation for (c.2) decoration-pivot
+should come only after (c.3) and (c.1) results are in.
