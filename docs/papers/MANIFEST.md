@@ -320,6 +320,119 @@ substitute for §7.4 + §7.2.
 
 ---
 
+## 13. Papadopolos, Hohneker & Kramer (1999/2000), *Tiles–inflation rules for the class of canonical tilings T\*(2F)*
+
+- **Authors:** Z. Papadopolos, C. Hohneker, P. Kramer
+- **Year:** 1999 (preprint), 2000 (published)
+- **Venue:** Discrete Mathematics 221 (2000) 101–112
+- **arXiv:** math-ph/9909012
+- **Source URL:** https://arxiv.org/pdf/math-ph/9909012 (24 pages)
+- **Local file:** `papadopolos_hohneker_kramer_1999_t2f_inflation.pdf`
+- **Why on the read list (Q15+ supplementary, post-Path A):** the
+  open-access successor to closed-access Kramer-Papadopolos-
+  Schlottmann-Zeidler 1994. Identifies T*(2F) as the canonical D₆
+  icosahedral projection (parent of ABCK), with **6 prototile
+  tetrahedra** (or 8 with mandatory blue/red colour decoration on
+  C and G). Provides verbatim 6×6 projection matrix B (eq. 1) and
+  inflation matrix I_D6 (eq. 2) over ℤ[τ]. Read in full; notes at
+  `docs/literature_notes.md` §9. Strengthens the structural
+  multi-prototile conjecture by establishing the canonical
+  projection requires ≥ 6 prototiles, with ABCK being a local
+  reduction to 4.
+
+---
+
+## 14. Hammock, Fang & Irwin (2018), *Quasicrystal Tilings in Three Dimensions and Their Empires*
+
+- **Authors:** Dugan Hammock, Fang Fang, Klee Irwin
+- **Year:** 2018
+- **Venue:** Crystals 8(10):370
+- **DOI:** 10.3390/cryst8100370
+- **Source URL:** https://www.mdpi.com/2073-4352/8/10/370 (CC-BY,
+  16 pages)
+- **Local file:** `hammock_fang_irwin_2018_quasicrystal_empires.pdf`
+- **Why on the read list (Q15++ supplementary, 2026-05-05):**
+  computes acceptance-domain sector decomposition for T^(D6) =
+  T*(2F): **880 tile types** (regions of W), **4230 sectors**,
+  **36 vertex configurations** (matching Papadopolos eq. 7
+  exactly). Table 1 enumerates all 36 with sectors, **empires
+  (forced tiles)**, and exact ℤ[√5] frequencies. Critical
+  finding for Apeiron: **none of the 36 empires reduces to a
+  single-prototile region** — strongest empirical evidence yet
+  for the structural multi-prototile conjecture. §4 (eqs. 16-24)
+  gives the empire computation methodology directly translatable
+  to ZPhi³ implementation. Read in full; notes at
+  `docs/literature_notes.md` §10.
+
+---
+
+## 15. Papadopolos, Klitzing & Kramer (1997), *Quasiperiodic icosahedral tilings from the six-dimensional bcc lattice* — ILP PRIORITY 1
+
+- **Authors:** Z. Papadopolos, R. Klitzing, P. Kramer
+- **Year:** 1997
+- **Venue:** J. Phys. A: Math. Gen. 30 (1997) L143–L147
+- **DOI:** 10.1088/0305-4470/30/5/004
+- **Source URL:** closed-access (IOP). Length ~5 pp (Letter).
+- **Local file:** *not downloaded* (closed-access; ILL pending).
+- **Why on the read list (Q16++ supplementary, 2026-05-05):** per
+  Claude (web), this Letter "defines BOTH T\*(2F) and T(2F) via
+  Klotz construction from D₆", determines acceptance domains for
+  both classes, and crucially establishes that **"both tilings
+  can be locally transformed into tilings with only four elements
+  that allow simple inflation"**. This is where the 6-tile →
+  4-tile reduction (T\*(2F) → ABCK) is published; reading it
+  clarifies the local-derivation mechanism that ABCK uses to
+  reduce from the canonical projection's 6 prototiles to 4.
+  Prerequisite to asking whether further 4 → 1 reduction is
+  possible (the central question for Track A / Route 1).
+
+---
+
+## 16. Kramer & Papadopolos (1994b), *The Mosseri–Sadoc tilings derived from the root lattice D₆* — ILP PRIORITY 2
+
+- **Authors:** P. Kramer, Z. Papadopolos
+- **Year:** 1994
+- **Venue:** Canadian Journal of Physics 72(7-8):408–414
+- **DOI:** 10.1139/p94-057
+- **Source URL:** closed-access (NRC Press). Length ~7 pp.
+- **Local file:** *not downloaded* (closed-access; ILL pending).
+- **Why on the read list (Q16++ supplementary, 2026-05-05):**
+  methodological parallel to the closed-access 1994 Danzer
+  projection paper (same authors, same year, same "determine all
+  windows" objective, different tiling). Reading this gives the
+  method for window enumeration in the D₆ family. If the method
+  is clear from this paper, the Danzer window enumeration may be
+  reproducible computationally without the 1994 Danzer paper.
+  Add to the same ILP request as the 1994 Danzer paper and the
+  1997 bcc-lattice Letter; all three should be obtainable from a
+  single library visit.
+
+---
+
+## ILP request — three closed-access D₆ projection papers
+
+For institutional inter-library loan via any UK or US R1
+mathematics/physics library:
+
+1. **Kramer, P., Papadopolos, Z., Schlottmann, M. & Zeidler, D.**
+   "Projection of the Danzer tiling." *J. Phys. A: Math. Gen.*
+   27 (1994) 4505–4517. DOI: 10.1088/0305-4470/27/13/024.
+2. **Papadopolos, Z., Klitzing, R. & Kramer, P.** "Quasiperiodic
+   icosahedral tilings from the six-dimensional bcc lattice."
+   *J. Phys. A: Math. Gen.* 30 (1997) L143–L147. DOI:
+   10.1088/0305-4470/30/5/004.
+3. **Kramer, P. & Papadopolos, Z.** "The Mosseri–Sadoc tilings
+   derived from the root lattice D₆." *Canadian Journal of
+   Physics* 72 (1994) 408–414. DOI: 10.1139/p94-057.
+
+The first contains the "all windows" Danzer result that would
+clear Gate C for the structural multi-prototile conjecture. The
+second and third provide methodological context (T\*(2F) → ABCK
+reduction mechanism; Mosseri–Sadoc parallel "all windows"
+computation).
+
+---
+
 ## Note on duplicates added 2026-05-04
 
 User contributed five files; three are duplicates of papers

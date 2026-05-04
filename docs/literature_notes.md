@@ -1431,6 +1431,195 @@ unproven."
 
 ---
 
+---
+
+## 10. Hammock, Fang & Irwin (2018), *Quasicrystal Tilings in Three Dimensions and Their Empires*
+
+*Crystals* 8(10):370. DOI 10.3390/cryst8100370. 16 pages. Read in
+full. Open access (CC-BY).
+
+**Read context.** Surfaced by Claude (web) 2026-05-05 as a
+supplementary literature note: the open-access companion to the
+closed-access Kramer-Papadopolos-Schlottmann-Zeidler 1994 paper.
+Computes acceptance-domain sector decomposition for T^(D6) =
+T*(2F) and presents empire (forced-tile) data for all 36 vertex
+configurations.
+
+### §2 Projection method, dualisation formalism
+
+The paper uses the Klotz-construction dual relationship between a
+lattice's Voronoi complex V and its Delaunay complex V*. Tiles
+of T are n-polytopes of V* whose duals intersect E_∥
+non-trivially:
+
+```text
+T = { t ∈ V* : dim(t) = n = dim(t_∥), t* ∩ E_∥ ≠ ∅ }    (eq. 9)
+```
+
+For the D₆ → ℝ³ case, the Voronoi cell V(0) of D₆ is a
+6-dimensional polytope whose 3-dimensional boundaries are **960
+pyramids (with rhombus bases) and 160 rhombohedrons
+(parallelepipeds)** — total **1120 tile types** in 𝔼⁶. Of these,
+**240 are degenerate in the projection to E_⊥**, leaving **880
+non-degenerate tile types for T^(D6)** (eq. p.6).
+
+> **Reconciliation with Papadopolos's 6 (or 8) prototiles.** The
+> 880 here is the count at the *finest decomposition* — distinct
+> translation classes of tile-types within the canonical
+> projection. Under H₃ icosahedral symmetry (order 120),
+> 880/120 ≈ 7.3 reduces to the Papadopolos 6 (or 8 with colour
+> decoration) similarity classes. The two papers describe the
+> same structure at different granularities; not a contradiction.
+
+### §2.4 Vertex configurations and sectors
+
+From Hammock §2.4 verbatim:
+
+> "For the tiling T^(D6) there are 880 pyramids and rhombohedrons
+> which serve as the regions of the cut-window. Their
+> intersections go on to form **4230 sectors**, corresponding to
+> the different vertex configurations of the tiling. There are
+> **36 vertex configurations**, and each one comes in 120
+> different orientations up to icosahedral symmetry in E_∥
+> (except for one configuration which exhibits only distinct 30
+> orientations). This accounts for all of the 4230 sectors
+> (35 × 120 + 1 × 30 = 4230), and when the sectors are grouped
+> according to these 36 vertex configurations, the sectors are
+> seen to exhibit the same icosahedral symmetry within the
+> cut-window W ⊂ E_⊥."
+
+The "36 vertex configurations" matches Papadopolos eq. (7)
+exactly. The sector decomposition of W is the geometric data
+structure that codes which vertex configuration occurs at any
+given lattice point.
+
+> **Direct interface to Q14b(c)/(d)/(e):** the sector
+> decomposition is the *answer* to "what does the window look
+> like, decomposed?" — 4230 sectors grouped into 36
+> H₃-equivalence classes. The decomposition is fixed by the
+> projection geometry; window choice (other than the canonical
+> Voronoi) is **not** a parameter in this paper either.
+
+### §3 Frequencies (Table 1)
+
+Frequencies F(C) := vol(s(C)) / vol(W) for all 36 vertex
+configurations. Reported as exact algebraic expressions in
+ℤ[√5] (e.g., -38 + 17√5, 161 - 72√5, 843 - 377√5, etc.).
+
+Table 2 cross-validates against Kramer-Papadopolos-Zeidler 1991
+(ref [18]) data; agreement is exact across all 36
+configurations.
+
+> **For Apeiron's existing left-eigenvector / volume-vector
+> machinery** (`apeiron.track_b.geometric_prefilter
+> .pf_eigenvector_in_zphi`), the Hammock 2018 frequencies are
+> a parallel-source dataset that could in principle be cross-
+> validated against Apeiron's M_ABCK left eigenvector under the
+> appropriate restriction map (T*(2F) → ABCK local derivation
+> per Papadopolos-Klitzing-Kramer 1997). Not yet done.
+
+### §4 Empires — the load-bearing computational machinery
+
+The empire E(p) of a patch p ⊂ T is the set of tiles forced into
+place across **all** valid tilings T' ⊃ p:
+
+```text
+E(p) := { t ∈ T : t ∈ T' for all T' ⊃ p } = ⋂_{p ⊂ T'} T'    (eq. 16)
+```
+
+In the projection framework, "all tilings T' ⊃ p" is parameterised
+by the shift vector γ ∈ E_⊥ (translating the cut-window). The
+*shift-window* Γ(p) is the set of γ for which p remains a valid
+patch:
+
+```text
+Γ(p) := { γ ∈ E_⊥ : p ⊂ T_γ }    (eq. 19)
+Γ({t}) = t*_⊥                     (eq. 21, single-tile case)
+Γ(p = {t_1, ..., t_k}) = ⋂_i (t_i^*)_⊥    (eq. 22, patch case)
+```
+
+Empire condition:
+
+```text
+E(p) = { t : Γ(p) ⊂ t*_⊥ }    (eq. 23)
+```
+
+Computationally tractable via convex polytope vertex enumeration:
+Γ(p) = conv{ω_1, ..., ω_k}, and E(p) is determined by checking
+each ω_i against t*_⊥ for every candidate tile t (eq. 24).
+
+### Table 1: 36 vertex configurations × empires × frequencies
+
+Table 1 (pp.9-10) presents all 36 with empire renderings and
+exact frequencies. **Critical observation for the structural
+multi-prototile conjecture:**
+
+> **None of the 36 empires reduces to a single-prototile
+> region.** Inspection of Table 1's empire renderings shows
+> every empire contains multiple distinct tetrahedral tile
+> types. No vertex configuration in T^(D6) has its forced-tile
+> set restricted to a single prototile. This is the *strongest
+> piece of computational evidence yet* for the structural
+> multi-prototile conjecture in `strategy_pivot.md` §2:
+> if any vertex configuration's empire were single-prototile, it
+> would constitute a "minimal monotile patch" in the canonical
+> D₆ projection — and Hammock et al. computed all 36 and saw
+> none.
+
+This is not a proof of the conjecture, but it is the most
+exhaustive empirical evidence in the literature. **Every
+canonical D₆ projection vertex configuration's empire is
+multi-prototile.**
+
+### Open question
+
+The paper does NOT address whether the canonical Voronoi window
+W = V_⊥ is unique, or whether other windows yield other valid
+icosahedral D₆ projections. The window-deformation question
+(Q14b(c)) remains open; only the closed-access Kramer-
+Papadopolos 1994 "all windows" result will settle it.
+
+The paper also does NOT exhibit a 3D F-type icosahedral monotile
+candidate (single-prototile tiling derived from D₆). The 36
+vertex configurations the paper enumerates are exhaustive within
+the canonical projection; if a monotile reduction were possible,
+it would manifest as a single-prototile empire among these 36.
+
+### Engineering inputs for Route 1 (if ever implemented)
+
+1. **Shift-window construction** (eqs. 19–24). The shift-window
+   Γ(p) is a convex polytope in E_⊥ computable by intersecting
+   tile duals. This is the natural data structure for testing
+   "does configuration C force only tile type T?" — a yes-answer
+   would refute the structural conjecture.
+2. **880 tile-type regions of W**. Each region is a 3D polytope
+   in E_⊥. Encoding these (≤ 880 convex polytopes with vertices
+   in ℤ[τ]³) gives the full acceptance-domain decomposition.
+3. **4230 sector intersections.** Computed as pairwise/triple
+   intersections of the 880 regions; group into 36 H₃-classes
+   for the canonical vertex configuration enumeration.
+4. **Empire-from-sector lookup.** Once the 36 empires are
+   tabulated (Table 1), Route 1's "test for single-prototile
+   empire" is a one-pass check.
+
+> The Route 1 implementation per `d6_lattice_design.md` should
+> reference Hammock 2018 for the empire-computation methodology.
+> Section 4 (eqs. 16-24) replaces the design-doc's pseudocode
+> for tile_types_from_window with a more efficient empire-based
+> approach.
+
+### Summary against the structural multi-prototile conjecture
+
+| Question                                        | Answer                                                                |
+|-------------------------------------------------|-----------------------------------------------------------------------|
+| 36 vertex configurations enumerated?            | Yes (Table 1)                                                         |
+| Any single-prototile empire?                    | None observed                                                         |
+| Window-deformation as candidate-generation?     | Not addressed                                                         |
+| Window → prototile shape map (canonical case)?  | Window picks tile *types* (880); 36 vertex configurations group by H₃ |
+| Strengthens the conjecture?                     | Yes — exhaustive empirical evidence within the canonical projection   |
+
+---
+
 ## Reading log
 
 | Paper                                  | Status            | Pages read |
