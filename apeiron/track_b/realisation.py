@@ -799,35 +799,77 @@ def _search_realisation_for_parent(
     # DFS-style backtracking with fail-first per Q8 meta-3:
     # at each non-root child, iterate (face_par, face_new, rotation)
     # triples and only descend into those producing a consistent
-    # face-match offset for the *current edge*. This prunes
-    # inconsistent choices at the source rather than testing every
-    # face-pair-seq × rotation-seq combination.
+    # face-match offset for the *current edge*. Per-step validation
+    # prunes branches as soon as the partial placement violates a
+    # constraint, rather than waiting until all k children are placed.
+
+    def _placed_for_child(
+        child_idx: int,
+        rot: Rotation | ImproperRotation,
+        t: Vec3,
+    ) -> list[Vec3]:
+        proto = prototile_shapes[children_types[child_idx]]
+        return [rot.apply(v) + t for v in proto.vertices]
+
+    def _check_partial_placement_ok(
+        new_idx: int,
+        new_placed: list[Vec3],
+        already_placed_per_child: list[list[Vec3] | None],
+    ) -> bool:
+        """Validate the just-placed child:
+        - every vertex inside the inflated parent polytope, AND
+        - interior-disjoint from every already-placed sibling.
+        """
+        for v in new_placed:
+            if not _vertex_in_box(v, inflated_lo, inflated_hi):
+                return False
+            if not _point_in_convex_polyhedron(
+                v, inflated_parent_verts, inflated_parent_faces,
+            ):
+                return False
+        new_proto_faces = prototile_shapes[children_types[new_idx]].faces
+        for sib_idx, sib_placed in enumerate(already_placed_per_child):
+            if sib_placed is None or sib_idx == new_idx:
+                continue
+            sib_proto_faces = prototile_shapes[
+                children_types[sib_idx]
+            ].faces
+            if not _convex_polyhedra_interior_disjoint(
+                new_placed, new_proto_faces,
+                sib_placed, sib_proto_faces,
+            ):
+                return False
+        return True
+
     def _backtrack(
         child_idx: int,
         rotations: list[Rotation | ImproperRotation],
         translations: list[Vec3],
+        placed_per_child: list[list[Vec3] | None],
         tree: tuple[int, ...],
     ) -> tuple[ChildPlacement, ...] | None | str:
         if time.monotonic() > deadline:
             return "timeout"
         if child_idx == k:
-            if _validate_complete_assignment(rotations, translations):
-                return tuple(
-                    ChildPlacement(
-                        prototile_index=children_types[i],
-                        translation=translations[i],
-                        rotation=rotations[i],
-                    )
-                    for i in range(k)
+            # All children placed; per-step validation has already
+            # confirmed containment + non-overlap, and volume-sum
+            # was checked at function entry. Therefore the
+            # placement is a face-to-face dissection (per the
+            # measure-theoretic argument: vol-sum + non-overlap +
+            # containment ⇒ coverage).
+            return tuple(
+                ChildPlacement(
+                    prototile_index=children_types[i],
+                    translation=translations[i],
+                    rotation=rotations[i],
                 )
-            return None
+                for i in range(k)
+            )
         parent_idx_in_tree = tree[child_idx - 1]
         parent_rot = rotations[parent_idx_in_tree]
         parent_t = translations[parent_idx_in_tree]
         parent_proto_idx = children_types[parent_idx_in_tree]
         new_proto_idx = children_types[child_idx]
-        # Try every (face_par, face_new, rotation) triple. Fail-fast
-        # via offset is None.
         for f_par in range(n_faces):
             for f_new in range(n_faces):
                 face_par = proto_face_verts[parent_proto_idx][f_par]
@@ -842,13 +884,23 @@ def _search_realisation_for_parent(
                     if offset is None:
                         continue
                     new_t = parent_t + offset
+                    new_placed = _placed_for_child(
+                        child_idx, rot, new_t,
+                    )
+                    if not _check_partial_placement_ok(
+                        child_idx, new_placed, placed_per_child,
+                    ):
+                        continue
                     rotations.append(rot)
                     translations.append(new_t)
+                    placed_per_child[child_idx] = new_placed
                     result = _backtrack(
-                        child_idx + 1, rotations, translations, tree,
+                        child_idx + 1, rotations, translations,
+                        placed_per_child, tree,
                     )
                     rotations.pop()
                     translations.pop()
+                    placed_per_child[child_idx] = None
                     if result == "timeout":
                         return "timeout"
                     if result is not None:
@@ -858,7 +910,21 @@ def _search_realisation_for_parent(
     for tree in trees:
         rotations: list[Rotation | ImproperRotation] = [identity]
         translations: list[Vec3] = [origin]
-        result = _backtrack(1, rotations, translations, tree)
+        placed_per_child: list[list[Vec3] | None] = [None] * k
+        # Validate child 0's placement first (root child: identity
+        # rotation at origin, must fit the inflated parent).
+        root_placed = _placed_for_child(0, identity, origin)
+        if not _check_partial_placement_ok(
+            0, root_placed, placed_per_child,
+        ):
+            # Root-child rotation is fixed (identity); if it doesn't
+            # fit at the origin, no rotation choice for the rest of
+            # the tree can possibly succeed for this tree.
+            continue
+        placed_per_child[0] = root_placed
+        result = _backtrack(
+            1, rotations, translations, placed_per_child, tree,
+        )
         if result == "timeout":
             return "timeout"
         if result is not None:

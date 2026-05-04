@@ -1,0 +1,24 @@
+n=3 PF=φ³ sweep (per-step DFS validation, k_max=5, 30s/pair):
+================================================================================
+  [cand  1] M=[[0, 1, 1], [0, 2, 2], [1, 2, 2]] triple=(4, 0, 0)  col_sums=[1, 5, 5]  → NoRealisation (0.0s)
+  [cand  2] M=[[0, 1, 1], [1, 2, 2], [2, 2, 1]] triple=(8, 4, 5)  col_sums=[3, 5, 4]  → NoRealisation (0.0s)
+  [cand  4] M=[[1, 0, 1], [2, 1, 2], [2, 2, 2]] triple=(0, 1, 0)  col_sums=[5, 3, 5]  → NoRealisation (4.5s)
+  [cand  5] M=[[1, 0, 2], [1, 1, 1], [2, 2, 2]] triple=(5, 8, 4)  col_sums=[4, 3, 5]  → NoRealisation (1.1s)
+  [cand  8] M=[[1, 0, 2], [2, 1, 2], [2, 2, 1]] triple=(0, 1, 0)  col_sums=[5, 3, 5]  → NoRealisation (4.2s)
+  [cand 11] M=[[1, 1, 1], [2, 1, 1], [2, 2, 2]] triple=(4, 5, 5)  col_sums=[5, 4, 4]  → NoRealisation (4.2s)
+  [cand 12] M=[[1, 1, 1], [2, 1, 2], [2, 1, 2]] triple=(0, 1, 0)  col_sums=[5, 3, 5]  → NoRealisation (4.3s)
+  [cand 13] M=[[1, 1, 1], [2, 1, 2], [2, 2, 1]] triple=(4, 5, 5)  col_sums=[5, 4, 4]  → NoRealisation (4.2s)
+  [cand 14] M=[[1, 1, 1], [2, 2, 1], [2, 1, 2]] triple=(4, 5, 5)  col_sums=[5, 4, 4]  → NoRealisation (4.2s)
+  [cand 16] M=[[1, 1, 2], [2, 1, 2], [2, 1, 1]] triple=(0, 1, 0)  col_sums=[5, 3, 5]  → NoRealisation (4.2s)
+  [cand 17] M=[[1, 1, 2], [2, 2, 0], [2, 2, 1]] triple=(0, 0, 1)  col_sums=[5, 5, 3]  → NoRealisation (8.7s)
+  [cand 18] M=[[1, 2, 2], [0, 2, 1], [2, 1, 2]] triple=(1, 0, 0)  col_sums=[3, 5, 5]  → NoRealisation (0.3s)
+  [cand 19] M=[[1, 2, 2], [1, 2, 1], [1, 1, 2]] triple=(1, 0, 0)  col_sums=[3, 5, 5]  → NoRealisation (0.3s)
+================================================================================
+
+Summary across 13 attempted pairs:
+  Realised: 0
+  NoRealisation: 13
+  Inconclusive: 0
+  SKIP: 2
+
+Total elapsed: 40.2s
