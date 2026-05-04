@@ -569,9 +569,12 @@ class TestSearchLoopIntegration:
         assert isinstance(result, Inconclusive)
         assert "prototile_shapes" in result.reason
 
-    def test_k_too_large_returns_inconclusive(self) -> None:
-        # M=[[0,1],[1,4]] has σ(P_1) with 5 children. First-iteration
-        # k_max=3 means search bails immediately.
+    def test_volume_mismatch_rejected_before_search(self) -> None:
+        # M=[[0,1],[1,4]] with identical-volume tetrahedra: σ(P_0)
+        # column = [0, 1] → 1 P_1 child. Children's vol sum = vol(P_1)
+        # = vol(P_0); required pf · vol(P_0) = (1+2φ) · vol(P_0).
+        # 1 ≠ 1+2φ → volume check rejects σ(P_0) immediately, before
+        # the k=5 σ(P_1) is even considered.
         m = np.array([[0, 1], [1, 4]])
         proto = self._unit_tetrahedron()
         result = realise(
@@ -579,8 +582,7 @@ class TestSearchLoopIntegration:
             prototile_shapes=(proto, proto),
             max_search_seconds=10,
         )
-        assert isinstance(result, Inconclusive)
-        assert "k_max" in result.reason or "k=" in result.reason
+        assert isinstance(result, NoRealisation)
 
     def test_penrose_p3_with_identical_protos_rejected_by_volume(
         self,
