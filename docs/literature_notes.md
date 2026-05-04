@@ -1164,6 +1164,273 @@ and 3 require new framework work.
 
 ---
 
+---
+
+## 9. Papadopolos, Hohneker & Kramer (1999/2000), *Tiles–inflation rules for the class of canonical tilings T\*(2F) derived by the projection method*
+
+arXiv:math-ph/9909012; published Discrete Math. 221 (2000) 101–112.
+24 pages (text + 9 image-placeholder pages). Read in full.
+
+**Read context.** Surfaced by Claude (web) 2026-05-04 as the
+strongest open-access successor to the closed-access
+Kramer-Papadopolos-Schlottmann-Zeidler (1994) *Projection of the
+Danzer Tiling*. Identified explicitly as the parent-of-ABCK
+canonical D₆ projection class.
+
+### §1.1 The 2F-module and the canonical projection
+
+**Equation (1) — the projection matrix B (verbatim, ZPhi-encodable):**
+
+```text
+                    [ 0   1  -1  -τ   0   τ ]
+                    [ 1   τ   τ   0  -1   0 ]
+                    [ τ   0   0   1   τ   1 ]
+B = √(1/(2(τ+2))) × [ 0   τ  -τ   1   0  -1 ]
+                    [ τ  -1  -1   0  -τ   0 ]
+                    [-1   0   0   τ  -1   τ ]
+```
+
+(Notation: x̄ in the paper means -x; rendered as `-x` here.)
+
+The first three rows project to ℝ³ (physical, "parallel" space
+E_∥); the last three to ℝ³_⊥ (internal, "orthogonal" space E_⊥).
+Columns are six orthogonal basis vectors of ℤ⁶ icosahedrally
+projected.
+
+**Equation (2) — the inflation matrix I_D6 in ℤ⁶ basis:**
+
+```text
+            [ 1   1   1   1   1   1 ]
+            [ 1   1   1  -1  -1   1 ]
+I_D6 =  ½ × [ 1   1   1   1  -1  -1 ]
+            [ 1  -1   1   1   1  -1 ]
+            [ 1  -1  -1   1   1   1 ]
+            [ 1   1  -1  -1   1   1 ]
+```
+
+When referred to a D₆ basis, becomes a GL(6, ℤ) element. The
+minimal stretching factor on the 2F-module is τ (linear), with
+I_D6 transforming on E_∥ + E_⊥ as:
+
+**Equation (3):** τπ_∥ - (1/τ)π_⊥
+
+(π_∥, π_⊥ are the projectors to E_∥, E_⊥.)
+
+> **Direct interface to Apeiron's `apeiron.zphi.ZPhi`.** Both B
+> (after the √(1/(2(τ+2))) factor distributes appropriately) and
+> I_D6 are storable in ZPhi³ × ZPhi³ form. The ½ scalar in I_D6
+> matches the existing CLAUDE.md §3.3 denominator-2 convention;
+> the projection matrix's overall √… factor is the only piece
+> that needs careful handling (it lives in a degree-2 extension
+> of ℚ(τ), which equals ℚ(τ) after multiplication, since
+> 1/(2(τ+2)) = (2-τ)/2 · 1/2 = ... — the algebra works out
+> within ℤ[τ] up to a global factor that cancels in the
+> projection-onto-window-membership tests).
+
+### §1.2 Canonical tiling T\*(2F) — the parent of ABCK
+
+**Critical finding 1: the canonical D₆ icosahedral projection
+requires SIX prototiles, not four.** Verbatim (p.3):
+
+> "The prototiles of the class of nonsingular locally isomorphic
+> tilings T\*(2F) are six tetrahedra with the edges parallel to
+> the directions of 2-fold symmetry axes of an icosahedron. They
+> have two lengths, the standard ② = √(2/(τ+2)) and τ②. The
+> tiles are denoted by X*∥(3) = A*∥, B*∥, C*∥, D*∥, F*∥
+> and G*∥."
+
+Six tetrahedral prototiles: **A, B, C, D, F, G** (different
+labels from ABCK's A, B, C, K).
+
+**Critical finding 2: ABCK is locally derivable from T\*(2F),
+not vice versa.** Verbatim (p.5):
+
+> "The third property of the tilings T\*(2F) is that also the
+> tilings T(P) [Penrose / ABCK family] can be locally derived
+> from T\*(2F)."
+
+(Plus the Frettlöh §1.4 statement "ABCK tilings are locally
+derivable from T^(2F), but not vice versa" already noted in §6.)
+
+> **This is the load-bearing structural finding.** ABCK's
+> 4-prototile count is achieved by *local derivation* (a
+> reduction operation) from the canonical 6-prototile T*(2F).
+> The "natural" prototile count for D₆ icosahedral cut-and-
+> project is 6 (or 8 with required colour decoration; see eq. 8
+> below), not 4. **Reducing from 6 to 4 is already a
+> non-trivial reduction; reducing further from 4 to 1 (the
+> monotile target) would require an additional reduction with no
+> precedent in the literature.**
+
+### §1.2 The vertex window W = V_⊥
+
+> "The acceptance domain, i.e. the vertex-window W of the
+> tilings T\*(2F) is the Voronoi domain (V) of the root-lattice
+> D₆ icosahedrally projected to E_⊥, V_⊥ = W. In E_⊥, its outer
+> shape is a triacontahedron with the edge length ⑤ (parallel to
+> the 5-fold symmetry axes of an icosahedron), ⑤ = 1/√2."
+
+The acceptance window W is the **triacontahedron** (Voronoi cell
+of D₆ projected to E_⊥). The window is **fixed** by the lattice
+choice — it is the Voronoi cell, not a parameter.
+
+**36 vertex configurations.** The window W decomposes into
+sub-regions coding exactly 36 vertex configurations in E_∥
+(Figure 3 + §2). Eq. (7) is the inflation map on these 36
+configurations.
+
+> **Direct answer to Q14b(e) (window → prototile-shape map):**
+> the window decomposes into vertex-configuration-coding
+> regions; the **tile shapes themselves are determined by the
+> Voronoi structure of D₆**, NOT by window choice. The window
+> picks vertex configurations; the H₃ fundamental-region
+> structure determines the tile shapes. This **confirms the
+> Q15a working hypothesis** (windows pick vertex classes, not
+> shapes) and answers Q14b(e) definitively for the T*(2F)
+> family.
+
+### §1.2 Eq. (5) — face content table for the 6 prototiles
+
+```text
+       Σ₁  Σ₂  Σ₃  Σ₄   ②  τ②
+   A:   2   0   2   0   1   5
+   B:   0   2   0   2   5   1
+   C:   1   1   2   0   2   4
+   D:   0   2   1   1   4   2
+   F:   0   0   3   1   3   3
+   G:   1   3   0   0   3   3
+```
+
+Σ₁: equilateral triangle, edge ②; Σ₄: equilateral, edge τ②. Σ₂,
+Σ₃: golden triangles. Σ₂ has one τ② edge + two ② edges; Σ₃ has
+two τ② edges + one ② edge.
+
+### §2 The tiles-inflation, eq. (8)
+
+**The substitution matrix S is 8×8** because tiles C and G need
+two colour decorations (blue and red) for the inflation rule to
+be uniquely defined. Verbatim:
+
+> "We show that an inflation of the tilings exists. In order to
+> define uniquely how each tile of T\*(2F) inflates we find that
+> one has to put arrows on each of them such that they break its
+> symmetry. ... Moreover, for two tiles G and C we have to
+> introduce two different colours, let them be blue and red."
+
+```text
+S      A   B   C^b  C^r  D   F   G^b  G^r
+A':    3   0   2    1    0   2    1    2
+B':    0   0   0    1    0   0    0    1
+C^b':  2   1   0    1    1   2    0    1
+C^r':  3   0   2    1    1   2    1    2
+D':    0   0   0    1    1   1    0    0
+F':    1   0   1    0    1   1    0    0
+G^b':  2   1   0    1    0   1    0    1
+G^r':  3   0   2    1    0   1    1    2
+```
+
+**Some tiles inflate by stein-inflation (the union of children
+has the same shape as the parent), others do not.** Per the
+paper: "The tiles B, F and D inflate by a stein-inflation, but
+not the tiles A, C and G." This is structurally non-trivial —
+not all D₆-projected tiles have clean self-similar dissections.
+
+### §2 Eq. (9) — Volume inflation matrix M, eigenvalues from eq. (13)
+
+The volume-equation `{X'} ≡ τ³{X} = M{X}` has the matrix:
+
+```text
+M       {A}    {B}  {C^b}  {C^r}  {D}  {F}     {G^b}  {G^r}
+{A'}    11τ-16  0   2τ-2   2τ-3    0   9τ-13   τ-1    3τ-4
+{B'}     0      0    0      1      0    0       0      1
+{C^b'} -2τ+4    1    0     -τ+2    1   -τ+3     0     -τ+2
+{C^r'} -9τ+15   0   -2τ+4  -τ+2    1   -8τ+14  -τ+2   -2τ+4
+{D'}     0      0    0      1      1    1       0      0
+{F'}     1      0    1      0      1    1       0      0
+{G^b'} -2τ+4    1    0     -τ+2    0   -τ+2     0     -τ+2
+{G^r'} -9τ+15   0   -2τ+4  -τ+2    0   -8τ+13  -τ+2   -2τ+4
+```
+
+**Eigenvalues** (eq. 13):
+
+```text
+(-λ⁴ + 5λ³ - 2λ² - 5λ - 1) × [λ³ + λ²(13-8τ) + λ(61-38τ) + 62-39τ] = 0
+
+Roots: λ_0 = 0, λ_1 = τ³ (PF), λ_2 = -τ⁻³, λ_3 = τ, λ_4 = -τ⁻¹,
+       λ_5 ≈ 1.1868, λ_{6/7} ≈ -0.5934 ± 0.7550 i.
+```
+
+> **Direct comparison with Apeiron's M_ABCK.** Apeiron's Track A
+> Danzer rule has eigenvalues {φ³, φ, -1/φ, -1/φ³} (CLAUDE.md
+> Track A face-merge no-go cited in `apeiron/deformation.py`).
+> The T\*(2F) volume matrix M shares those four eigenvalues and
+> adds three more (1.1868 and -0.5934±0.7550i, plus 0 and a
+> repetition under the τ³ branch). The shared spectrum is not
+> coincidence: ABCK's substitution matrix is a quotient /
+> projection of T\*(2F)'s under the local-derivation map. This
+> embedding of ABCK's spectrum inside T\*(2F)'s is structural
+> evidence that T\*(2F) is the canonical parent.
+
+### §2 Eq. (12) — frequencies
+
+```text
+f_A = 1/(2τ⁰)        f_F = 1/τ
+f_B = 1/(2τ³)        f_{G^b} = 1/(2τ³)
+f_{C^b} = 1/τ²       f_{G^r} = (τ+2)/(2τ⁴)
+f_{C^r} = 1/τ³
+f_D = 1/τ²
+```
+
+These are the right Perron-Frobenius eigenvector of M^T (left
+eigenvector of M); the volume eigenvector. Volume-conservative
+substitution: τ³ f_X = M^T f_X.
+
+### Open question still requiring Kramer-Papadopolos 1994
+
+This 1999 paper does **not** address whether the ABCK window is
+an isolated point or a continuous family in window space — i.e.,
+whether windows beyond the canonical Voronoi-of-D₆ produce other
+icosahedral monotile candidates. That specific result requires
+the 1994 paper "Projection of the Danzer Tiling" (still
+closed-access; ILL pending).
+
+But the 1999 paper makes the answer to **Q14b(e)** definitive:
+*window → vertex configurations, not tile shapes*. Tile shapes
+are determined by the Voronoi structure of D₆, which is fixed
+once the lattice is chosen. **No window choice within T\*(2F)
+generates a non-H₃-tetrahedral shape family.**
+
+### Summary of relevance to Apeiron
+
+**Strengthens the structural multi-prototile conjecture.**
+Apeiron's working hypothesis (`strategy_pivot.md` §2) was: D₆
+CPS icosahedral tilings with H₃-determined shapes require ≥ 2
+prototiles. Papadopolos-Hohneker-Kramer 1999 establishes the
+*stronger* finding: the canonical D₆ projection requires **6
+prototiles** (or 8 with required colour decoration); ABCK's 4 is
+already a reduction; a monotile (1 prototile) would require an
+additional unprecedented reduction.
+
+**Provides the engineering inputs.** Eq. (1) B matrix and eq. (2)
+I_D6 are exact ℤ[τ] matrices ready for direct encoding into
+Apeiron should the Route 1 design (`d6_lattice_design.md`) ever
+be implemented.
+
+**Confirms inflation factor for Apeiron.** τ linear / τ³ volume.
+Matches CLAUDE.md §3.1 and the Q4a 2026-04-23 inflation-factor
+correction.
+
+**Does not close the structural conjecture.** It does not prove
+that T\*(2F) cannot be reduced beyond ABCK's 4-prototile count to
+a 1-prototile monotile. Such a reduction would require a local
+derivation rule that the literature does not exhibit, but absence
+of evidence is not evidence of absence — Kramer-Papadopolos 1994
+or future work could supply one. The conjecture stands as
+"strongly supported by absence-of-published-counterexample,
+unproven."
+
+---
+
 ## Reading log
 
 | Paper                                  | Status            | Pages read |

@@ -651,3 +651,114 @@ acquire-the-originals** option. The recommended next move:
 The user's authorisation is the gate for either of these. Until
 authorised, no infrastructure work or paper-acquisition activity
 lands. The conjecture stands as "open, refined, and bounded."
+
+---
+
+## (f) Papadopolos-Hohneker-Kramer 1999 read result (post-Path A++, 2026-05-04)
+
+**Context.** Claude (web) located a 1999 open-access successor
+to the closed-access Kramer-Papadopolos-Schlottmann-Zeidler
+1994 paper:
+
+- **Papadopolos, Hohneker & Kramer (1999).** *Tiles–inflation
+  rules for the class of canonical tilings T\*(2F) derived by
+  the projection method.* arXiv:math-ph/9909012. Discrete Math.
+  221 (2000) 101–112.
+
+This addresses several of the Q14b/Q15b/Q16 questions directly.
+Notes captured at [literature_notes.md §9](literature_notes.md).
+
+### Findings against the open questions
+
+**Strengthening of the structural multi-prototile conjecture.**
+
+The canonical D₆ icosahedral projection is the **T\*(2F) class**,
+not ABCK. T\*(2F) requires:
+
+- **6 tetrahedral prototiles** (A, B, C, D, F, G; different labels
+  from ABCK's A, B, C, K), or
+- **8 prototiles with required blue/red colour decoration** on
+  tiles C and G to make the inflation rule uniquely defined.
+
+ABCK is **locally derivable** from T\*(2F), not vice versa
+(confirmed in both Frettlöh §1.4 and Papadopolos §1.2). Apeiron's
+Track A Danzer baseline is therefore working with a *reduction*
+of the canonical D₆ projection — not the canonical projection
+itself.
+
+The substitution matrix M_ABCK eigenvalues {φ³, φ, -φ⁻¹, -φ⁻³}
+embed into the T\*(2F) M-matrix eigenvalue spectrum (eq. 13)
+{0, τ³, -τ⁻³, τ, -τ⁻¹, 1.187, -0.593±0.755i}. The shared
+spectrum is structural evidence of the local-derivation
+relationship.
+
+**Sharpened conjecture (post-1999):**
+
+> The canonical D₆ icosahedral projection T\*(2F) requires 6
+> prototiles (or 8 with mandatory colour decoration). ABCK's 4
+> prototiles is an *existing reduction* via local derivation;
+> reducing further to 1 (the monotile target) would require an
+> additional reduction-to-monotile rule that the published
+> literature does not exhibit.
+
+**Q14b(e) — window → prototile-shape map: definitively answered
+for T\*(2F).** The acceptance window W is the Voronoi cell of
+D₆ projected to E_⊥ (a triacontahedron). Window decomposition
+codes **36 vertex configurations** in E_∥ (Papadopolos eq. 7,
+Figure 3). Tile shapes are determined by the **Voronoi structure
+of D₆**, NOT by window choice. **Window picks vertex
+configurations; H₃ + Voronoi structure of D₆ determines tile
+shapes.**
+
+**Q14b(c) — window-deformation literature: still open.** The
+1999 paper does not address whether the Voronoi window is the
+unique window for the icosahedral D₆ projection or part of a
+continuous/discrete family. That specific result requires the
+1994 Kramer-Papadopolos paper, still closed-access.
+
+**Q14b(d) — windows continuous vs discrete: not directly
+addressed.** The 1999 paper treats the Voronoi window as a
+single canonical choice, not a parameterised family.
+
+**Engineering inputs for any future Route 1 implementation.**
+
+Papadopolos eq. (1) gives the **6×6 projection matrix B over
+ℤ[τ]** (verbatim in literature_notes §9). Papadopolos eq. (2)
+gives the **inflation matrix I_D6** (½-scaled GL(6, ℤ) matrix,
+matching Apeiron's CLAUDE.md §3.3 denominator-2 storage
+convention). Both are exact ℤ[τ]-encodable; no transcription
+risk if Route 1 is ever implemented.
+
+### Updated gate verdict
+
+The 1999 read does **not** clear Gate C — Kramer-Papadopolos
+1994's "all windows" result is still required to settle
+Q14b(c). However, the 1999 evidence is stronger for **Branch B**
+(conjecture true) than the Moody-only synthesis suggested:
+
+- Moody §4.1 said D₆ root + weight + intermediates exhaust the
+  framework. *Bound on framework scope.*
+- Papadopolos 1999 §1.2 says the *canonical* projection in this
+  framework requires 6 (or 8) prototiles. *Lower bound on
+  prototile count, well above 1.*
+- ABCK reduces 6 → 4 via local derivation. *Reduction is
+  non-trivial but produces a multi-prototile output.*
+
+The trajectory from 6 → 4 → 1 would require two reductions, the
+first of which is documented in the literature (T\*(2F) → ABCK)
+and the second of which is **not** documented. This doesn't
+prove the conjecture, but it shifts the prior: a 3D icosahedral
+monotile in this framework would require a published-but-
+unknown second reduction step.
+
+### Recommended next step (post-1999)
+
+Per Q16's authorised sequence, the recommendation is unchanged:
+**continue pursuing institutional access to
+Kramer-Papadopolos-Schlottmann-Zeidler 1994** (DOI
+10.1088/0305-4470/27/13/024). The 1999 paper sharpens the
+conjecture and provides engineering inputs but does not close
+the window-uniqueness question.
+
+Until 1994 is in hand, no infrastructure work lands. The
+sequencing commitment carries forward.

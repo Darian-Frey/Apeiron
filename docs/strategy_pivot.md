@@ -140,8 +140,8 @@ cross-validation; ~8 hours of compute for the re-sweep.**
 the right search is over D₆ acceptance domains rather than
 substitution matrices. Required new infrastructure:
 
-- D₆ lattice arithmetic (additive overhead on top of existing ℤ[φ]³
-  + icosahedral group infrastructure).
+- D₆ lattice arithmetic (additive overhead on top of the existing
+  ℤ[φ]³ and icosahedral group infrastructure).
 - Acceptance-domain (window) representation in the internal space
   ℝ³_⊥.
 - Projection-tile machinery: given a lattice + window, generate the
@@ -293,3 +293,50 @@ lands before the gate decision. The pattern Apeiron has been
 pushing back against — "build infrastructure, find no survivors,
 build more infrastructure" — would re-emerge if any of §3 or §4
 were started without the gate first.
+
+---
+
+## §7 Update post-Papadopolos-Hohneker-Kramer 1999 (2026-05-04)
+
+The Papadopolos-Hohneker-Kramer 1999 paper (arXiv:math-ph/9909012,
+the open-access successor to Kramer-Papadopolos 1994) was located
+and read after this document was first committed. It strengthens
+the structural multi-prototile conjecture significantly:
+
+- The **canonical** D₆ icosahedral projection is the T*(2F) class,
+  with **six tetrahedral prototiles** (A, B, C, D, F, G) — or
+  eight with required blue/red colour decoration on C and G.
+- ABCK is **locally derivable** from T*(2F), not vice versa. ABCK's
+  4-prototile count is achieved by reduction of the natural
+  6-prototile T*(2F) structure.
+- The acceptance window is the Voronoi cell of D₆ projected to E_⊥
+  (a triacontahedron). Window decomposition codes 36 vertex
+  configurations; **tile shapes are determined by the Voronoi
+  structure of D₆**, independent of window choice within the family.
+
+**Sharpened conjecture (post-1999):**
+
+> The canonical D₆ icosahedral projection T*(2F) requires 6
+> prototiles. ABCK's 4 is an existing reduction; reducing further
+> to 1 (the monotile target) would require an additional
+> reduction-to-monotile rule that the published literature does
+> not exhibit.
+
+The Q14b(e) question is now answered definitively for the T*(2F)
+family: window choice picks vertex configurations, not tile
+shapes. The Q14b(c) question (window-deformation as candidate-
+generation) remains open pending Kramer-Papadopolos 1994: the
+1999 paper does not address whether the Voronoi window is the
+unique window or part of a continuous/discrete family of valid
+windows.
+
+**Gate decision update.** The 1999 read does not change the Gate
+verdict (still Gate C), but it strengthens the *evidence* for
+Branch B (conjecture true) by showing ABCK's 4-prototile count is
+already a non-trivial reduction from the canonical 6, with no
+published path to further reduction. Acquisition of
+Kramer-Papadopolos 1994 remains the path to clearing Gate C; in
+the meantime, the conjecture is sharper and better-bounded.
+
+**No code or pivot action lands from this update.** The
+sequencing commitment carries forward.
