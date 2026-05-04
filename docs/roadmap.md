@@ -187,11 +187,23 @@ direction per Claude (web)'s Q7c ruling. Sub-package layout
 - [x] **n=3 PF=φ³ algebraic survey** ✅ in `6a0797b` (Q9b). 21
       primitive matrices at max_entry=2, all 21 passing filter 1.
       Search is fertile.
+- [x] **End-to-end realisation sweep** ✅ in `a82715a` plus
+      `notebooks/n3_phi3_sweep_2026-04-29.log`. For each of the 21
+      candidates, found volume-matching shape triples in the 9-class
+      H₃ taxonomy and ran `realise()` (k_max=5, 30s/pair). Result:
+      0 Realised, 5 NoRealisation (exhaustive), 8 Inconclusive
+      (timeout), 2 SKIPped (k>5). Per Q9c, *not* the "zero
+      survivors at max_entry=8" gate condition — Inconclusive
+      candidates remain investigable with longer budget.
 - [ ] **n=3 search at higher max_entry**. max_entry=2 → 21
       candidates (1.9s); max_entry=3 → 209 (28.6s); max_entry=8
       (Q9c gate) likely thousands and would take hours. Tractable
-      with proper-batch parallel processing; informs the
-      "search exhausts" signal.
+      with proper-batch parallel processing.
+- [ ] **Resolve the 8 Inconclusive cases**: longer time budget,
+      try other matching shape triples (not just first), apply
+      fail-first rotation ordering. Definite NoRealisation across
+      all triples for all 8 candidates would be a meaningful
+      no-go contribution.
 - [ ] **Filter 2: dihedral-angle commensurability** fed by the
       H₃ taxonomy. Q9b spec: a candidate is dihedral-compatible
       iff there exists a size-n subset of the H₃-classes whose

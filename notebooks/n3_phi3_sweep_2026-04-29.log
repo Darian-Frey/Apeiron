@@ -1,0 +1,25 @@
+n=3 PF=φ³ × LEFT-eigenvector-matched shape triples (k_max=5, 30s/pair):
+================================================================================
+  [cand  1] M=[[0, 1, 1], [0, 2, 2], [1, 2, 2]] triple=(4, 0, 0)  col_sums=[1, 5, 5]  e_L=(ZPhi(-1, 2), ZPhi(3, 4), ZPhi(3, 4))  → NoRealisation (0.0s)
+  [cand  2] M=[[0, 1, 1], [1, 2, 2], [2, 2, 1]] triple=(8, 4, 5)  col_sums=[3, 5, 4]  e_L=(ZPhi(0, 4), ZPhi(4, 4), ZPhi(2, 4))  → NoRealisation (0.7s)
+  [cand  4] M=[[1, 0, 1], [2, 1, 2], [2, 2, 2]] triple=(0, 1, 0)  col_sums=[5, 3, 5]  e_L=(ZPhi(4, 4), ZPhi(0, 4), ZPhi(4, 4))  → Inconclusive (30.1s)
+  [cand  5] M=[[1, 0, 2], [1, 1, 1], [2, 2, 2]] triple=(5, 8, 4)  col_sums=[4, 3, 5]  e_L=(ZPhi(2, 4), ZPhi(0, 4), ZPhi(4, 4))  → NoRealisation (4.0s)
+  [cand  6] M=[[1, 0, 2], [1, 1, 2], [1, 2, 2]] triple=(5, 4, 2)  col_sums=[3, 3, 6]  → SKIP (k>5)
+  [cand  8] M=[[1, 0, 2], [2, 1, 2], [2, 2, 1]] triple=(0, 1, 0)  col_sums=[5, 3, 5]  e_L=(ZPhi(4, 4), ZPhi(0, 4), ZPhi(4, 4))  → Inconclusive (30.1s)
+  [cand 11] M=[[1, 1, 1], [2, 1, 1], [2, 2, 2]] triple=(4, 5, 5)  col_sums=[5, 4, 4]  e_L=(ZPhi(4, 4), ZPhi(2, 4), ZPhi(2, 4))  → Inconclusive (30.0s)
+  [cand 12] M=[[1, 1, 1], [2, 1, 2], [2, 1, 2]] triple=(0, 1, 0)  col_sums=[5, 3, 5]  e_L=(ZPhi(2, 4), ZPhi(2, 2), ZPhi(2, 4))  → Inconclusive (30.0s)
+  [cand 13] M=[[1, 1, 1], [2, 1, 2], [2, 2, 1]] triple=(4, 5, 5)  col_sums=[5, 4, 4]  e_L=(ZPhi(4, 4), ZPhi(2, 4), ZPhi(2, 4))  → Inconclusive (30.0s)
+  [cand 14] M=[[1, 1, 1], [2, 2, 1], [2, 1, 2]] triple=(4, 5, 5)  col_sums=[5, 4, 4]  e_L=(ZPhi(0, 4), ZPhi(2, 2), ZPhi(2, 2))  → Inconclusive (30.0s)
+  [cand 15] M=[[1, 1, 2], [2, 1, 2], [1, 1, 2]] triple=(4, 5, 2)  col_sums=[4, 3, 6]  → SKIP (k>5)
+  [cand 16] M=[[1, 1, 2], [2, 1, 2], [2, 1, 1]] triple=(0, 1, 0)  col_sums=[5, 3, 5]  e_L=(ZPhi(2, 4), ZPhi(2, 2), ZPhi(2, 4))  → Inconclusive (30.1s)
+  [cand 17] M=[[1, 1, 2], [2, 2, 0], [2, 2, 1]] triple=(0, 0, 1)  col_sums=[5, 5, 3]  e_L=(ZPhi(2, 4), ZPhi(2, 4), ZPhi(2, 2))  → Inconclusive (30.1s)
+  [cand 18] M=[[1, 2, 2], [0, 2, 1], [2, 1, 2]] triple=(1, 0, 0)  col_sums=[3, 5, 5]  e_L=(ZPhi(-2, 4), ZPhi(4, 2), ZPhi(4, 2))  → NoRealisation (1.2s)
+  [cand 19] M=[[1, 2, 2], [1, 2, 1], [1, 1, 2]] triple=(1, 0, 0)  col_sums=[3, 5, 5]  e_L=(ZPhi(0, 2), ZPhi(2, 2), ZPhi(2, 2))  → NoRealisation (1.2s)
+================================================================================
+
+Summary across 13 attempted pairs:
+  Realised: 0
+  NoRealisation: 5
+  Inconclusive: 8
+
+Total elapsed: 247.5s

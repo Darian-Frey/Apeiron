@@ -28,6 +28,17 @@ rulings.
   Per Q9c's gate ("zero survivors at max_entry=8 → literature
   deep-dive"): 21/21 at max_entry=2 is a strong fertility
   signal — search is productive, not exhausted.
+- **End-to-end realisation sweep** (`notebooks/n3_phi3_sweep_2026-04-29.log`):
+  for each of the 21 candidates, took the LEFT eigenvector (=
+  volume vector for the substitution), found shape triples in
+  the 9-class taxonomy whose volumes match this ratio, ran
+  `realise()` on the first matching triple per candidate.
+  Result: 0 Realised, 5 NoRealisation (proven exhaustively),
+  8 Inconclusive (30s budget hit), 2 SKIPped (k > k_max=5).
+  Bug found and fixed during the sweep: I was using the right
+  eigenvector (= frequency vector) for volume-matching; correct
+  is the left eigenvector. Now documented with bug-prevention
+  test (commit `a82715a`).
 
 Track B sub-package `apeiron/track_b/` houses:
 
@@ -134,6 +145,13 @@ Sub-commit plan for Track A's first candidate (Danzer):
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
+- **Track B Q9 end-to-end sweep** `a82715a` (+ result log
+  in `notebooks/n3_phi3_sweep_2026-04-29.log`): 0 Realised, 5
+  NoRealisation (exhaustive), 8 Inconclusive (timeout), 2 SKIPped
+  (k > 5). Bug fix: right vs left eigenvector semantics —
+  pf_eigenvector_in_zphi returns frequency (right); volume vector
+  needs M.T's right eigenvector. Documentation + bug-prevention
+  test added.
 - **Track B Q9b: n=3 algebraic survey** `6a0797b` —
   `feat(track_b)`: extended `pf_eigenvector_in_zphi` to n=3 via
   cross-product-of-rows shortcut for the rank-2 kernel of
