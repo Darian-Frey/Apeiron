@@ -157,11 +157,14 @@ class TestPlaceholderForGeneralInputs:
         assert isinstance(result, Inconclusive)
         assert result.fraction_searched == ZPhi(0, 0)
 
-    def test_inconclusive_reason_mentions_csp_pending(self) -> None:
+    def test_inconclusive_reason_mentions_prototile_shapes(self) -> None:
+        # When called without prototile_shapes, the realise() call
+        # returns Inconclusive whose reason directs the caller to
+        # supply shapes per Q8b.
         m = np.array([[0, 1], [1, 4]])
         result = realise(m, ZPhi(1, 2))
         assert isinstance(result, Inconclusive)
-        assert "CSP" in result.reason
+        assert "prototile_shapes" in result.reason
 
     def test_penrose_p3_returns_inconclusive(self) -> None:
         # Q8f's stress-test oracle (P3, PF=φ²) currently returns
@@ -538,6 +541,78 @@ class TestPropagateTranslationsAlongTree:
                 prototile_indices=[0, 0, 0],
                 prototile_vertices=[verts],
             )
+
+
+class TestSearchLoopIntegration:
+    """End-to-end: realise() now runs the search loop for non-Fibonacci
+    inputs when prototile_shapes is provided. **Validation is bounding-
+    box only at this iteration**, so Realised is a necessary-condition
+    witness, not sufficient — overlap detection is the next refinement.
+    """
+
+    def _unit_tetrahedron(self) -> Polyhedron:
+        z = ZPhi(0, 0)
+        two = ZPhi(2, 0)
+        return Polyhedron.from_raw(
+            [
+                Vec3(z, z, z),
+                Vec3(two, z, z),
+                Vec3(z, two, z),
+                Vec3(z, z, two),
+            ],
+            [(0, 1, 2), (0, 3, 1), (0, 2, 3), (1, 3, 2)],
+        )
+
+    def test_no_prototile_shapes_returns_inconclusive(self) -> None:
+        m = np.array([[0, 1], [1, 4]])
+        result = realise(m, ZPhi(1, 2))
+        assert isinstance(result, Inconclusive)
+        assert "prototile_shapes" in result.reason
+
+    def test_k_too_large_returns_inconclusive(self) -> None:
+        # M=[[0,1],[1,4]] has σ(P_1) with 5 children. First-iteration
+        # k_max=3 means search bails immediately.
+        m = np.array([[0, 1], [1, 4]])
+        proto = self._unit_tetrahedron()
+        result = realise(
+            m, ZPhi(1, 2),
+            prototile_shapes=(proto, proto),
+            max_search_seconds=10,
+        )
+        assert isinstance(result, Inconclusive)
+        assert "k_max" in result.reason or "k=" in result.reason
+
+    def test_penrose_p3_search_loop_executes(self) -> None:
+        # M=[[1,1],[1,2]] (Penrose P3): σ(P_0) k=2, σ(P_1) k=3 — both
+        # within k_max=3. With synthetic prototiles the loop returns
+        # *some* result (likely Realised by trivial bounding-box-pass
+        # placement, but exercise confirms machinery runs).
+        m = np.array([[1, 1], [1, 2]])
+        proto = self._unit_tetrahedron()
+        result = realise(
+            m, ZPhi(1, 1),
+            prototile_shapes=(proto, proto),
+            max_search_seconds=60,
+        )
+        # Must terminate with one of the three result types — no exception.
+        assert isinstance(result, (Realised, NoRealisation, Inconclusive))
+
+    def test_realised_carries_correct_child_count(self) -> None:
+        # If realise returns Realised on Penrose P3, the per-parent
+        # children counts must match the substitution matrix columns.
+        m = np.array([[1, 1], [1, 2]])
+        proto = self._unit_tetrahedron()
+        result = realise(
+            m, ZPhi(1, 1),
+            prototile_shapes=(proto, proto),
+            max_search_seconds=60,
+        )
+        if isinstance(result, Realised):
+            assert len(result.children_per_parent) == 2
+            # σ(P_0) column = [1, 1] → 2 children.
+            assert len(result.children_per_parent[0]) == 2
+            # σ(P_1) column = [1, 2] → 3 children.
+            assert len(result.children_per_parent[1]) == 3
 
 
 class TestInputValidation:

@@ -31,8 +31,10 @@ from typing import Final
 
 import numpy as np
 
+import time
+
 from apeiron.polyhedron import Polyhedron
-from apeiron.symmetry import ImproperRotation, Rotation, Vec3
+from apeiron.symmetry import ICOSAHEDRAL, ImproperRotation, Rotation, Vec3
 from apeiron.zphi import ZPhi
 
 __all__ = [
@@ -364,6 +366,260 @@ def propagate_translations_along_tree(
     return tuple(t for t in translations if t is not None)
 
 
+def _enumerate_dfs_trees(k: int) -> list[tuple[int, ...]]:
+    """Yield ``(p_1, ..., p_{k-1})`` where ``p_i ∈ {0, ..., i-1}`` is
+    the parent of child ``i`` in a DFS-discovery-ordered rooted tree.
+
+    For ``k=1``: yields one empty tuple. For ``k=2``: ``[(0,)]``.
+    For ``k=3``: ``[(0, 0), (0, 1)]`` (star at 0; path 0-1-2). Total
+    count: ``(k-1)!``. Each sequence specifies a tree on labelled
+    nodes ``{0, ..., k-1}`` rooted at 0 with edges visited in
+    DFS-discovery order — which is exactly the form
+    ``propagate_translations_along_tree`` consumes.
+
+    Matches the convention used by the rotation-search backtracker:
+    child 0 is fixed at identity rotation and origin translation; each
+    subsequent child connects to one already-placed parent via one
+    face-match edge.
+    """
+    if k < 1:
+        raise ValueError(f"k must be ≥ 1; got {k}.")
+    if k == 1:
+        return [()]
+    import itertools
+    return [
+        parents
+        for parents in itertools.product(*(range(i) for i in range(1, k)))
+    ]
+
+
+def _vec3_lex_lt(a: Vec3, b: Vec3) -> bool:
+    """ZPhi-lex compare ``a < b`` on (x, y, z)."""
+    for ai, bi in ((a.x, b.x), (a.y, b.y), (a.z, b.z)):
+        c = (ai - bi)._sign()
+        if c < 0:
+            return True
+        if c > 0:
+            return False
+    return False
+
+
+def _bounding_box(vertices: Sequence[Vec3]) -> tuple[Vec3, Vec3]:
+    """Min and max corners (component-wise) over a vertex sequence.
+    Pure ZPhi; no floats. Uses ``ZPhi._sign`` on differences.
+    """
+    if not vertices:
+        raise ValueError("Cannot compute bounding box of empty vertex set.")
+    min_x = min_y = min_z = vertices[0].x  # placeholder values
+    min_x, min_y, min_z = vertices[0].x, vertices[0].y, vertices[0].z
+    max_x, max_y, max_z = vertices[0].x, vertices[0].y, vertices[0].z
+    for v in vertices[1:]:
+        if (v.x - min_x)._sign() < 0:
+            min_x = v.x
+        if (v.x - max_x)._sign() > 0:
+            max_x = v.x
+        if (v.y - min_y)._sign() < 0:
+            min_y = v.y
+        if (v.y - max_y)._sign() > 0:
+            max_y = v.y
+        if (v.z - min_z)._sign() < 0:
+            min_z = v.z
+        if (v.z - max_z)._sign() > 0:
+            max_z = v.z
+    return (Vec3(min_x, min_y, min_z), Vec3(max_x, max_y, max_z))
+
+
+def _vertex_in_box(v: Vec3, lo: Vec3, hi: Vec3) -> bool:
+    """Component-wise ``lo ≤ v ≤ hi`` in real-number ZPhi order."""
+    return (
+        (v.x - lo.x)._sign() >= 0 and (hi.x - v.x)._sign() >= 0
+        and (v.y - lo.y)._sign() >= 0 and (hi.y - v.y)._sign() >= 0
+        and (v.z - lo.z)._sign() >= 0 and (hi.z - v.z)._sign() >= 0
+    )
+
+
+def _search_realisation_for_parent(
+    children_types: Sequence[int],
+    prototile_shapes: Sequence[Polyhedron],
+    inflated_parent_bbox: tuple[Vec3, Vec3],
+    *,
+    rotation_pool: Sequence[Rotation],
+    deadline: float,
+    k_max: int,
+) -> tuple[ChildPlacement, ...] | None | str:
+    """Search for a face-to-face placement of ``children_types`` inside
+    a parent whose inflated bounding box is ``inflated_parent_bbox``.
+
+    Per Q8a/c/meta 2026-04-29: rotation-search-with-linear-translation
+    recovery, with child 0's rotation fixed to identity and translation
+    fixed to the origin (eliminating both global symmetries WLOG).
+
+    Search space:
+
+    - **Tree topology**: ``(k−1)!`` DFS-discovery-ordered rooted trees
+      on ``k`` children with root 0.
+    - **Face pair per edge**: ``faces(prototile_parent) × faces(prototile_new)``
+      = 16 options for tetrahedral prototiles (4 × 4).
+    - **Rotation per non-root child**: pool of ``len(rotation_pool)``
+      isometries (typically the 60 proper rotations in I).
+
+    **Validation: bounding-box only at this iteration.** A placement is
+    accepted if every placed vertex lies in
+    ``inflated_parent_bbox``. **This is too weak.** Volume
+    conservation, non-overlap, and full-coverage are *not* checked.
+    Trivially-overlapping placements (e.g., all children at origin
+    with identity rotation) pass bounding-box validation and would
+    be returned as Realised. A subsequent commit must add:
+
+    - Volume sum: ``Σ vol(child) == λ³ · vol(parent)`` exact in ℤ[φ].
+    - Pairwise non-overlap: child interiors disjoint.
+    - Coverage: union of placed children equals λ·parent.
+
+    Until then, the ``Realised`` returned by this function is a
+    *necessary-condition witness*, not sufficient. Treat any
+    Realised at this commit as a candidate for future-iteration
+    validation, not a confirmed dissection.
+
+    Returns
+    -------
+    tuple of ChildPlacement
+        First valid placement found. Length matches ``children_types``.
+    None
+        Exhaustively no placement passes bounding-box validation.
+    str
+        ``"timeout"`` if the deadline was hit mid-search.
+    """
+    k = len(children_types)
+    if k < 1:
+        raise ValueError(f"children_types must be non-empty; got {k}.")
+    if k > k_max:
+        return "k_too_large"
+    z = ZPhi(0, 0)
+    origin = Vec3(z, z, z)
+    identity = Rotation.identity()
+
+    # Special case: k=1. One child, placed at identity/origin. Just
+    # check vertex containment.
+    if k == 1:
+        proto = prototile_shapes[children_types[0]]
+        placed = [identity.apply(v) + origin for v in proto.vertices]
+        lo, hi = inflated_parent_bbox
+        if all(_vertex_in_box(v, lo, hi) for v in placed):
+            return (ChildPlacement(
+                prototile_index=children_types[0],
+                translation=origin, rotation=identity,
+            ),)
+        return None
+
+    trees = _enumerate_dfs_trees(k)
+    n_faces = len(prototile_shapes[0].faces)
+    # Cache prototile face vertex tuples (3-tuples per face).
+    proto_face_verts: list[tuple[tuple[int, int, int], ...]] = []
+    for proto in prototile_shapes:
+        face_tuples: list[tuple[int, int, int]] = []
+        for face in proto.faces:
+            if len(face) != 3:
+                raise ValueError(
+                    "Search currently supports tetrahedral prototiles "
+                    "(triangular faces) only."
+                )
+            face_tuples.append(face)  # type: ignore[arg-type]
+        proto_face_verts.append(tuple(face_tuples))
+
+    proto_vertex_tuples = [tuple(p.vertices) for p in prototile_shapes]
+
+    # Outer iteration: tree, then face-pair sequence, then rotation
+    # sequence. Per Q8 meta-3, fail-first ordering (try the most-
+    # constraining options first) is a future optimisation; this
+    # iteration is straight DFS in the natural order.
+    for tree in trees:
+        for face_pair_seq in _iter_face_pair_sequences(tree, n_faces):
+            for rot_seq in _iter_rotation_sequences(k, rotation_pool):
+                if time.monotonic() > deadline:
+                    return "timeout"
+                edges = []
+                for edge_idx, parent in enumerate(tree):
+                    new_child = edge_idx + 1
+                    f_par_idx, f_new_idx = face_pair_seq[edge_idx]
+                    edges.append(FaceMatchEdge(
+                        parent=parent,
+                        new=new_child,
+                        face_indices_parent=proto_face_verts[
+                            children_types[parent]
+                        ][f_par_idx],
+                        face_indices_new=proto_face_verts[
+                            children_types[new_child]
+                        ][f_new_idx],
+                    ))
+                translations = propagate_translations_along_tree(
+                    rotations=list(rot_seq),
+                    edges=edges,
+                    prototile_indices=list(children_types),
+                    prototile_vertices=proto_vertex_tuples,
+                )
+                if translations is None:
+                    continue
+                # Bounding-box validation.
+                lo, hi = inflated_parent_bbox
+                ok = True
+                for child_idx in range(k):
+                    proto = prototile_shapes[children_types[child_idx]]
+                    rot = rot_seq[child_idx]
+                    t = translations[child_idx]
+                    for v in proto.vertices:
+                        placed = rot.apply(v) + t
+                        if not _vertex_in_box(placed, lo, hi):
+                            ok = False
+                            break
+                    if not ok:
+                        break
+                if not ok:
+                    continue
+                # Found a valid placement.
+                return tuple(
+                    ChildPlacement(
+                        prototile_index=children_types[i],
+                        translation=translations[i],
+                        rotation=rot_seq[i],
+                    )
+                    for i in range(k)
+                )
+    return None
+
+
+def _iter_face_pair_sequences(
+    tree: tuple[int, ...], n_faces: int,
+):
+    """Iterator over (face_idx_parent, face_idx_new) tuples per edge.
+
+    For a tree with ``len(tree)`` edges (= k-1), yields all
+    ``n_faces ** (2 * len(tree))`` combinations.
+    """
+    import itertools
+    edges_count = len(tree)
+    if edges_count == 0:
+        yield ()
+        return
+    pairs = list(itertools.product(range(n_faces), repeat=2))
+    for combo in itertools.product(pairs, repeat=edges_count):
+        yield combo
+
+
+def _iter_rotation_sequences(
+    k: int, rotation_pool: Sequence[Rotation],
+):
+    """Iterator over (rot_0, rot_1, ..., rot_{k-1}) where rot_0 is
+    fixed to identity and the rest range over rotation_pool.
+    """
+    import itertools
+    identity = Rotation.identity()
+    if k == 1:
+        yield (identity,)
+        return
+    for rest in itertools.product(rotation_pool, repeat=k - 1):
+        yield (identity,) + rest
+
+
 def _is_fibonacci_oracle(
     matrix: np.ndarray, pf_target: ZPhi,
 ) -> bool:
@@ -550,17 +806,94 @@ def realise(
     if _is_fibonacci_oracle(matrix, pf_target):
         return _build_fibonacci_realisation()
 
-    # Placeholder: any other input gets Inconclusive with
-    # fraction_searched=0. Future structured backtracker fills this
-    # in per Q8a/c.
-    return Inconclusive(
-        fraction_searched=_ZERO_ZPHI,
-        partial=None,
-        reason=(
-            "Track B realisation CSP not yet implemented for general "
-            "inputs; only the Fibonacci oracle (M=[[0,1],[1,1]], "
-            "PF=φ) returns Realised at this commit. "
-            "See apeiron/track_b/realisation.py docstring for "
-            "Q8a/c plan."
-        ),
+    # If caller provided no prototile_shapes, we have nothing to
+    # search over.
+    if prototile_shapes is None:
+        return Inconclusive(
+            fraction_searched=_ZERO_ZPHI,
+            partial=None,
+            reason=(
+                "Track B realisation requires prototile_shapes for "
+                "non-Fibonacci inputs; got None. Caller must supply "
+                "icosahedral-compatible prototile Polyhedra per Q8b."
+            ),
+        )
+
+    # Iterate over each parent's σ; search for a placement of its
+    # children. If any parent's σ has no valid placement, the rule
+    # has no realisation. Per Q8 meta-1, the search fixes child 0's
+    # rotation to identity and translation to the origin.
+    deadline = time.monotonic() + max_search_seconds
+    rotation_pool = list(ICOSAHEDRAL)  # 60 proper rotations
+    children_per_parent: list[tuple[ChildPlacement, ...]] = []
+    for parent_idx in range(n):
+        children_types = []
+        for type_out in range(n):
+            children_types.extend(
+                [type_out] * int(matrix[type_out, parent_idx])
+            )
+        if not children_types:
+            return NoRealisation(
+                reason=(
+                    f"σ(prototile_{parent_idx}) is empty (column "
+                    f"{parent_idx} of substitution matrix is zero)."
+                ),
+            )
+        # Inflated parent's bounding box: Λ·P_parent's vertices.
+        # For the inflation matrix Λ=pf_target·I (the typical case),
+        # bbox vertices are pf_target * proto.vertices. For a general
+        # ZPhi inflation, the caller must ensure bbox is right.
+        # First-iteration assumption: inflation is pf_target * I.
+        parent_proto = prototile_shapes[parent_idx]
+        inflated_verts = [
+            Vec3(
+                pf_target * v.x, pf_target * v.y, pf_target * v.z,
+            ) for v in parent_proto.vertices
+        ]
+        bbox = _bounding_box(inflated_verts)
+        result = _search_realisation_for_parent(
+            children_types=children_types,
+            prototile_shapes=prototile_shapes,
+            inflated_parent_bbox=bbox,
+            rotation_pool=rotation_pool,
+            deadline=deadline,
+            k_max=3,
+        )
+        if result == "k_too_large":
+            return Inconclusive(
+                fraction_searched=_ZERO_ZPHI,
+                partial=None,
+                reason=(
+                    f"σ(prototile_{parent_idx}) has k="
+                    f"{len(children_types)} children > k_max=3. "
+                    "First-iteration search supports k ≤ 3 only; "
+                    "larger σ-rules await algorithmic refinement of "
+                    "the rotation-search backtracker."
+                ),
+            )
+        if result == "timeout":
+            return Inconclusive(
+                fraction_searched=_ZERO_ZPHI,
+                partial=None,
+                reason=(
+                    f"Search hit max_search_seconds={max_search_seconds} "
+                    f"on σ(prototile_{parent_idx}); k="
+                    f"{len(children_types)} children. Increase budget."
+                ),
+            )
+        if result is None:
+            return NoRealisation(
+                reason=(
+                    f"σ(prototile_{parent_idx}) with {len(children_types)} "
+                    "children admits no face-to-face placement under "
+                    "bounding-box validation."
+                ),
+            )
+        # result is a tuple of ChildPlacement.
+        children_per_parent.append(result)
+
+    return Realised(
+        prototile_shapes=tuple(prototile_shapes),
+        children_per_parent=tuple(children_per_parent),
+        fraction_searched=_ONE_ZPHI,
     )
