@@ -115,17 +115,35 @@ direction per Claude (web)'s Q7c ruling. Sub-package layout
         - PF=φ³:  5 candidates — concrete 2-tile algebraic
           alternatives to Danzer's 4-tile rule. Each has trace=4,
           det=−1; geometric realisation pending.
-- [ ] `geometric_prefilter.py` — three filters before realisation
-      attempt per Q7c: vertex-class consistency, dihedral-angle
-      commensurability with icosahedral angles, Euler-characteristic
-      consistency. Eliminates algebraically-realisable but
-      geometrically-infeasible matrices before the expensive CSP.
-- [ ] `realisation.py` — vertex-placement CSP given a filtered
-      matrix candidate. Find vertex positions such that the
-      substitution children fit face-to-face in the tile's local
-      frame. Uses `polyhedron.py` and `corona.py` primitives.
-- [ ] Integration test: 1D Fibonacci known to realise; random
-      non-realisable matrix must fail filter 1 or 2.
+- [x] `geometric_prefilter.py` ✅ in `a84593d`. Filter 1 (vertex-
+      class, ZPhi PF eigenvector) implemented for n=2; filters 2
+      (dihedral-angle) and 3 (Euler) are documented stubs returning
+      None. All 5 PF=φ³ candidates pass filter 1.
+- [x] `realisation.py` API ✅ in `f97d24c` per Claude (web) Q8
+      ruling 2026-04-29. Result types
+      (`Realised | NoRealisation | Inconclusive`),
+      `ChildPlacement`, `SearchProgress`, public
+      `realise(matrix, pf_target, *, max_search_seconds=300)`
+      function. Fibonacci oracle returns Realised via a manual
+      witness; non-Fibonacci inputs return Inconclusive with
+      ``fraction_searched=0`` and a reason string referencing the
+      pending CSP.
+- [ ] **Realisation CSP body** (next sub-commit). Per Q8a/c:
+      structured rotation-search with linear translation recovery
+      in ZPhi. Fix child 0's rotation to identity (WLOG by global
+      I_h symmetry per Q8 meta) and search ``I_h^(k−1)`` for
+      remaining children with face-match pruning. For each
+      rotation assignment solve the translation linear system
+      exactly via Gaussian elimination over ℤ[φ]; on inconsistency,
+      backtrack. Q8 meta-3: fail-first rotation ordering biased
+      toward early NoRealisation (the expected outcome for most
+      candidates). Coroutine-style internal generator yielding
+      `SearchProgress`; outer `max_search_seconds` wrapper consumes
+      until timeout.
+- [ ] Integration test on the n=2 PF=φ³ survey: run
+      `realise` on each of the 5 candidates after the CSP body is
+      filled in. Most or all are expected to return NoRealisation;
+      any survivor is a major Track B finding.
 
 ## Phase 3 — Recognisability and beyond
 

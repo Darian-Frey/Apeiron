@@ -23,15 +23,16 @@ Track B sub-package `apeiron/track_b/` houses:
 - `matrix_search.py` ✅ — algebraic enumerator. n=2 survey at
   max_entry=5: 1 candidate at PF=φ (Fibonacci), 1 at PF=φ²
   (Penrose P3), 5 at PF=φ³.
-- `geometric_prefilter.py` (next) — three filters before
-  realisation per Q7c: vertex-class, dihedral-angle, Euler.
-- `realisation.py` (after) — vertex-placement CSP for surviving
-  candidates.
+- `geometric_prefilter.py` ✅ — filter 1 (ZPhi eigenvector)
+  for n=2. All 5 PF=φ³ candidates pass.
+- `realisation.py` ✅ (API + Fibonacci oracle) per Q8 ruling.
+  Body is a placeholder for non-Fibonacci inputs; structured
+  rotation-search backtracker per Q8a/c is the next sub-commit.
 
-The PF=φ³ n=2 alphabet has 5 algebraic candidates. None is ABCK;
-each is a 2-tile substitution rule that *might* realise as a 3D
-polyhedral pair admitting a strong-aperiodic tiling. Geometric
-realisation is the unknown.
+Next concrete piece: `realisation.py`'s CSP body — fix child 0's
+rotation to identity, search ``I_h^(k−1)`` with fail-first
+ordering, recover translations by Gaussian elimination in ZPhi
+per face-match equations.
 
 Sub-commit plan for Track A's first candidate (Danzer):
 
@@ -110,6 +111,14 @@ Sub-commit plan for Track A's first candidate (Danzer):
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
+- **Track B realisation API** `f97d24c` — `feat(track_b)`: Q8
+  result types (`Realised | NoRealisation | Inconclusive`,
+  `ChildPlacement`, `SearchProgress`) and public
+  `realise(matrix, pf_target, *, max_search_seconds=300)`. Fibonacci
+  oracle (M=[[0,1],[1,1]], PF=φ) returns Realised via manual
+  witness — confirms API end-to-end. All 5 PF=φ³ candidates
+  return Inconclusive(fraction_searched=0) at this commit; the
+  structured rotation-search CSP per Q8a/c lands next.
 - **Track B kickoff** `d994384` — `feat(track_b)`: new sub-package
   `apeiron/track_b/` with `matrix_search.enumerate_primitive_matrices`.
   Yields primitive integer substitution matrices with target PF
@@ -323,8 +332,8 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (post-Track-B-kickoff): 606 passing in ~20.3 s under
-venv pytest 9.0.3. Slow-test distribution unchanged: `cube_corona_2`
+Test totals (post-Q8-realisation-API): 637 passing in ~20.2 s
+under venv pytest 9.0.3. Slow-test distribution unchanged: `cube_corona_2`
 setup ~7 s, `RD corona_1` setup ~5.5 s, `cube corona_1` setup
 ~2.3 s, `RTH face-to-face counts` ~1.5 s. The rest of the 594
 tests run in well under a second combined.
