@@ -15,8 +15,19 @@ returned, or an attempt fails in a way worth remembering.
 ## Current focus
 
 **Track A** face-merge formalism is closed (Phases 1.5 + 1.6).
-**Track B** (CLAUDE.md §6.2) underway as of `d994384` per
-Claude (web) Q7c 2026-04-29.
+**Track B** (CLAUDE.md §6.2) actively searching per Q7/Q8/Q9
+rulings.
+
+**Q9 results (2026-04-29):**
+
+- H₃-tetrahedron taxonomy: 9 similarity classes from the
+  10-vertex Paolini ABCK pool (4 ABCK + 5 additional). Frettlöh's
+  reported 15 awaits a richer vertex pool (research follow-up).
+- n=3 PF=φ³ algebraic survey at max_entry=2: 21 primitive
+  matrices, **all 21 pass filter 1** (positive ZPhi³ eigenvector).
+  Per Q9c's gate ("zero survivors at max_entry=8 → literature
+  deep-dive"): 21/21 at max_entry=2 is a strong fertility
+  signal — search is productive, not exhausted.
 
 Track B sub-package `apeiron/track_b/` houses:
 
@@ -123,6 +134,21 @@ Sub-commit plan for Track A's first candidate (Danzer):
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
+- **Track B Q9b: n=3 algebraic survey** `6a0797b` —
+  `feat(track_b)`: extended `pf_eigenvector_in_zphi` to n=3 via
+  cross-product-of-rows shortcut for the rank-2 kernel of
+  (M − λI). Empirical n=3 PF=φ³ survey at max_entry=2 yields 21
+  primitive matrices, all 21 passing filter 1. Per Q9c's
+  fertility gate, this is a strong "search continues to be
+  productive" signal — not the "literature deep-dive" condition.
+- **Track B Q9a: H₃-tetrahedron taxonomy** `0efc697` —
+  `feat(track_b)`: derived from first principles. 15 H₃-axes
+  computed at module load (icosahedron edge midpoints quotiented
+  by ±). `is_h3_compatible` checks face normals parallel to an
+  axis via exact ZPhi cross product. `build_h3_tetrahedra(pool)`
+  enumerates 4-subsets, filters by H₃, dedupes by similarity.
+  Default 10-vertex Paolini ABCK pool yields 9 classes (4 ABCK +
+  5 additional); extending to all 15 is research follow-up.
 - **Track B realisation DFS backtracker** `551510a` —
   `feat(track_b)`: refactored from triple-nested iteration to
   recursive DFS with per-edge face-match pruning. Inconsistent
@@ -368,8 +394,8 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (post-polytope-containment): 662 passing in ~20.8 s
-under venv pytest 9.0.3. Slow-test distribution unchanged: `cube_corona_2`
+Test totals (post-Q9-n=3-survey): 675 passing in ~21.6 s under
+venv pytest 9.0.3. Slow-test distribution unchanged: `cube_corona_2`
 setup ~7 s, `RD corona_1` setup ~5.5 s, `cube corona_1` setup
 ~2.3 s, `RTH face-to-face counts` ~1.5 s. The rest of the 594
 tests run in well under a second combined.

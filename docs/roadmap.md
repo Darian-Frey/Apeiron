@@ -179,13 +179,29 @@ direction per Claude (web)'s Q7c ruling. Sub-package layout
       n=2 PF=φ³ candidates now answered definitively (in 0.00s
       with synthetic identical-volume tets — volume mismatch
       rejects every candidate by design).
-- [ ] **Shape derivation from eigenvector** to close the loop on
-      ``realise(matrix, pf_target)`` without requiring caller-supplied
-      prototile_shapes. Per Q8e's "fix canonical shape from volume
-      ratio first": derive icosahedral-compatible tetrahedra whose
-      volume ratio matches the left eigenvector of M. Currently
-      realise() rejects wrong shapes definitively; with shape
-      derivation it could attempt the *right* shapes too.
+- [x] **H₃-tetrahedron taxonomy** ✅ in `0efc697` (Q9a). Derived
+      from first principles: 15 H₃ axes from icosahedron edge
+      midpoints; 9 similarity classes from the 10-vertex Paolini
+      ABCK pool (4 ABCK + 5 additional). Extending to find all 15
+      Frettlöh classes via richer vertex pool: research follow-up.
+- [x] **n=3 PF=φ³ algebraic survey** ✅ in `6a0797b` (Q9b). 21
+      primitive matrices at max_entry=2, all 21 passing filter 1.
+      Search is fertile.
+- [ ] **n=3 search at higher max_entry**. max_entry=2 → 21
+      candidates (1.9s); max_entry=3 → 209 (28.6s); max_entry=8
+      (Q9c gate) likely thousands and would take hours. Tractable
+      with proper-batch parallel processing; informs the
+      "search exhausts" signal.
+- [ ] **Filter 2: dihedral-angle commensurability** fed by the
+      H₃ taxonomy. Q9b spec: a candidate is dihedral-compatible
+      iff there exists a size-n subset of the H₃-classes whose
+      volume ratios match the PF eigenvector AND whose dihedral
+      angles sum correctly at every edge of the dissection. The
+      "edges of the dissection" structure isn't determined by the
+      matrix alone, so filter 2 in this strict form needs
+      candidate-shape information from the realisation step.
+      A weaker form (volume-ratio existence) is trivially True
+      given the taxonomy supports continuous scaling.
 - [ ] **Fail-first rotation ordering optimisation** for k > 3:
       sort rotation pool by per-rotation constraint score (number of
       face-match violations when placed first). Currently DFS
