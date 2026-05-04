@@ -151,21 +151,30 @@ direction per Claude (web)'s Q7c ruling. Sub-package layout
         1. Volume sum: pure ℤ[φ] check that
            ``Σ vol(child) = pf_target × vol(parent)``. Bails entire
            search if mismatched (saves all rotation iterations).
-        2. Bounding-box: every placed vertex inside inflated parent.
-        3. SAT (Separating Axis Theorem): pairwise interior-disjoint
+        2. AABB: every placed vertex inside the inflated parent's
+           axis-aligned bounding box (cheap pre-filter).
+        3. Polytope containment: every placed vertex inside the
+           inflated parent polytope (centroid-relative, per face).
+        4. SAT (Separating Axis Theorem): pairwise interior-disjoint
            check on all C(k,2) pairs. Tangent-at-boundary counts as
            disjoint per face-to-face semantics.
 
-      Limitations to address:
-        * **Coverage**: union(placed children) = λ·parent not yet
-          checked. Volume-sum + non-overlap is *necessary*; full
-          coverage is the missing *sufficient* condition.
-        * **k > 3**: outer iteration (k-1)! × 16^(k-1) × 60^(k-1)
+      With all four layers passing, "Realised" is mathematically
+      equivalent to a face-to-face dissection (by inclusion-
+      exclusion: vol-sum + non-overlap + containment ⇒ coverage,
+      since any non-covered region would be open in the parent's
+      interior with measure 0, which is empty).
+
+      Remaining limitation:
+        * **k > 3**: outer iteration ``(k-1)! × 16^(k-1) × 60^(k-1)``
           becomes intractable past k=3 without fail-first ordering
-          per Q8 meta-3.
-- [ ] **Coverage check** + **fail-first rotation ordering** —
-      remaining pieces to make `realise` a complete decision
-      procedure for tetrahedral candidates with k ≤ 5.
+          per Q8 meta-3. The CSP body is a complete decision
+          procedure for k ≤ 3 today.
+- [ ] **Fail-first rotation ordering** to lift the k_max=3 ceiling.
+      Per Q8 meta-3: order I_h elements by how many face-match
+      constraints they immediately violate when placed first; try
+      most-constraining rotation first so NoRealisation
+      (the expected outcome for most candidates) is decided early.
 - [ ] Integration test on the n=2 PF=φ³ survey: run
       `realise` on each of the 5 candidates with appropriately-shaped
       prototiles. Most or all are expected to return NoRealisation;

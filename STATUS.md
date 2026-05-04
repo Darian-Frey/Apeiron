@@ -25,17 +25,19 @@ Track B sub-package `apeiron/track_b/` houses:
   (Penrose P3), 5 at PF=φ³.
 - `geometric_prefilter.py` ✅ — filter 1 (ZPhi eigenvector)
   for n=2. All 5 PF=φ³ candidates pass.
-- `realisation.py` ✅ — full CSP body per Q8a/c.
-  `translation_offset_from_face_match` (per-edge),
-  `propagate_translations_along_tree` (tree DFS),
-  `_search_realisation_for_parent` (rotation iteration with
-  3-layer validation: volume-sum + bounding-box + SAT overlap).
-  k_max=3 limit; coverage check + fail-first ordering pending.
+- `realisation.py` ✅ — **complete decision procedure for k ≤ 3**.
+  Search composes `translation_offset_from_face_match` (per-edge)
+  → `propagate_translations_along_tree` (tree DFS) → outer iteration
+  (tree topology × face pairs × rotation pool) with FOUR validation
+  layers: volume-sum (entire-search bail) → AABB → polytope
+  containment → SAT pairwise disjoint. Together these are
+  necessary-and-sufficient: vol-sum + non-overlap + containment ⇒
+  coverage by inclusion-exclusion, so "Realised" at this commit
+  IS a face-to-face dissection (k_max permitting).
 
-Next concrete piece: coverage check (union of placed children =
-λ·parent) plus fail-first rotation ordering per Q8 meta-3.
-Together these would make `realise` a complete decision
-procedure for tetrahedral candidates at k ≤ 5.
+Next concrete piece: fail-first rotation ordering per Q8 meta-3 to
+lift the k_max=3 ceiling, enabling search on the n=2 PF=φ³
+candidates (which have k=4–7 σ-rules).
 
 Sub-commit plan for Track A's first candidate (Danzer):
 
@@ -114,6 +116,12 @@ Sub-commit plan for Track A's first candidate (Danzer):
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
+- **Track B realisation: complete decision procedure for k ≤ 3**
+  `15c8790` — `feat(track_b)`: polytope containment via centroid-
+  relative inside-half-space test. With all four validation layers
+  in place (volume + AABB + polytope + SAT), "Realised" is
+  necessary-and-sufficient for face-to-face dissection by
+  inclusion-exclusion at k ≤ 3.
 - **Track B realisation CSP body** `c0ef1d9` — `feat(track_b)`:
   three-layer validation (volume-sum + bounding-box + SAT overlap)
   on top of the rotation-search backtracker. Composes
@@ -121,8 +129,8 @@ quick orientation.
   `72d222f`) → `propagate_translations_along_tree` (tree DFS,
   `589c4ca`) → outer iteration over (tree, face-pairs, rotations)
   in `_search_realisation_for_parent` (`d49c3d7`) → volume check
-  (`6949bec`) → SAT overlap (`c0ef1d9`). k_max=3 limit; coverage
-  check + fail-first ordering remain pending.
+  (`6949bec`) → SAT overlap (`c0ef1d9`). Polytope containment
+  followed in `15c8790`.
 - **Track B realisation API** `f97d24c` — `feat(track_b)`: Q8
   result types (`Realised | NoRealisation | Inconclusive`,
   `ChildPlacement`, `SearchProgress`) and public
@@ -344,8 +352,8 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (post-Q8-CSP-body): 658 passing in ~20.6 s under
-venv pytest 9.0.3. Slow-test distribution unchanged: `cube_corona_2`
+Test totals (post-polytope-containment): 662 passing in ~20.8 s
+under venv pytest 9.0.3. Slow-test distribution unchanged: `cube_corona_2`
 setup ~7 s, `RD corona_1` setup ~5.5 s, `cube corona_1` setup
 ~2.3 s, `RTH face-to-face counts` ~1.5 s. The rest of the 594
 tests run in well under a second combined.
