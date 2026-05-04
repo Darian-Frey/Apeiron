@@ -23,6 +23,18 @@ The overall flat-module convention from CLAUDE.md §4 still holds for
 exception authorised by Claude (web)'s Q7c ruling.
 """
 
+from apeiron.track_b.geometric_prefilter import (
+    PrefilterResult,
+    pf_eigenvector_in_zphi,
+    prefilter,
+    vertex_class_consistent,
+)
 from apeiron.track_b.matrix_search import enumerate_primitive_matrices
 
-__all__ = ["enumerate_primitive_matrices"]
+__all__ = [
+    "PrefilterResult",
+    "enumerate_primitive_matrices",
+    "pf_eigenvector_in_zphi",
+    "prefilter",
+    "vertex_class_consistent",
+]
