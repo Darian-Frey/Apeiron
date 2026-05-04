@@ -13,7 +13,9 @@ import pytest
 from apeiron.deformation import (
     FaceAdjacentPair,
     MergeFiltering,
+    enumerate_face_merge_compositions,
     face_adjacent_pairs,
+    feasibility_upper_bound,
     merge_two_tiles,
     placed_vertices,
     prioritise_merge_candidate,
@@ -533,3 +535,121 @@ class TestPrioritiseMergeCandidateOnDanzer:
                     passes += 1
         assert total == 24
         assert passes == 0
+
+
+# -- Phase 1.6: feasibility_upper_bound + k-tuple enumeration ---------
+
+
+def _trivial_pf2_rule() -> SubstitutionRule:
+    """1-prototile rule σ(0) = 2 copies of 0 → M = [[2]], PF = 2.
+    Used as the smoke-test counterpart for Phase 1.6 — its
+    feasibility_upper_bound returns True and every composition
+    survives the k-tuple enumeration.
+    """
+    z = ZPhi(0, 0)
+    origin = Vec3(z, z, z)
+    g = ICOSAHEDRAL[0]
+    child = PositionedTile(prototile_index=0, translation=origin, rotation=g)
+    return SubstitutionRule(
+        n_prototiles=1, inflation=Mat3.identity(),
+        dissections=((child, child),),
+    )
+
+
+def _phi_squared_rule() -> SubstitutionRule:
+    """2-prototile rule with substitution matrix [[2, 1], [1, 1]],
+    eigenvalues φ² and 1/φ². Neither is a positive integer, so
+    feasibility_upper_bound returns False.
+    """
+    z = ZPhi(0, 0)
+    origin = Vec3(z, z, z)
+    g = ICOSAHEDRAL[0]
+    return SubstitutionRule(
+        n_prototiles=2, inflation=Mat3.identity(),
+        dissections=(
+            (PositionedTile(0, origin, g),
+             PositionedTile(0, origin, g),
+             PositionedTile(1, origin, g)),
+            (PositionedTile(0, origin, g),
+             PositionedTile(1, origin, g)),
+        ),
+    )
+
+
+class TestFeasibilityUpperBound:
+    """Per Claude (web) Q7a/b 2026-04-29 ruling: closed-form check
+    for positive-integer eigenvalue, short-circuiting the entire
+    face-merge enumeration when no such eigenvalue exists.
+    """
+
+    def test_danzer_returns_false(self, paolini_rule) -> None:
+        # M_ABCK eigenvalues = {φ³, φ, -1/φ, -1/φ³} — none is a
+        # positive integer.
+        assert feasibility_upper_bound(paolini_rule) is False
+
+    def test_phi_squared_rule_returns_false(self) -> None:
+        # M = [[2,1],[1,1]] has eigenvalues φ² and 1/φ² — also no
+        # positive integer.
+        assert feasibility_upper_bound(_phi_squared_rule()) is False
+
+    def test_trivial_pf2_rule_returns_true(self) -> None:
+        # M = [[2]] has eigenvalue 2 — positive integer.
+        assert feasibility_upper_bound(_trivial_pf2_rule()) is True
+
+
+class TestEnumerateFaceMergeCompositions:
+    """Phase 1.6 k-tuple enumeration: brute-force confirmation of
+    the closed-form no-go.
+    """
+
+    def test_danzer_yields_no_survivors_at_k_max_4(
+        self, paolini_rule,
+    ) -> None:
+        # The Phase 1.6 closing result: every composition fails
+        # the eigenvector check on M_ABCK. (Short-circuited via
+        # feasibility_upper_bound; result independent of k_max.)
+        survivors = enumerate_face_merge_compositions(
+            paolini_rule, k_max=4,
+        )
+        assert survivors == ()
+
+    def test_danzer_yields_no_survivors_at_k_max_8(
+        self, paolini_rule,
+    ) -> None:
+        # The closed-form argument is k-independent; confirm by
+        # raising k_max well beyond ABCK's alphabet.
+        survivors = enumerate_face_merge_compositions(
+            paolini_rule, k_max=8,
+        )
+        assert survivors == ()
+
+    def test_trivial_pf2_yields_every_composition(self) -> None:
+        # M = [[2]]: every (k,) composition for k ∈ {1, 2, 3, 4}
+        # satisfies σ(k) = 2·k.
+        survivors = enumerate_face_merge_compositions(
+            _trivial_pf2_rule(), k_max=4,
+        )
+        assert survivors == ((1,), (2,), (3,), (4,))
+
+    def test_rejects_zero_k_max(self, paolini_rule) -> None:
+        with pytest.raises(ValueError, match="k_max must be"):
+            enumerate_face_merge_compositions(paolini_rule, k_max=0)
+
+
+class TestPhase1_6_NoGo:
+    """The single integration test that records the Phase 1.6 closing
+    result for the project's research record.
+    """
+
+    def test_face_merge_track_closed_for_abck(self, paolini_rule) -> None:
+        # The closed-form Track A face-merge no-go, per Claude (web)
+        # Q7a 2026-04-29: M_ABCK has no positive-integer eigenvalue,
+        # therefore no face-merge composition of any size yields a
+        # 1-prototile substitution rule with PF in ℤ[φ]. This test
+        # is the citable artifact.
+        assert feasibility_upper_bound(paolini_rule) is False
+        # Higher-k enumerations all return empty.
+        for k in (2, 3, 4, 5, 6, 8):
+            assert enumerate_face_merge_compositions(
+                paolini_rule, k_max=k,
+            ) == ()

@@ -32,7 +32,9 @@ from apeiron.symmetry import ImproperRotation, Rotation, Vec3
 __all__ = [
     "FaceAdjacentPair",
     "MergeFiltering",
+    "enumerate_face_merge_compositions",
     "face_adjacent_pairs",
+    "feasibility_upper_bound",
     "merge_two_tiles",
     "placed_vertices",
     "prioritise_merge_candidate",
@@ -233,6 +235,88 @@ def merge_two_tiles(
     return Polyhedron.from_raw(merged_vertex_list, face_index_lists)
 
 
+# -- Phase 1.6 closed-form no-go check -------------------------------
+
+
+def feasibility_upper_bound(rule: SubstitutionRule) -> bool:
+    """Closed-form short-circuit for the entire face-merge search.
+
+    Per Claude (web) Q7a/b 2026-04-29: a face-merge of any number of
+    children of σ(parent) into a single prototile M produces a valid
+    1-prototile substitution rule iff M's σ-decomposition equals
+    ``λ·M`` for some positive integer λ. As a vector equation on
+    the parent's substitution matrix, this requires a positive-
+    integer *eigenvalue* with a non-negative-integer eigenvector.
+
+    The substitution matrix's characteristic polynomial has integer
+    coefficients (and is monic for a non-negative integer matrix),
+    so any rational root is an integer dividing the constant term
+    (rational root theorem). We enumerate divisors of |c_0| and
+    test each.
+
+    For Danzer ABCK the eigenvalues are ``{φ³, φ, -1/φ, -1/φ³}``;
+    none is a positive integer, so this returns ``False`` and
+    closes the entire face-merge track for ABCK regardless of
+    composition size — Phase 1.5 (k=2), Phase 1.6 (k=3, 4), and
+    every higher k.
+
+    Returns
+    -------
+    bool
+        ``True`` iff at least one positive-integer eigenvalue
+        exists. ``False`` is conclusive evidence that no face-merge
+        of any composition size yields a 1-prototile substitution.
+    """
+    from apeiron.substitution import substitution_matrix
+    from apeiron.substitution import _char_poly_int_coeffs
+
+    matrix = substitution_matrix(rule)
+    coeffs = _char_poly_int_coeffs(matrix)
+    # coeffs are highest-degree first. For monic poly the leading
+    # coeff is 1 and rational roots are integer divisors of |c_0|.
+    if coeffs[0] != 1 and coeffs[0] != -1:
+        # Non-monic — rational roots are p/q with p | c_0 and q | c_n.
+        # We don't expect this for a non-negative integer matrix
+        # (which always has a monic char poly), but reject loudly
+        # rather than silently giving wrong answer.
+        raise ValueError(
+            f"Substitution matrix has non-monic characteristic polynomial "
+            f"with leading coefficient {coeffs[0]}; expected ±1."
+        )
+    constant_term = coeffs[-1]
+    if constant_term == 0:
+        # 0 is an eigenvalue → matrix is singular, but 0 is not
+        # *positive*. Continue to non-zero divisors.
+        non_zero_constant = next(
+            (c for c in reversed(coeffs[:-1]) if c != 0), None,
+        )
+        if non_zero_constant is None:
+            # Zero polynomial — matrix is identically zero. Trivial.
+            return False
+        constant_term = non_zero_constant
+
+    # Enumerate positive-integer divisors of |constant_term|.
+    n = abs(constant_term)
+    candidates: list[int] = []
+    d = 1
+    while d * d <= n:
+        if n % d == 0:
+            candidates.append(d)
+            if d != n // d:
+                candidates.append(n // d)
+        d += 1
+
+    # Test each candidate: is it a root of the char poly?
+    for k in candidates:
+        # Evaluate poly at k via Horner.
+        v = 0
+        for c in coeffs:
+            v = v * k + c
+        if v == 0:
+            return True
+    return False
+
+
 # -- Q6b prioritisation filter ---------------------------------------
 
 
@@ -374,6 +458,92 @@ def prioritise_merge_candidate(
         vertex_class_compatible=vertex_class_ok,
         detail="; ".join(detail_parts),
     )
+
+
+# -- Phase 1.6: k-tuple face-merge composition enumeration ----------
+
+
+def enumerate_face_merge_compositions(
+    rule: SubstitutionRule,
+    *,
+    k_max: int = 4,
+) -> tuple[tuple[int, ...], ...]:
+    """Phase 1.6 brute-force enumeration: every ``k`` ∈ {1, ..., k_max}
+    composition vector ``(n_0, n_1, ..., n_{n_prototiles-1})`` with
+    ``sum(n_i) == k`` and ``n_i ≥ 0``. Each composition is a candidate
+    merged-tile multiset.
+
+    Per Claude (web) Q7a/b 2026-04-29: short-circuits via
+    ``feasibility_upper_bound``. If the rule's substitution matrix has
+    no positive-integer eigenvalue, no composition can satisfy
+    ``σ(M) = λ·M`` for any positive integer λ — the entire enumeration
+    returns empty without iteration. This is the algebraic argument
+    Claude (web) closed analytically; the function exists primarily
+    for the *test record* that confirms it computationally on
+    candidate rules.
+
+    Returns
+    -------
+    tuple of composition vectors
+        Survivors of the algebraic feasibility check. Empty iff
+        ``feasibility_upper_bound`` returns False — which for ABCK
+        is always.
+
+    Notes
+    -----
+    For ABCK with eigenvalues ``{φ³, φ, -1/φ, -1/φ³}`` the result is
+    always ``()``. For a hypothetical rule with PF ∈ ℤ₊, the result
+    is the (typically small) set of compositions that pass the
+    eigenvector check; each survivor proceeds to pillar-1+2+3 via
+    ``aperiodicity_witness`` on a candidate substitution rule built
+    from the merge.
+    """
+    if k_max < 1:
+        raise ValueError(f"k_max must be ≥ 1; got {k_max}.")
+    if not feasibility_upper_bound(rule):
+        return ()
+
+    # Closed-form no-go bypassed; enumerate compositions for any rule
+    # that does have a positive-integer eigenvalue. For each composition
+    # vector, check whether σ(composition) == λ·composition for some
+    # positive integer λ.
+    from apeiron.substitution import substitution_matrix
+    matrix = substitution_matrix(rule)
+    n = rule.n_prototiles
+    survivors: list[tuple[int, ...]] = []
+
+    def _check_composition(comp: tuple[int, ...]) -> None:
+        if sum(comp) == 0:
+            return
+        sigma_count = [
+            sum(int(matrix[t, s]) * comp[s] for s in range(n))
+            for t in range(n)
+        ]
+        nonzero = next((i for i, c in enumerate(comp) if c > 0), None)
+        if nonzero is None:
+            return
+        if sigma_count[nonzero] % comp[nonzero] != 0:
+            return
+        lam = sigma_count[nonzero] // comp[nonzero]
+        if lam < 1:
+            return
+        if all(sigma_count[t] == lam * comp[t] for t in range(n)):
+            survivors.append(comp)
+
+    def _partitions(remaining: int, slots: int, cur: list[int]) -> None:
+        if slots == 0:
+            if remaining == 0:
+                _check_composition(tuple(cur))
+            return
+        for v in range(remaining + 1):
+            cur.append(v)
+            _partitions(remaining - v, slots - 1, cur)
+            cur.pop()
+
+    for total in range(1, k_max + 1):
+        _partitions(total, n, [])
+
+    return tuple(survivors)
 
 
 # -- Q6c scaffold ----------------------------------------------------
