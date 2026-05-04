@@ -1,0 +1,230 @@
+Exhaustive n=3 PF=φ³ sweep at max_entry=3
+k_max=7, 30.0s/triple budget
+Per Q13c: 9-class H₃ taxonomy; unmatched marked SKIPPED_TAXONOMY_GAP
+==============================================================================
+H₃-pool size: 9
+Primitive candidates at max_entry=3: 209
+==============================================================================
+  [cand 1/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [1 0 2], [3 1 3]
+  [cand 2/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [1 0 3], [2 1 3]
+  [cand 3/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [1 0 3], [3 2 2]
+  [cand 4/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 5/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [1 1 3], [1 1 3]
+  [cand 6/209]  16 triples → NoRealisation (all 16 triples)
+  [cand 7/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [1 1 3], [1 3 1]
+  [cand 8/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [1 2 2], [1 1 3]
+  [cand 9/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [1 2 2], [1 2 2]
+  [cand 10/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [1 2 2], [1 3 1]
+  [cand 11/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [1 3 1], [1 1 3]
+  [cand 12/209]  16 triples → NoRealisation (all 16 triples)
+  [cand 13/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [1 3 1], [1 3 1]
+  [cand 14/209]   4 triples → NoRealisation (all 4 triples)
+  [cand 15/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 16/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [2 3 0], [2 2 3]
+  [cand 17/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 18/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 19/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [3 1 1], [3 1 3]
+  [cand 20/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [3 2 1], [2 1 3]
+  [cand 21/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [3 2 1], [3 2 2]
+  [cand 22/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 23/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 1], [3 3 3], [1 1 1]
+  [cand 24/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 2], [1 0 3], [3 1 2]
+  [cand 25/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 26/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 2], [1 1 2], [1 1 3]
+  [cand 27/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 2], [1 1 2], [2 3 1]
+  [cand 28/209]  16 triples → NoRealisation (all 16 triples)
+  [cand 29/209]   4 triples → NoRealisation (all 4 triples)
+  [cand 30/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 31/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 2], [2 2 3], [1 1 2]
+  [cand 32/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 33/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 2], [2 3 0], [2 3 1]
+  [cand 34/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 35/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 2], [3 3 2], [1 1 1]
+  [cand 36/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 3], [1 1 1], [1 1 3]
+  [cand 37/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 3], [1 2 1], [1 2 2]
+  [cand 38/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 39/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 3], [2 2 2], [1 1 2]
+  [cand 40/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 0 3], [3 3 1], [1 1 1]
+  [cand 41/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 42/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 1], [0 1 1], [2 2 3]
+  [cand 43/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 1], [0 1 1], [3 1 3]
+  [cand 44/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 45/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 46/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 47/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 48/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 1], [0 2 2], [3 1 2]
+  [cand 49/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 50/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 51/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 52/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 1], [0 3 2], [2 0 3]
+  [cand 53/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 54/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 1], [1 0 1], [1 3 3]
+  [cand 55/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 56/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 1], [1 0 3], [1 1 3]
+  [cand 57/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 1], [1 1 1], [3 3 2]
+  [cand 58/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 1], [1 1 2], [3 0 3]
+  [cand 59/209]  16 triples → NoRealisation (all 16 triples)
+  [cand 60/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 61/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 1], [1 2 3], [2 0 3]
+  [cand 62/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 63/209]   8 triples → NoRealisation (all 8 triples)
+  [cand 64/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [0 1 2], [2 0 3]
+  [cand 65/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [0 1 3], [2 2 1]
+  [cand 66/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [1 0 2], [0 2 3]
+  [cand 67/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [1 0 2], [1 1 3]
+  [cand 68/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [1 1 1], [3 3 1]
+  [cand 69/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [1 1 3], [3 0 2]
+  [cand 70/209]  16 triples → NoRealisation (all 16 triples)
+  [cand 71/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [1 2 2], [0 1 3]
+  [cand 72/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [1 2 2], [1 2 1]
+  [cand 73/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 74/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 75/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [2 1 3], [1 1 2]
+  [cand 76/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [2 2 3], [0 1 2]
+  [cand 77/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [2 2 3], [1 1 1]
+  [cand 78/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [2 2 3], [2 1 0]
+  [cand 79/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [2 3 0], [0 1 3]
+  [cand 80/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [2 3 0], [1 2 1]
+  [cand 81/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 82/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [3 2 2], [0 1 2]
+  [cand 83/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 2], [3 2 2], [1 1 1]
+  [cand 84/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [1 1 0], [1 2 3]
+  [cand 85/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [1 1 0], [2 3 2]
+  [cand 86/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [1 1 1], [3 3 0]
+  [cand 87/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [1 1 3], [0 1 3]
+  [cand 88/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [1 1 3], [1 1 2]
+  [cand 89/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [1 1 3], [2 1 1]
+  [cand 90/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [1 1 3], [3 1 0]
+  [cand 91/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [2 1 2], [0 1 3]
+  [cand 92/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [2 1 2], [1 1 2]
+  [cand 93/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [2 1 2], [2 1 1]
+  [cand 94/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 95/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [3 1 1], [0 1 3]
+  [cand 96/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [3 1 1], [1 1 2]
+  [cand 97/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [3 1 1], [2 1 1]
+  [cand 98/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 1 3], [3 2 1], [1 1 1]
+  [cand 99/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 2], [0 1 1], [1 2 3]
+  [cand 100/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 2], [0 1 1], [2 0 3]
+  [cand 101/209]   8 triples → NoRealisation (all 8 triples)
+  [cand 102/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 2], [0 3 3], [2 0 1]
+  [cand 103/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 2], [1 1 1], [3 2 1]
+  [cand 104/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 2], [1 2 1], [2 3 0]
+  [cand 105/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 2], [2 1 0], [3 3 1]
+  [cand 106/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 107/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 3], [0 1 2], [1 2 2]
+  [cand 108/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 3], [0 1 2], [2 2 1]
+  [cand 109/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 3], [0 1 2], [3 2 0]
+  [cand 110/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 3], [1 1 1], [0 2 3]
+  [cand 111/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 3], [1 1 1], [1 2 2]
+  [cand 112/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 3], [1 1 1], [2 2 1]
+  [cand 113/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 3], [1 1 1], [3 2 0]
+  [cand 114/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 3], [1 3 1], [0 1 2]
+  [cand 115/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 3], [2 1 0], [0 2 3]
+  [cand 116/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 3], [2 1 0], [1 2 2]
+  [cand 117/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 3], [2 1 0], [2 2 1]
+  [cand 118/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 3], [2 1 3], [2 0 1]
+  [cand 119/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 2 3], [3 1 1], [1 1 1]
+  [cand 120/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 3 3], [0 1 1], [1 1 3]
+  [cand 121/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [0 3 3], [0 2 2], [1 1 2]
+  [cand 122/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 1], [0 1 1], [1 3 3]
+  [cand 123/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 124/209]   4 triples → NoRealisation (all 4 triples)
+  [cand 125/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 1], [0 1 3], [1 1 3]
+  [cand 126/209]  16 triples → NoRealisation (all 16 triples)
+  [cand 127/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 128/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 129/209]  16 triples → NoRealisation (all 16 triples)
+  [cand 130/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 1], [2 2 3], [0 2 1]
+  [cand 131/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 1], [2 2 3], [2 1 2]
+  [cand 132/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 133/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 1], [2 3 1], [3 1 2]
+  [cand 134/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 1], [2 3 3], [1 1 1]
+  [cand 135/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 1], [3 2 2], [2 2 1]
+  [cand 136/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 1], [3 2 2], [3 1 2]
+  [cand 137/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 2], [0 1 2], [1 1 3]
+  [cand 138/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 139/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 2], [0 3 2], [1 1 2]
+  [cand 140/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 141/209]   4 triples → NoRealisation (all 4 triples)
+  [cand 142/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 143/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 2], [1 2 3], [0 2 1]
+  [cand 144/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 2], [1 2 3], [1 1 2]
+  [cand 145/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 2], [1 3 0], [2 2 2]
+  [cand 146/209]   4 triples → NoRealisation (all 4 triples)
+  [cand 147/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 2], [2 1 1], [3 2 1]
+  [cand 148/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 2], [2 1 2], [2 1 2]
+  [cand 149/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 150/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 2], [2 1 3], [1 2 1]
+  [cand 151/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 2], [2 2 1], [2 1 2]
+  [cand 152/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 2], [2 2 1], [2 2 1]
+  [cand 153/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 2], [2 3 0], [2 1 2]
+  [cand 154/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 155/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 2], [2 3 2], [1 1 1]
+  [cand 156/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 3], [1 2 2], [1 1 2]
+  [cand 157/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 0 3], [2 3 1], [1 1 1]
+  [cand 158/209]  16 triples → NoRealisation (all 16 triples)
+  [cand 159/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [0 2 1], [3 2 2]
+  [cand 160/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [0 3 2], [2 1 1]
+  [cand 161/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [1 1 1], [2 3 2]
+  [cand 162/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [1 1 2], [3 2 1]
+  [cand 163/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [1 2 0], [3 1 3]
+  [cand 164/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [1 2 1], [3 1 2]
+  [cand 165/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [1 2 2], [3 1 1]
+  [cand 166/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [1 3 0], [3 0 3]
+  [cand 167/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [1 3 0], [3 3 2]
+  [cand 168/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [1 3 1], [3 0 2]
+  [cand 169/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [2 1 1], [2 2 2]
+  [cand 170/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [2 1 2], [2 0 3]
+  [cand 171/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 172/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [2 1 2], [2 2 1]
+  [cand 173/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [2 2 0], [2 1 3]
+  [cand 174/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [2 2 1], [2 0 3]
+  [cand 175/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [2 2 1], [2 1 2]
+  [cand 176/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 1], [2 3 0], [2 0 3]
+  [cand 177/209]   4 triples → NoRealisation (all 4 triples)
+  [cand 178/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 2], [1 1 3], [0 1 3]
+  [cand 179/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 2], [1 1 3], [1 1 2]
+  [cand 180/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 2], [1 1 3], [2 1 1]
+  [cand 181/209]   8 triples → NoRealisation (all 8 triples)
+  [cand 182/209]   4 triples → NoRealisation (all 4 triples)
+  [cand 183/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 184/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 2], [2 1 3], [2 0 2]
+  [cand 185/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 186/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 2], [2 2 2], [1 0 3]
+  [cand 187/209]   4 triples → NoRealisation (all 4 triples)
+  [cand 188/209]   4 triples → NoRealisation (all 4 triples)
+  [cand 189/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 2], [3 1 1], [0 1 3]
+  [cand 190/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 2], [3 1 1], [1 1 2]
+  [cand 191/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 3], [1 2 1], [1 0 3]
+  [cand 192/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 3], [1 2 1], [1 1 2]
+  [cand 193/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 3], [1 3 0], [1 0 3]
+  [cand 194/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 3], [1 3 0], [1 1 2]
+  [cand 195/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 1 3], [1 3 3], [1 0 2]
+  [cand 196/209]   2 triples → NoRealisation (all 2 triples)
+  [cand 197/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 198/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 199/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 200/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 2 2], [1 2 1], [1 0 3]
+  [cand 201/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 202/209]  10 triples → NoRealisation (all 10 triples)
+  [cand 203/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 2 3], [0 3 1], [1 1 2]
+  [cand 204/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [1 3 3], [0 2 1], [1 2 2]
+  [cand 205/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [2 0 1], [0 2 1], [2 3 2]
+  [cand 206/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [2 0 1], [0 2 2], [1 2 2]
+  [cand 207/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [2 0 1], [0 2 2], [3 1 2]
+  [cand 208/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [2 0 1], [0 2 3], [2 1 2]
+  [cand 209/209] SKIPPED_TAXONOMY_GAP — left eigvec ratio not in 9-class volume set; [2 0 2], [0 2 3], [1 1 2]
+==============================================================================
+
+Per-candidate summary (elapsed: 307.0s):
+  Realised                        :     0
+  NoRealisation_all_triples       :    65
+  NoRealisation_some_triples      :     0
+  Mixed                           :     0
+  Inconclusive                    :     0
+  SKIPPED_LARGE_K                 :     0
+  SKIPPED_TAXONOMY_GAP            :   144
+  FILTER1_REJECT                  :     0
+  total candidates              :   209
+
+No Realised witnesses across the entire sweep.

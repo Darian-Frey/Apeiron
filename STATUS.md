@@ -17,19 +17,39 @@ returned, or an attempt fails in a way worth remembering.
 **Track A** face-merge formalism is closed (Phases 1.5 + 1.6).
 **Track B** algebraic + realisation pipelines are built;
 **Q9c gate triggered** by the exhaustive n=3 PF=φ³ sweep.
-Per Claude (web)'s Q10 ruling (2026-04-29, archived at
-`docs/relays/q10_2026-04-29.md`), next step is the literature
-deep-dive — *not* more code. Three-output sequence with hard
-scope limits:
 
-1. `docs/literature_notes.md` — running notes (one-week box).
-2. `docs/literature_review.md` — synthesis (three days post-read).
-3. New candidates OR `docs/strategy_pivot.md` — depends on (2).
+Q10 ruling (2026-04-29) → Q13 ruling (2026-05-04) sequence
+executed in full:
 
-Sequencing commitment: re-relay synthesis result before any new
-code lands. Reading priority: Goodman-Strauss 1998 §3 + §6 first;
-Frettlöh "direct product variation" + DCG 2013 second; Socolar
-2019 (local vs nonlocal enforcement) third.
+- **Q10**: literature deep-dive (4 papers) → synthesis →
+  `docs/literature_review.md` recommends (c.3) audits → (c.1)
+  gap-closure → (c.2) decoration pivot.
+- **Q11**: pivot (c.2) replaced with **cut-and-project from D₆**
+  (paper-cited in Frettlöh ABCK §1.3); decoration falls back.
+- **Q12**: (c.3) audits authorised + executed. Pipeline sound:
+  κ-vs-radius bridging-lemma contract added to `is_recognisable`;
+  sibling-face-to-face verified computationally (24 face matches,
+  71 boundary co-tilings, 0 violations across 87 sibling pairs in
+  σ(A,B,C,K)).
+- **Q13**: (c.1) authorised + executed. Tilings Encyclopedia ABCK
+  check confirms 15-class count citably (Frettlöh "Icosahedral
+  tilings in R³" §1.1) but leaves coordinates of the 11 missing
+  classes in the unverifiable ABCK-Book; κ_ABCK still not stated.
+  Bonus: ABCK is a model set from D₆ (Theorem 1.3) — direct
+  paper support for cut-and-project pivot.
+
+**Sweep result post-Q13 (2026-05-04):** 209 candidates at
+max_entry=3 / k_max=7 / 30s budget — **0 Realised, 65
+NoRealisation (all matching triples), 144 SKIPPED_TAXONOMY_GAP,
+0 Inconclusive, 0 SKIPPED_LARGE_K, 0 FILTER1_REJECT, 307s
+elapsed.** Combined with the max_entry=2 sweep (13 NoRealisation),
+**78 candidates have now returned exhaustive NoRealisation; 0
+realised across the entire 9-class slice.** Log at
+`notebooks/n3_phi3_max_entry_3_2026-05-04.log`.
+
+Re-relay gate per Q11c: literature read (Kramer-Neri 1984 +
+Kramer-Papadopolos-Schlottmann-Zeidler 1994) before any
+cut-and-project infrastructure lands. Awaiting authorisation.
 
 **Q9 results (2026-04-29):**
 
