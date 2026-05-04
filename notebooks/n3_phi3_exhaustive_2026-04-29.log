@@ -1,0 +1,25 @@
+Exhaustive n=3 PF=φ³ sweep — all matching shape triples per candidate
+(per-step DFS validation, k_max=5, 30s/triple budget):
+================================================================================
+  [cand  1]   6 matches → all 6 triples → NoRealisation
+  [cand  2]   2 matches → all 2 triples → NoRealisation
+  [cand  4]  22 matches → all 22 triples → NoRealisation
+  [cand  5]   2 matches → all 2 triples → NoRealisation
+  [cand  8]  22 matches → all 22 triples → NoRealisation
+  [cand 11]   2 matches → all 2 triples → NoRealisation
+  [cand 12]  22 matches → all 22 triples → NoRealisation
+  [cand 13]   2 matches → all 2 triples → NoRealisation
+  [cand 14]   2 matches → all 2 triples → NoRealisation
+  [cand 16]  22 matches → all 22 triples → NoRealisation
+  [cand 17]  22 matches → all 22 triples → NoRealisation
+  [cand 18]  22 matches → all 22 triples → NoRealisation
+  [cand 19]  22 matches → all 22 triples → NoRealisation
+================================================================================
+
+Per-candidate summary:
+  Realised:                  0
+  All triples NoRealisation: 13
+  Mixed (Inc + NR):          0
+  Skipped (k > 5):           2
+
+Total triples run: 170, elapsed: 475.3s
