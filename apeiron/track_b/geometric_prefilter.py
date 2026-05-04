@@ -102,11 +102,20 @@ def pf_eigenvector_in_zphi(
     n = matrix.shape[0]
     if matrix.shape != (n, n):
         raise ValueError(f"Expected square matrix; got {matrix.shape}.")
-    if n != 2:
-        raise NotImplementedError(
-            "pf_eigenvector_in_zphi currently supports n=2 only; "
-            f"got n={n}. Extend to higher n as a follow-up."
-        )
+    if n == 2:
+        return _pf_eigenvector_in_zphi_n2(matrix, pf_target)
+    if n == 3:
+        return _pf_eigenvector_in_zphi_n3(matrix, pf_target)
+    raise NotImplementedError(
+        "pf_eigenvector_in_zphi supports n ∈ {2, 3}; "
+        f"got n={n}. Extend via Gaussian elimination over ℤ[φ] for "
+        "higher n as a follow-up."
+    )
+
+
+def _pf_eigenvector_in_zphi_n2(
+    matrix: np.ndarray, pf_target: ZPhi,
+) -> tuple[ZPhi, ...] | None:
     a = ZPhi(int(matrix[0, 0]), 0)
     b = ZPhi(int(matrix[0, 1]), 0)
     c = ZPhi(int(matrix[1, 0]), 0)
@@ -115,7 +124,6 @@ def pf_eigenvector_in_zphi(
     v0 = b
     v1 = pf_target - a
     if v0 != _ZERO_ZPHI or v1 != _ZERO_ZPHI:
-        # Verify via row 1.
         if c * v0 + (d - pf_target) * v1 == _ZERO_ZPHI:
             return (v0, v1)
     # Fall through to row-1 form.
@@ -124,6 +132,58 @@ def pf_eigenvector_in_zphi(
     if v0 != _ZERO_ZPHI or v1 != _ZERO_ZPHI:
         if (a - pf_target) * v0 + b * v1 == _ZERO_ZPHI:
             return (v0, v1)
+    return None
+
+
+def _pf_eigenvector_in_zphi_n3(
+    matrix: np.ndarray, pf_target: ZPhi,
+) -> tuple[ZPhi, ...] | None:
+    """For a 3×3 matrix M with PF eigenvalue λ ∈ ℤ[φ], the kernel
+    of (M − λI) is the 1D PF eigenspace (for primitive M). A non-zero
+    eigenvector is the cross product of any two linearly-independent
+    rows of (M − λI) — the kernel direction, perpendicular to both
+    rows in the row-space sense.
+
+    Try the cross product of rows (0, 1); if zero, try (0, 2); if
+    zero, try (1, 2). At least one cross product is non-zero since
+    the kernel is 1D (= rank 2 matrix).
+    """
+    from apeiron.symmetry import Vec3
+    # Build (M - λI) as 3 ZPhi rows.
+    a_minus_λI = []
+    for i in range(3):
+        row = []
+        for j in range(3):
+            entry = ZPhi(int(matrix[i, j]), 0)
+            if i == j:
+                entry = entry - pf_target
+            row.append(entry)
+        a_minus_λI.append(Vec3(row[0], row[1], row[2]))
+
+    def _cross(u, v):
+        return Vec3(
+            u.y * v.z - u.z * v.y,
+            u.z * v.x - u.x * v.z,
+            u.x * v.y - u.y * v.x,
+        )
+
+    def _is_zero(v):
+        return v.x == _ZERO_ZPHI and v.y == _ZERO_ZPHI and v.z == _ZERO_ZPHI
+
+    # Try each pair of rows.
+    for i, j in [(0, 1), (0, 2), (1, 2)]:
+        cand = _cross(a_minus_λI[i], a_minus_λI[j])
+        if _is_zero(cand):
+            continue
+        # Verify: for the candidate to be a kernel vector, every row's
+        # dot with cand must be zero.
+        ok = True
+        for k in range(3):
+            if a_minus_λI[k].dot(cand) != _ZERO_ZPHI:
+                ok = False
+                break
+        if ok:
+            return (cand.x, cand.y, cand.z)
     return None
 
 

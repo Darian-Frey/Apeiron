@@ -60,9 +60,26 @@ class TestPfEigenvectorInZPhi:
             assert mv0 == pv0
             assert mv1 == pv1
 
+    def test_n3_via_cross_product(self) -> None:
+        # n=3 extension uses cross product of two rows of (M − λI).
+        # Verify on a known n=3 case from the algebraic survey.
+        M = np.array([[0, 0, 1], [1, 2, 2], [1, 2, 2]])
+        # PF = φ³ = ZPhi(1, 2). The eigenvector should satisfy
+        # (M − λI) v = 0.
+        result = pf_eigenvector_in_zphi(M, ZPhi(1, 2))
+        assert result is not None
+        # Verify M @ v == λ v.
+        for i in range(3):
+            mv_i = ZPhi(0, 0)
+            for j in range(3):
+                mv_i = mv_i + ZPhi(int(M[i, j]), 0) * result[j]
+            assert mv_i == ZPhi(1, 2) * result[i]
+
     def test_higher_n_not_yet_supported(self) -> None:
-        M = np.eye(3, dtype=int)
-        with pytest.raises(NotImplementedError, match="n=2 only"):
+        # n=4+ still raises NotImplementedError; cross-product
+        # shortcut works only for n=3.
+        M = np.eye(4, dtype=int)
+        with pytest.raises(NotImplementedError, match="n ∈"):
             pf_eigenvector_in_zphi(M, ZPhi(1, 0))
 
     def test_rejects_non_square(self) -> None:
@@ -164,3 +181,19 @@ class TestPrefilterOnTrackBSurvey:
         M = np.array([[0, 1], [1, 4]])
         result = prefilter(M, ZPhi(1, 2))
         assert result.eigenvector == (ZPhi(1, 0), ZPhi(1, 2))
+
+    def test_n3_pf_phi_cubed_survey_at_max_entry_2(self) -> None:
+        # Q9b 2026-04-29: n=3 algebraic survey at PF=φ³, max_entry=2
+        # yields 21 primitive matrices. ALL pass filter 1 (positive
+        # ZPhi³ eigenvector, vertex-class consistency). This is the
+        # empirical fertility check — far from the "zero survivors"
+        # gate from Q9c that would trigger a literature deep-dive.
+        candidates = list(enumerate_primitive_matrices(
+            3, ZPhi(1, 2), max_entry=2,
+        ))
+        assert len(candidates) == 21
+        pass_count = sum(
+            1 for M in candidates
+            if prefilter(M, ZPhi(1, 2)).passes_all
+        )
+        assert pass_count == 21
