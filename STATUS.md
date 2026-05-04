@@ -17,9 +17,19 @@ returned, or an attempt fails in a way worth remembering.
 **Track A** face-merge formalism is closed (Phases 1.5 + 1.6).
 **Track B** algebraic + realisation pipelines are built;
 **Q9c gate triggered** by the exhaustive n=3 PF=φ³ sweep.
-Per Claude (web)'s ruling, the indicated next step is literature
-deep-dive rather than more code. Q10 relay drafted at
-`/tmp/q10_draft.md`; sending after this commit.
+Per Claude (web)'s Q10 ruling (2026-04-29, archived at
+`docs/relays/q10_2026-04-29.md`), next step is the literature
+deep-dive — *not* more code. Three-output sequence with hard
+scope limits:
+
+1. `docs/literature_notes.md` — running notes (one-week box).
+2. `docs/literature_review.md` — synthesis (three days post-read).
+3. New candidates OR `docs/strategy_pivot.md` — depends on (2).
+
+Sequencing commitment: re-relay synthesis result before any new
+code lands. Reading priority: Goodman-Strauss 1998 §3 + §6 first;
+Frettlöh "direct product variation" + DCG 2013 second; Socolar
+2019 (local vs nonlocal enforcement) third.
 
 **Q9 results (2026-04-29):**
 
