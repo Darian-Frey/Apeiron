@@ -761,6 +761,208 @@ Window volumes are given numerically (p.7): 20(5τ+2),
 
 ---
 
+---
+
+## 7. Cut-and-project literature read (Q14b authorisation, with closed-access substitution)
+
+**Read context.** Q14b authorised the Kramer-Neri 1984 + Kramer-
+Papadopolos-Schlottmann-Zeidler 1994 read for the cut-and-project
+literature phase. **Both papers are firmly closed-access.** Agent
+exhausted IUCr, IOPscience, Wiley, arXiv, Wayback Machine,
+Unpaywall, OpenAlex, Semantic Scholar, Google Scholar, ResearchGate,
+and faculty pages on 2026-05-04. Per Option C agreed with the
+user, three open-access substitutes were read in their place; the
+gap for the originals is flagged explicitly below.
+
+### 7.1 Al-Siyabi, Koca & Koca (2020), *Icosahedral Polyhedra from D₆ lattice and Danzer's ABCK tiling*
+
+Symmetry 12, 1983; arXiv:2003.13449. 19 pages. Read in full.
+
+#### §1 Introduction (pp.1–2)
+
+- "There have been two major approaches for the aperiodic tiling of
+  the 3D space with local icosahedral symmetry. One of them is the
+  Socolar-Steinhardt tiles (Socolar & Steinhardt, 1986) consisting
+  of acute and obtuse rhombic faces... Later it was proved that
+  (Danzer, Papadopolos & Talis, 1993), (Roth, 1993) they can be
+  constructed by the Danzer's ABCK tetrahedral tiles."
+- Both Ammann rhombohedral and Danzer ABCK tilings "are intimately
+  related with the projection of six-dimensional cubic lattice and
+  the root and weight lattices of D₆."
+- **Critical:** "Our approach is different than the cut and project
+  scheme of lattice D₆." Authors use *direct projection of a D₆
+  subset characterized by integer pairs* (m₁, m₂), not a window-
+  based CPS.
+
+#### §2 Projection of D₆ under H₃ (pp.3–7)
+
+- D₆ Coxeter diagram decomposes into two H₃ diagrams (Figure 1) via
+  algebraic conjugation σ = -τ⁻¹.
+- Equation (1): D₆ vector λ = Σnᵢαᵢ = Σmᵢlᵢ with Σmᵢ = even.
+- Equation (11): projection of (m₁l₁ + m₂(l₂+...+l₅-l₆))∥ =
+  c·v₁/√2 with c = √(2/(2+τ))·(m₁ - m₂ + 2m₂τ).
+- Constraint **m₁ + m₂ = even** (both even or both odd).
+- Table 1 (pp.6–7): explicit (m₁, m₂)-parameterised orbits for
+  Platonic + Archimedean icosahedral polyhedra (icosahedron,
+  dodecahedron, icosidodecahedron, truncated icosahedron, small
+  rhombicosidodecahedron, truncated dodecahedron, great
+  rhombicosidodecahedron). Each is the orbit of a specific weight
+  vᵢ scaled by c = c(m₁, m₂).
+- "Voronoi cells can be used as windows for the cut and projects
+  scheme however we prefer the direct projection of the root
+  lattice as described in what follows." — explicit choice not to
+  use windows.
+
+#### §3 Danzer ABCK tiles and D₆ lattice (pp.7–17)
+
+- Equation (12): K-tile vertices in D₆:
+  - D₁(m₁,m₂) = [(m₁ - m₂)ω₁ + 2m₂ω₅]∥
+  - D₂(m₁,m₂) = ½[(m₁ - m₂)ω₂ + 2m₂ω₄]∥
+  - D₃(m₁,m₂) = [2m₂ω₃ + (-m₁ + 3m₂)ω₆]∥
+- Inflation by τⁿ corresponds to (m₁, m₂) → (ḿ₁, ḿ₂) via
+  Fibonacci recurrence (Equation 16):
+  - ḿ₁ ≡ m₁F_{n-1} + ½(m₁ + 5m₂)F_n
+  - ḿ₂ ≡ m₂F_{n-1} + ½(m₁ + m₂)F_n
+- "It follows from (16) that ḿ₁ + ḿ₂ = even if m₁ + m₂ = even" —
+  the constraint is preserved by inflation.
+- Constructions of τK = B + K, τB = C + 4K + B₁ + B₂, τC = K₁ +
+  K₂ + C₁ + C₂ + A, τA = 3B + 2C + 6K. Each child's pose is given
+  as an explicit (rotation_matrix, translation_vector) pair in both
+  H₃ (3D) and D₆ (6D) representations. Table 3 (pp.16–17)
+  consolidates all 25 children's poses. **This data overlaps
+  Apeiron's Paolini-derived encoding;** cross-validation possible
+  but not done here.
+
+#### §4 Discussions (p.18)
+
+- "ABCK tiles and their inflations are directly related to the
+  transformations in the subset of D₆ lattice characterized by
+  integers (m₁, m₂) leading to an alternative projection technique
+  different from the cut and project scheme."
+- "Faces of the Danzer tiles are all parallel to the faces of the
+  rhombic triacontahedron; in other words, they are all orthogonal
+  to the 2-fold axes." Same is true for Ammann rhombohedra.
+- "any tilings obtained from the Ammann tiles either with
+  decoration or in the form of Socolar-Steinhardt model can also
+  be obtained by the Danzer tiles."
+- The (m₁, m₂)-parameterised projection is "novel" per the authors;
+  not previously elsewhere.
+
+> **Relevance to Apeiron's Q14b questions:**
+>
+> (a) Cut-and-project framework on icosahedral monotile candidates
+> — *not addressed*. The paper covers ABCK (4 prototiles), not
+> monotiles.
+>
+> (b) Windows yielding F-type vs other families — *not addressed*.
+> Authors don't use windows; they use direct projection.
+>
+> (c) Window-deformation literature for monotile candidate
+> generation — *not addressed*. Window not a parameter here.
+>
+> (d) Window as continuous parameter vs discrete choice —
+> *not addressed*. The (m₁, m₂) parameter IS discrete (integer
+> pair, m₁+m₂ even), but it's a lattice-subset selector, not a
+> window. The window question itself is left to
+> Kramer-Papadopolos.
+>
+> (e) Relationship between windows and prototile shape — *not
+> addressed*. Tile shape is determined by H₃ root system /
+> icosahedral fundamental region, not by window choice.
+>
+> **Bottom line:** Al-Siyabi-Koca-Koca 2020 confirms ABCK ARE D₆
+> projections and parameterises them via (m₁, m₂), but uses an
+> explicitly non-CPS approach. The window-related questions in
+> Q14b CANNOT be answered from this paper.
+
+### 7.2 Frettlöh, *Icosahedral tilings in R³: The ABCK tilings*, pp.8–9 (read complete)
+
+Pages 1–7 already noted in §6 of this file. Pages 8–9 close out:
+
+#### Theorem 1.4 (p.8)
+
+> Both the ⟨ABCK⟩ and the ABCK tilings are pure point diffractive.
+
+#### §1.4 Relations to other icosahedral tilings (p.8)
+
+- "the ABCK tilings are mld with the Socolar-Steinhardt tilings."
+  Socolar-Steinhardt uses **four zonohedra** as prototiles (rhombic
+  hexahedron, rhombic dodecahedron, rhombic icosahedron, rhombic
+  triacontahedron). 4 prototiles, *not a monotile*.
+- "the vertices of the Socolar-Steinhardt tilings are exactly the
+  vertices of classes II and III in the ABCK tilings. Thus the
+  above discussion yields immediately a CPS for the Socolar-
+  Steinhardt tilings." Their CPS windows are inherited as
+  sub-windows of the ABCK windows (specifically, classes II + III).
+- Socolar-Steinhardt has "an inflation with factor τ, but not a
+  stone inflation."
+- "There is a further F-type tiling, called T^(2F), obtained by
+  projection. The ABCK tilings are locally derivable from T^(2F),
+  but not vice versa."
+
+> **Relevance:** The published F-type icosahedral tiling family
+> contains: ABCK, Socolar-Steinhardt, T^(2F), and their mld
+> relatives. **All are multi-prototile.** No member of this family
+> is a monotile. The substitute reading thus reaches a clear
+> empirical observation: in the literature accessible to us, no
+> single-prototile candidate from D₆ projection exists.
+
+### 7.3 Tilings Encyclopedia ABCK page (Q14b dual-purpose check)
+
+Outcome: **No dedicated ABCK page exists** on the Encyclopedia. The
+Ludwig Danzer author page lists 13 tilings but the 3D ABCK is not
+among them. Frettlöh's "Icosahedral tilings in R³" (above) is the
+canonical citable reference; the Encyclopedia points there but has
+no consolidated ABCK page of its own.
+
+### 7.4 The closed-access gap
+
+The two original cut-and-project papers (Kramer-Neri 1984;
+Kramer-Papadopolos-Schlottmann-Zeidler 1994) are not in our hands.
+Per the substitute reading, the following Q14b questions remain
+unanswered:
+
+- **Q14b(b)** — *what windows yield F-type vs other families* —
+  partially answerable: F-type windows are projections of D₆
+  vertex-class orbits (Frettlöh §1.3 gives three explicit windows).
+  But which OTHER windows give P-type, B-type, or non-standard
+  families is not in the substitutes. Kramer-Papadopolos likely
+  catalogues this; we cannot verify.
+- **Q14b(c)** — *window-deformation literature* — *not* in the
+  substitutes. The substitutes treat windows as fixed (when they
+  use windows at all). Whether Kramer-Papadopolos or
+  Kramer-Neri considered deformation (continuous or discrete) is
+  unverified.
+- **Q14b(d)** — *window as continuous vs discrete* — unanswered
+  from substitutes. The (m₁, m₂) parameter is discrete but isn't a
+  window. The window-shape parameter space is left open.
+- **Q14b(e)** — *window → prototile shape map* — unanswered. The
+  substitutes derive prototile shapes from H₃ root system + (m₁,
+  m₂) lattice subsetting, not from window geometry.
+
+**These four gaps require either:**
+
+1. **Direct paper acquisition** of Kramer-Neri 1984 +
+   Kramer-Papadopolos-Schlottmann-Zeidler 1994 (institutional
+   access / interlibrary loan / direct author contact).
+2. **Alternative substitutes** — candidate references discovered
+   in the read but not yet inspected:
+   - Kramer & Andrle (2004), J. Phys. A 37 — Danzer tiles from
+     the wavelet point of view, mentioned in Al-Siyabi §1 as
+     investigating Danzer-D₆ relations. Closed-access likely.
+   - Kasner & Böttger (1993), Int. J. Mod. Phys. B 7 — "Lattice
+     dynamics of an F-type icosahedral quasicrystal" — ref [9] in
+     Frettlöh ikosa.pdf. Closed-access likely.
+   - Roth (1993), J. Phys. A 26, 1455 — "The equivalence of two
+     face-centred icosahedral tilings with respect to local
+     derivability." Closed-access likely.
+   - Baake & Grimm (2013) *Aperiodic Order Vol 1* — already in
+     CLAUDE.md §7.1 as a working reference; Chapter 7 covers the
+     model-set / CPS framework explicitly. Available via
+     institutional library; not online open-access.
+
+---
+
 ## Reading log
 
 | Paper                                  | Status            | Pages read |

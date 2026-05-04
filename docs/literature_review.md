@@ -385,3 +385,138 @@ relay this synthesis to Claude (web) with the recommended next
 move (c.3 → c.1 → c.2). Authorisation for (c.1) gap-closure work
 is the natural ask; authorisation for (c.2) decoration-pivot
 should come only after (c.3) and (c.1) results are in.
+
+---
+
+## (d) Cut-and-project substitute synthesis (Q14b, post-(c.1) closure, 2026-05-04)
+
+**Context.** Q14b authorised a Kramer-Neri 1984 +
+Kramer-Papadopolos-Schlottmann-Zeidler 1994 read for the
+cut-and-project literature phase. Both originals are firmly
+closed-access (agent confirmed via Unpaywall + OpenAlex; no arXiv
+preprint, no faculty PDF, no Wayback capture). Per Option C, three
+substitute reads conducted: Al-Siyabi-Koca-Koca 2020 (full),
+remaining pages of Frettlöh "Icosahedral tilings in R³" (pp.8–9),
+and Tilings Encyclopedia ABCK page (does not exist; Frettlöh's
+paper is the canonical Encyclopedia reference).
+
+Notes recorded at [literature_notes.md §7](literature_notes.md).
+
+### Findings against Q14b's five questions
+
+**(a) Cut-and-project framework on icosahedral monotile
+candidates.** *No published monotile candidate from D₆ projection
+exists.* The published F-type icosahedral tiling family — ABCK,
+Socolar-Steinhardt, T^(2F), and their mld relatives — is uniformly
+multi-prototile (4 prototiles for ABCK and Socolar-Steinhardt).
+The published P-type family (Ammann rhombohedra, two prototiles)
+is also multi-prototile. The literature has not produced a
+single-prototile icosahedral D₆-projection candidate; whether
+this is because no one looked or because the framework
+structurally precludes it cannot be settled from the substitutes
+alone.
+
+**(b) Windows yielding F-type vs other families.** *Partially
+answerable.* F-type windows arise as projections of D₆ vertex-
+class orbits — Frettlöh §1.3 gives three explicit windows
+(regular dodecahedron edge length 2, great dodecahedron long edge
+2τ, and a custom polyhedron with 5-fold stars on each pentagonal
+face). The three are merged when the vertex classes are taken as
+a single model set (Theorem 1.3). What windows produce P-type
+(Ammann), B-type, or non-standard families is not in the
+substitutes; Kramer-Papadopolos likely catalogues this.
+
+**(c) Window-deformation literature for monotile candidate
+generation.** *Not addressed in any substitute.* Al-Siyabi-Koca-
+Koca explicitly use a *non-CPS* approach (direct projection of a
+(m₁, m₂)-parameterised D₆ subset). Frettlöh §1.3 fixes the windows
+and does not discuss deformation. No substitute touches the
+"vary the window to find a monotile" question. This is the most
+significant gap: window-deformation as a search method may be
+unprecedented in the literature, OR it may be in Kramer-Neri /
+Kramer-Papadopolos but unverifiable here.
+
+**(d) Window as continuous parameter vs discrete choice.**
+*Unanswered from substitutes.* The (m₁, m₂) integer-pair
+parameter in Al-Siyabi-Koca-Koca is *discrete* (with the
+constraint m₁ + m₂ even), but it is not a window — it is a
+lattice-subset selector. Whether the *window* is a continuous
+parameter (allowing infinitesimal deformations) or a discrete
+choice (selecting from a finite alphabet of polytope shapes)
+determines whether window-search is continuous optimisation vs
+combinatorial enumeration. The substitutes do not settle this.
+
+**(e) Relationship between windows and prototile shape.**
+*Unanswered from substitutes.* In the substitute reading,
+prototile shapes are derived from the H₃ root system (Frettlöh
+§1.1) and from D₆ weight orbits (Al-Siyabi-Koca-Koca Table 1) —
+not from window geometry. Whether the window directly determines
+the prototile shape (in which case window-search is the right
+search-space) or merely controls the tiling's vertex set (in
+which case the prototile shape is determined separately by H₃
+structure) is ambiguous. The substitutes lean toward the latter:
+Frettlöh's three windows produce the same tiling-with-shapes
+{A, B, C, K}, suggesting the windows pick vertex classes, not
+shapes. If true, *window-search would NOT generate new
+prototile candidates* — the framework is rigid in shape, flexible
+only in vertex-class selection. But this is an inference from
+absence of contrary evidence in the substitutes, not a proven
+claim.
+
+### Bottom line of (d)
+
+The substitute reading **definitively confirms** the following:
+
+1. ABCK is a D₆ projection (Theorem 1.3, Frettlöh).
+2. Inflation by τ corresponds to a Fibonacci action on (m₁, m₂)
+   in the lattice-subset framework (Al-Siyabi eq. 16).
+3. F-type and P-type icosahedral tiling families are
+   uniformly multi-prototile in the published literature.
+4. Window-deformation as a candidate-generation strategy has *no
+   visible precedent* in the open-access literature on F-type
+   icosahedral tilings.
+
+The substitute reading **leaves open** Q14b(c), (d), (e) — the
+specific questions Claude (web) flagged as needed for
+infrastructure-design decisions. Without those answers, building
+a "window search" CSP (the c.2-replacement infrastructure
+recommended at Q11c) would proceed on incomplete foundations.
+
+### Three options for closing the cut-and-project gap
+
+**(d.1) Acquire Kramer-Neri 1984 + Kramer-Papadopolos 1994 via
+proper channels** (institutional library / interlibrary loan /
+direct author contact). Direct path; bounded delay (days to
+weeks). Recommended if any infrastructure work depends on
+Q14b(c)/(d)/(e).
+
+**(d.2) Read closed-access alternatives in the same family.**
+Candidates discovered in the substitutes' references but not yet
+inspected: Kramer & Andrle 2004 *J. Phys. A* 37 (Danzer tiles
+from wavelet POV); Kasner & Böttger 1993 *IJMP-B* 7 (lattice
+dynamics of F-type icosahedral quasicrystal); Roth 1993
+*J. Phys. A* 26 (face-centred icosahedral local derivability);
+Baake & Grimm 2013 Vol. 1 Chapter 7 (already in CLAUDE.md §7.1
+as a working reference; chapter covers model-set / CPS
+framework). All likely closed-access except Baake-Grimm, which
+is institutional-library-only.
+
+**(d.3) Re-read the substitutes with a different lens.** The
+absence of monotile candidates in the published F-type / P-type
+families is itself a meaningful empirical observation, possibly
+sufficient for a strategy_pivot.md without further reading.
+Hypothesis to test: "the icosahedral cut-and-project framework
+inherently produces multi-prototile tilings; the search for a 3D
+icosahedral monotile must therefore look outside this framework."
+If true, the (c.2-replacement) cut-and-project pivot is the
+*wrong* pivot, and either the original (c.2) decoration pivot or
+a third direction (e.g., non-icosahedral 3D substitution) becomes
+the right next move.
+
+### Recommended next step
+
+Re-relay to Claude (web) with the synthesis above. The relay
+authorisation is for a decision among (d.1), (d.2), (d.3), or a
+combination. Acting on any one without authorisation is the
+failure mode the Q10 sequencing commitment was designed to
+prevent.
