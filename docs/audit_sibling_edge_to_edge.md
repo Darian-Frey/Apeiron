@@ -256,3 +256,103 @@ specification above; execution awaits authorisation.
   (taxonomy, k_max, max_entry=3) in parallel with the (c.3)
   follow-ups? Or serialise: finish (c.3) first, then (c.1),
   then the cut-and-project literature read?
+
+---
+
+## §5. Verification result (post-Q12a authorisation, 2026-05-04)
+
+Per Q12a's authorisation (Claude (web)), the verification was
+implemented at
+[scripts/audit_sibling_face_to_face.py](../scripts/audit_sibling_face_to_face.py).
+Run captured at
+[notebooks/audit_sibling_face_to_face_2026-05-04.log](../notebooks/audit_sibling_face_to_face_2026-05-04.log).
+
+**Approach (lighter than full halfspace intersection).** Rather
+than computing exact ZPhi convex polyhedron intersection
+explicitly, the audit takes a face-pair-direct approach:
+
+1. For each parent P ∈ {A, B, C, K}, place each child via
+   `(rotation, translation)` from the Paolini dissection.
+2. For each sibling pair (i, j) within σ(P):
+   - Verify `_convex_polyhedra_interior_disjoint` (existing exact
+     ZPhi SAT primitive) → siblings have no interior overlap.
+   - For each face-pair (f_a from sibling i, f_b from sibling j):
+     - Test if the supporting planes coincide (exact ZPhi
+       cross-product nullity + on-plane vertex check).
+     - If coplanar, classify as **τP-boundary co-tiling** (face
+       lies on σ(P)'s outer boundary; expected, not a violation)
+       or **internal**.
+     - For internal coplanar face-pairs with identical vertex
+       sets: expected face-to-face coincidence. Count as match.
+     - For internal coplanar face-pairs with different vertex
+       sets: run a 2D SAT in the shared plane (using each edge's
+       cross-product with the plane normal as the candidate
+       separating axis, six axes total). If the triangles
+       overlap with positive 2D area, this is a true sibling-
+       face-to-face **violation**. If they don't overlap (just
+       coplanar but disjoint in 2D), no violation.
+
+This approach is sound for tetrahedral siblings: it accurately
+classifies every coplanar face-pair as either coincident, on-
+boundary, or internal-with-overlap. It avoids the cost of full
+3D convex polytope intersection while delivering an exact
+verdict for the §1.4 condition on tetrahedral substitutions.
+
+**Result.**
+
+| Parent    | Children | Pairs  | Internal matches | Boundary co-tilings | Internal failures |
+|-----------|----------|--------|------------------|---------------------|-------------------|
+| A         | 11       | 55     | 11               | 31                  | 0                 |
+| B         |  7       | 21     |  8               | 23                  | 0                 |
+| C         |  5       | 10     |  4               | 15                  | 0                 |
+| K         |  2       |  1     |  1               |  2                  | 0                 |
+| **Total** | **25**   | **87** | **24**           | **71**              | **0**             |
+
+Plus: 0 interior-overlap failures across all 87 pairs.
+
+**Verdict: sibling-face-to-face HOLDS for Track A's Paolini
+Danzer ABCK rule.** Every interior 2D-area sibling meeting is a
+complete face of both siblings; the τP-boundary face co-tilings
+are the expected supertile-boundary decomposition (each of τP's
+4 outer faces is tiled by 1+ children's faces — 71 / 4 ≈ 18
+co-tilings per boundary face, consistent with how many sibling
+pairs overlap on each face).
+
+**Implication.** The §1.4 hereditary-edges + sibling-edge-to-edge
+precondition for Goodman-Strauss's main theorem is satisfied for
+Track A. The matching-rule construction in §3 applies
+unconditionally. `fourth_pillar.py`'s citation of Goodman-Strauss
+1998 is sound (modulo the bridging-lemma contract on
+recognisability — see
+[docs/audit_kappa_vs_radius.md](audit_kappa_vs_radius.md)).
+
+---
+
+## §6. Conclusion
+
+**Finding: pipeline sound (with caveat).**
+
+The §1.4 sibling-edge-to-edge condition holds for Track A's
+Paolini Danzer rule. No prior result is retracted; Track A's
+Goodman-Strauss citation in `fourth_pillar.py` is sound w.r.t.
+this condition.
+
+**Caveat:** the audit verifies sibling-face-to-face (the §1.4
+hereditary-edges condition for d = 3). It does **not** verify
+the κ-vs-radius bridging lemma — that audit is at
+[docs/audit_kappa_vs_radius.md](audit_kappa_vs_radius.md). Both
+audits must conclude "pipeline sound" before (c.1) starts; this
+one does, the other has its own conclusion section.
+
+**Engineering deliverables produced:**
+
+- [scripts/audit_sibling_face_to_face.py](../scripts/audit_sibling_face_to_face.py)
+  — re-runnable audit, ~250 lines.
+- [notebooks/audit_sibling_face_to_face_2026-05-04.log](../notebooks/audit_sibling_face_to_face_2026-05-04.log)
+  — captured run with full per-parent results.
+
+**No follow-up code changes required.** The Paolini dissection is
+not modified. The substitution rule is not modified.
+`fourth_pillar.py` is not modified.
+
+(c.1) gate satisfied for this audit.

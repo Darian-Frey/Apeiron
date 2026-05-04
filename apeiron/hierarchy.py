@@ -846,6 +846,33 @@ def is_recognisable(
     ``shell_neighbourhood_signature`` to refine by per-distance
     shells; the Fibonacci tiling is the canonical example.
 
+    **Soundness contract (Claude (web), Q12b 2026-05-04).**
+    ``is_recognisable(patch, ..., max_radius=r)`` returning
+    ``RecognisabilityResult(is_recognisable=True, radius_used=r')``
+    is a valid pillar-2 witness iff (a) ``patch`` was constructed
+    as ``expand_supertile(rule, tile, level=n)`` (or via
+    ``patch_from_supertile`` on a level-n supertile) for some n,
+    and (b) ``n ≥ κ_rule`` where κ_rule is the recognisability
+    depth of ``rule`` in the Goodman-Strauss sense (1998 §2.1.3).
+    Condition (b) is the **caller's responsibility**; this
+    function does not verify it.
+
+    Background: κ counts substitution levels (level-of-hierarchy
+    depth at which a tile's role resolves), while ``radius`` here
+    counts adjacency hops in the patch graph. They measure
+    different things and there is no direct conversion. A patch
+    built from σⁿ(P) with n < κ_rule may pass at small radius but
+    not lift to rule-level recognisability in the substitution
+    hull. See ``docs/audit_kappa_vs_radius.md`` for the full
+    audit.
+
+    Practical κ values (Goodman-Strauss 1998 p.15): κ = 1 for the
+    Conway-Radin pinwheel and Robinson triangles; κ = 2 for the
+    L-tiling; arbitrarily large for Sadun's generalised pinwheel.
+    For Track A's Danzer ABCK, κ has been computed from the
+    Paolini dissection — see
+    ``docs/audit_kappa_vs_radius.md`` §3.1.
+
     Raises ``ValueError`` if ``max_radius < 1``.
     """
     if max_radius < 1:

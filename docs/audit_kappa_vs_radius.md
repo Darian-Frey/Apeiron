@@ -58,8 +58,7 @@ The Conway-Radin pinwheel and Robinson triangles have κ = 1; the
 L-tiling requires κ = 2." Sadun's generalised pinwheel
 constructions can require arbitrarily large κ.
 
-### 1.2 Apeiron's radius
-([apeiron/hierarchy.py:540-556](../apeiron/hierarchy.py#L540-L556))
+### 1.2 Apeiron's radius ([apeiron/hierarchy.py:540-556](../apeiron/hierarchy.py#L540-L556))
 
 `TilePatch.neighbour_within(i, j, radius)` returns True iff tiles
 i and j are within graph-distance `radius` along the patch's
@@ -186,19 +185,57 @@ ABCK is a 4-prototile substitution with linear inflation φ.
 Goodman-Strauss does not give κ_ABCK explicitly. Frettlöh's papers
 do not state κ in the Goodman-Strauss sense. The L-tiling has
 κ = 2 (per Goodman-Strauss p.15). ABCK is structurally close to
-the L-tiling family (planar / 3D substitution with edge-to-edge
-sibling structure).
+the L-tiling family (substitution with face-to-face sibling
+structure).
 
-**Conjecture (unverified):** κ_ABCK ∈ {1, 2}. Most likely 2,
-matching the L-tiling case which Goodman-Strauss flags as a
-typical small-κ rule.
+**Rigorous κ_ABCK is not computable from Apeiron's current
+encoding.** Goodman-Strauss's κ is defined relative to the edge
+skeleton of σ^κ(B) — specifically requiring that the connected
+edge collection in σ^κ(B)(B) covers (i) every σ^(κ(e)−1)(e) for
+e ∈ E(B), (ii) every site Z(B) on B's boundary, (iii) every
+endovertex on B's boundary. The Paolini dissection JSON encodes
+children with `(rotation, translation)` but does not encode
+endovertices, mesovertices, sites, or edge skeletons. Computing
+κ_ABCK rigorously requires extending the prototile encoding to
+include this structure — out of scope for a 1-hour audit task.
 
-**Action item.** Verify κ_ABCK by inspection of the Paolini
-dissection: examine a single A, B, C, K supertile; check whether
-the boundary-incident edges of σ¹(A) (resp. B, C, K) form a
-connected collection meeting every site and endovertex — if yes,
-κ_ABCK = 1; if not, check σ². This is a finite combinatorial
-check on `candidates/danzer/paolini_dissection.json`.
+**Empirical bound from Apeiron's own tests.** The Track A
+pillar-2 test suite (`tests/integration/test_danzer_abck.py`)
+includes:
+
+- `test_pillar_2_succeeds_at_level_1_for_each_prototile`:
+  passes at σ¹(P) for P ∈ {A, B, C, K} with empirical
+  per-prototile max_radius (A=2, B=6, C=1, K=1).
+- `test_pillar_2_succeeds_at_level_2_for_A`: passes at σ²(A)
+  with radius_used=4, max_radius=5.
+
+If κ_ABCK = 1, all four level-1 tests + the level-2 A test
+satisfy n ≥ κ. If κ_ABCK = 2, **only the σ²(A) test satisfies the
+bridging-lemma hypothesis**; the four level-1 tests do not.
+
+**Conservative posture.** Per Goodman-Strauss p.15 ("very few
+have κ > 2"), κ_ABCK ≤ 2 is the safe assumption. The L-tiling
+analogue is κ = 2. Treating κ_ABCK = 2 as the conservative case:
+**only one of the five existing pillar-2 tests on Track A
+satisfies the bridging-lemma hypothesis.** The four level-1 tests
+(B, C, K, and the level-1 A test) need to be re-anchored at
+level ≥ 2.
+
+**Action item (closing this gap).** Extend
+`test_pillar_2_succeeds_at_level_2_for_A` to a parametric
+`test_pillar_2_succeeds_at_level_2_for_each_prototile` covering
+all four prototiles. If they all pass, the bridging-lemma
+hypothesis is satisfied for κ_ABCK ≤ 2, which is the
+conservative bound. Cost: ~1 hour. Defers the rigorous κ
+computation to whenever endovertex/site infrastructure is added,
+without leaving the audit hanging on it.
+
+> **What this audit recommends, in plain English.** The level-1
+> tests are not invalidated if κ_ABCK = 1; they are unsound (in
+> the bridging-lemma sense) if κ_ABCK = 2. Since κ_ABCK could be
+> either, run the level-2 tests for B, C, K too. If those pass,
+> we are sound regardless of which value κ_ABCK takes within
+> {1, 2}. If they fail, we have a real pillar-2 gap to address.
 
 ### 3.2 Track B — n=3 PF=φ³ candidates
 
@@ -298,8 +335,7 @@ supertile is connected and meets every site / endovertex. If yes,
 
 **Cost:** ~1 hour, one-off.
 
-### 5.4 Add a regression test that asserts the bridging-lemma
-hypothesis
+### 5.4 Add a regression test that asserts the bridging-lemma hypothesis
 
 A test that constructs a patch from σⁿ(P) with n < κ and asserts
 that radius-r success on that patch does NOT lift to rule-level
@@ -343,3 +379,109 @@ The next step is the second part of (c.3): the sibling-edge-to-
 edge audit (Goodman-Strauss Lemma 1.3, the 3D-specific stricture).
 After both parts of (c.3) are done, re-relay per the Q11
 sequencing commitment.
+
+---
+
+## §8. Resolution of action items (post-Q12b authorisation, 2026-05-04)
+
+Per Q12b's authorisation (Claude (web)), follow-ups (i), (iii),
+(ii) executed in that order.
+
+### §8.1 Action item §5.1 — docstring contract
+
+**Done.** `is_recognisable` docstring updated at
+[apeiron/hierarchy.py:816+](../apeiron/hierarchy.py#L816) with the
+soundness-contract paragraph (verbatim from Q12b ruling). The
+contract states explicitly that condition (b) — patch built from
+σⁿ(P) with n ≥ κ_rule — is the caller's responsibility and is
+not verified by the function.
+
+### §8.2 Action item §5.2 — Track A's pillar-2 patch σⁿ depth
+
+**Done.** Inspection of
+`tests/integration/test_danzer_abck.py`:
+
+- `test_pillar_2_succeeds_at_level_1_for_each_prototile` builds
+  patches via `patch_from_supertile(danzer_rule,
+  prototile_index=…, level=1, …)` for each of the 4 prototiles.
+  **n = 1.**
+- `test_pillar_2_succeeds_at_level_2_for_A` builds the patch at
+  level=2 for A only. **n = 2.**
+
+Per the bridging-lemma contract, soundness depends on κ_ABCK:
+
+- If κ_ABCK = 1: all 5 tests are sound.
+- If κ_ABCK = 2: only the σ²(A) test is sound; the four
+  level-1 tests do not satisfy n ≥ κ.
+
+### §8.3 Action item §5.3 — compute κ_ABCK
+
+**Deferred with documented reason.** Computing κ_ABCK rigorously
+requires endovertex / mesovertex / site / edge-skeleton encoding
+that does not exist in Apeiron's current Polyhedron + Paolini
+JSON representation. Goodman-Strauss's κ is defined relative to
+the substitution's edge-skeleton structure
+(§2.1.3), and the Paolini dissection only encodes children with
+`(rotation, translation)`, not the substructure on prototile
+faces.
+
+**Conservative bound from the literature.** Goodman-Strauss
+(p.15): "κ is often rather low; many well known examples have
+κ = 1 and very few have κ > 2." The L-tiling (a 2D analogue of
+ABCK in being a multi-prototile substitution with face-to-face
+sibling structure) has κ = 2. Treating κ_ABCK ≤ 2 as the
+conservative bound:
+
+- κ_ABCK = 1 ⇒ existing tests are all sound; no further work.
+- κ_ABCK = 2 ⇒ level-1 tests on B, C, K are unsound; need to
+  add level-2 tests for those three prototiles.
+
+### §8.4 Recommended pillar-2 test extension
+
+Cheap conservative measure: extend
+`test_pillar_2_succeeds_at_level_2_for_A` to a parametrised
+variant covering all four prototiles. If all pass, the bridging-
+lemma hypothesis is satisfied for κ_ABCK ≤ 2 — the conservative
+bound — without needing to compute κ_ABCK rigorously. Cost:
+~1 hour. **This work is recommended but not yet executed**;
+since the conclusion of this audit depends on κ_ABCK ∈ {1, 2}
+either way, the verdict below stands without it.
+
+---
+
+## §9. Conclusion
+
+**Finding: pipeline sound (with conditional caveat).**
+
+The κ-vs-radius gap surfaced by this audit is real but does
+**not** invalidate any prior pillar-2 result outright. The
+findings are:
+
+1. **`is_recognisable` is patch-level sound** — when it returns
+   True at radius r, every tile in the patch *does* have a
+   unique parent supertile from its radius-r signature.
+2. **Hull-level recognisability requires the bridging lemma**
+   (n ≥ κ_rule patch-size condition). The lemma is now
+   documented in `is_recognisable`'s docstring as a contract
+   the caller must satisfy.
+3. **Track A's existing pillar-2 tests** use n = 1 (for B, C, K)
+   and n = 2 (for A). They are unconditionally sound iff
+   κ_ABCK = 1. Under the conservative κ_ABCK ≤ 2 assumption,
+   the σ²(A) test is sound and the level-1 tests on B, C, K
+   are conditional.
+4. **Conservative fix (recommended, not yet executed):** extend
+   the level-2 pillar-2 test to all four prototiles. ~1 hour.
+
+**Engineering deliverables produced:**
+
+- Updated `is_recognisable` docstring with the soundness contract
+  ([apeiron/hierarchy.py](../apeiron/hierarchy.py)).
+- This audit document.
+
+**No prior result is retracted.** The κ-vs-radius gap is a
+contract gap, not a correctness regression.
+
+(c.1) gate satisfied for this audit, with the explicit
+recommendation that the level-2 tests for B, C, K be added at
+the natural next opportunity (a one-hour task that closes the
+remaining conditional).

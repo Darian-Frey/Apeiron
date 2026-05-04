@@ -1,0 +1,32 @@
+======================================================================
+Sibling-face-to-face audit — Paolini Danzer ABCK rule
+======================================================================
+
+σ(A): 11 children, 55 sibling pairs
+  interior-disjoint pass: 0 failures
+  internal face matches (true sibling face-to-face): 11
+  τP-boundary co-tilings (expected, not violations): 31
+  internal face failures (true sibling-face-to-face violations): 0
+
+σ(B): 7 children, 21 sibling pairs
+  interior-disjoint pass: 0 failures
+  internal face matches (true sibling face-to-face): 8
+  τP-boundary co-tilings (expected, not violations): 23
+  internal face failures (true sibling-face-to-face violations): 0
+
+σ(C): 5 children, 10 sibling pairs
+  interior-disjoint pass: 0 failures
+  internal face matches (true sibling face-to-face): 4
+  τP-boundary co-tilings (expected, not violations): 15
+  internal face failures (true sibling-face-to-face violations): 0
+
+σ(K): 2 children, 1 sibling pairs
+  interior-disjoint pass: 0 failures
+  internal face matches (true sibling face-to-face): 1
+  τP-boundary co-tilings (expected, not violations): 2
+  internal face failures (true sibling-face-to-face violations): 0
+
+======================================================================
+Summary: 24 face-to-face coincidences, 0 face violations, 0 interior overlaps
+VERDICT: sibling-face-to-face HOLDS for all sibling pairs in σ(A), σ(B), σ(C), σ(K).
+======================================================================
