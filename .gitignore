@@ -17,3 +17,6 @@ build/
 notebooks/*.html
 Claude_docs
 
+
+# Literature deep-dive PDFs (not source; manifest in docs/papers/MANIFEST.md)
+docs/papers/*.pdf
