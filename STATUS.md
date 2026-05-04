@@ -15,8 +15,11 @@ returned, or an attempt fails in a way worth remembering.
 ## Current focus
 
 **Track A** face-merge formalism is closed (Phases 1.5 + 1.6).
-**Track B** (CLAUDE.md §6.2) actively searching per Q7/Q8/Q9
-rulings.
+**Track B** algebraic + realisation pipelines are built;
+**Q9c gate triggered** by the exhaustive n=3 PF=φ³ sweep.
+Per Claude (web)'s ruling, the indicated next step is literature
+deep-dive rather than more code. Q10 relay drafted at
+`/tmp/q10_draft.md`; sending after this commit.
 
 **Q9 results (2026-04-29):**
 
@@ -28,17 +31,27 @@ rulings.
   Per Q9c's gate ("zero survivors at max_entry=8 → literature
   deep-dive"): 21/21 at max_entry=2 is a strong fertility
   signal — search is productive, not exhausted.
-- **End-to-end realisation sweep** (`notebooks/n3_phi3_sweep_2026-04-29.log`):
-  for each of the 21 candidates, took the LEFT eigenvector (=
-  volume vector for the substitution), found shape triples in
-  the 9-class taxonomy whose volumes match this ratio, ran
-  `realise()` on the first matching triple per candidate.
-  Result: 0 Realised, 5 NoRealisation (proven exhaustively),
-  8 Inconclusive (30s budget hit), 2 SKIPped (k > k_max=5).
-  Bug found and fixed during the sweep: I was using the right
-  eigenvector (= frequency vector) for volume-matching; correct
-  is the left eigenvector. Now documented with bug-prevention
-  test (commit `a82715a`).
+- **End-to-end realisation sweep** progressively refined:
+    1. First sweep (`notebooks/n3_phi3_sweep_2026-04-29.log`,
+       commit `91fe784`): 5 NoRealisation, 8 Inconclusive
+       (timeout), 2 SKIPped. 247s.
+    2. Bug fix (commit `a82715a`): I was using the right
+       eigenvector (frequency vector) for volume-matching; correct
+       is the left eigenvector.
+    3. Per-step DFS validation (commit `ce0abe9`,
+       `notebooks/n3_phi3_resweep_per_step_2026-04-29.log`):
+       prune at child-placement time, not at leaf. 13 NoRealisation,
+       0 Inconclusive, 2 SKIP. 40s — 6× speedup.
+    4. **Exhaustive all-triples sweep** (commit `dcf5dbd`,
+       `notebooks/n3_phi3_exhaustive_2026-04-29.log`): for each
+       candidate, every matching H₃-9-class shape triple. 170
+       triples × 13 candidates → **0 Realised, 13 (all triples
+       fail) NoRealisation, 0 Inconclusive, 2 SKIP**. 475s.
+- **Q9c gate triggered.** Per Claude (web)'s 2026-04-29 ruling,
+  exhaustive NoRealisation across all volume-compatible shape
+  triples is the literature-deep-dive condition. Indicated next
+  step: read Goodman-Strauss 1998, Frettlöh's recent papers,
+  Socolar 2019 — *before* writing more code.
 
 Track B sub-package `apeiron/track_b/` houses:
 
