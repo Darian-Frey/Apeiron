@@ -14,18 +14,24 @@ returned, or an attempt fails in a way worth remembering.
 
 ## Current focus
 
-**Track A** (CLAUDE.md §6.1) face-merge formalism is **closed**
-end-to-end. Phase 1.5 (2-tile) exhausted in `4406900`; Phase 1.6
-(all k via closed-form) closed in `42b3d9a` per Claude (web)'s
-Q7a/b 2026-04-29 ruling. M_ABCK has no positive-integer eigenvalue
-(eigenvalues {φ³, φ, -1/φ, -1/φ³}), so no face-merge of any
-composition size yields a 1-prototile substitution rule with PF
-in ℤ[φ].
+**Track A** face-merge formalism is closed (Phases 1.5 + 1.6).
+**Track B** (CLAUDE.md §6.2) underway as of `d994384` per
+Claude (web) Q7c 2026-04-29.
 
-Next: Track B (CLAUDE.md §6.2) per Claude (web) Q7c — primitive
-matrix enumerator + geometric pre-filter + vertex-placement CSP.
-First concrete piece: ``apeiron/track_b/matrix_search.py`` with
-``enumerate_primitive_matrices(n, pf_target, max_entry)``.
+Track B sub-package `apeiron/track_b/` houses:
+
+- `matrix_search.py` ✅ — algebraic enumerator. n=2 survey at
+  max_entry=5: 1 candidate at PF=φ (Fibonacci), 1 at PF=φ²
+  (Penrose P3), 5 at PF=φ³.
+- `geometric_prefilter.py` (next) — three filters before
+  realisation per Q7c: vertex-class, dihedral-angle, Euler.
+- `realisation.py` (after) — vertex-placement CSP for surviving
+  candidates.
+
+The PF=φ³ n=2 alphabet has 5 algebraic candidates. None is ABCK;
+each is a 2-tile substitution rule that *might* realise as a 3D
+polyhedral pair admitting a strong-aperiodic tiling. Geometric
+realisation is the unknown.
 
 Sub-commit plan for Track A's first candidate (Danzer):
 
@@ -104,6 +110,15 @@ Sub-commit plan for Track A's first candidate (Danzer):
 Reverse-chronological. Authoritative log is `git log`; this list is for
 quick orientation.
 
+- **Track B kickoff** `d994384` — `feat(track_b)`: new sub-package
+  `apeiron/track_b/` with `matrix_search.enumerate_primitive_matrices`.
+  Yields primitive integer substitution matrices with target PF
+  eigenvalue computed exactly in ℤ[φ]; deduplicated under
+  simultaneous row/column permutation. n=2 survey at max_entry=5:
+  Fibonacci (PF=φ), Penrose P3 (PF=φ²), and 5 distinct candidates
+  at PF=φ³ (trace=4, det=−1). Each PF=φ³ candidate is a 2-tile
+  algebraic alternative to ABCK; whether any realise geometrically
+  in 3D is the next question.
 - **Phase 1.6** `42b3d9a` — `feat(deformation)`: closed-form
   face-merge no-go for all k. ``feasibility_upper_bound(rule)``
   checks for positive-integer eigenvalues via the rational root
@@ -308,8 +323,8 @@ quick orientation.
 - **2** `a472a5e` — `feat(zphi)`: exact ℤ[φ] arithmetic.
 - **1** `a678272` — `chore`: scaffold repo layout.
 
-Test totals (post-Phase 1.6): 594 passing in ~19.9 s under venv
-pytest 9.0.3. Slow-test distribution unchanged: `cube_corona_2`
+Test totals (post-Track-B-kickoff): 606 passing in ~20.3 s under
+venv pytest 9.0.3. Slow-test distribution unchanged: `cube_corona_2`
 setup ~7 s, `RD corona_1` setup ~5.5 s, `cube corona_1` setup
 ~2.3 s, `RTH face-to-face counts` ~1.5 s. The rest of the 594
 tests run in well under a second combined.

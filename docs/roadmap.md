@@ -100,14 +100,32 @@ property.
 
 ## Phase 2 — Track B (substitution-first)
 
-**Not started.** Pursue if Track A reaches a no-go conclusion;
-the no-go result then informs which algebraic constraints Track B
-should impose.
+**In progress** as of `d994384` (2026-04-29). Track A's face-merge
+formalism is closed by the Phase 1.6 no-go; Track B is the next
+direction per Claude (web)'s Q7c ruling. Sub-package layout
+(`apeiron/track_b/`):
 
-- [ ] Algebraic search over ℤ[φ]-linear σ with eigenvalue φ² on
-      small alphabets (n = 1, 2, 3).
-- [ ] Primitivity filter on substitution matrices.
-- [ ] Geometric realisation search for surviving σ candidates.
+- [x] `matrix_search.py` — `enumerate_primitive_matrices(n,
+      pf_target, *, max_entry=10)` yields primitive non-negative
+      integer substitution matrices with target PF eigenvalue
+      computed exactly in ℤ[φ]. Deduplicated under simultaneous
+      row/column permutation. n=2 algebraic survey at max_entry=5:
+        - PF=φ:   1 candidate (Fibonacci [[0,1],[1,1]]).
+        - PF=φ²:  1 candidate (Penrose P3 [[1,1],[1,2]]).
+        - PF=φ³:  5 candidates — concrete 2-tile algebraic
+          alternatives to Danzer's 4-tile rule. Each has trace=4,
+          det=−1; geometric realisation pending.
+- [ ] `geometric_prefilter.py` — three filters before realisation
+      attempt per Q7c: vertex-class consistency, dihedral-angle
+      commensurability with icosahedral angles, Euler-characteristic
+      consistency. Eliminates algebraically-realisable but
+      geometrically-infeasible matrices before the expensive CSP.
+- [ ] `realisation.py` — vertex-placement CSP given a filtered
+      matrix candidate. Find vertex positions such that the
+      substitution children fit face-to-face in the tile's local
+      frame. Uses `polyhedron.py` and `corona.py` primitives.
+- [ ] Integration test: 1D Fibonacci known to realise; random
+      non-realisable matrix must fail filter 1 or 2.
 
 ## Phase 3 — Recognisability and beyond
 
