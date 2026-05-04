@@ -616,6 +616,79 @@ class TestSearchLoopIntegration:
         assert isinstance(result, NoRealisation)
 
 
+class TestPointInConvexPolyhedron:
+    """Per-face inside-half-space test, exact ZPhi.
+
+    Faces are wound outward (per ``apeiron.polyhedron.Polyhedron``
+    convention), so the cross product
+    ``(v_1 - v_0) × (v_2 - v_0)`` is the outward normal. A point is
+    inside iff its dot with each face's outward normal (relative to
+    a face vertex) is ≤ 0. Tests:
+    """
+
+    def _big_tet_verts(self) -> tuple[Vec3, ...]:
+        # ×2-stored vertices at (0, 0, 0), (4, 0, 0), (0, 4, 0),
+        # (0, 0, 4). Centroid is (1, 1, 1) — pure ZPhi, inside.
+        z = ZPhi(0, 0)
+        four = ZPhi(4, 0)
+        return (
+            Vec3(z, z, z),
+            Vec3(four, z, z),
+            Vec3(z, four, z),
+            Vec3(z, z, four),
+        )
+
+    def _tet_faces(self) -> tuple[tuple[int, int, int], ...]:
+        return ((0, 1, 2), (0, 3, 1), (0, 2, 3), (1, 3, 2))
+
+    def test_centroid_is_inside(self) -> None:
+        from apeiron.track_b.realisation import (
+            _point_in_convex_polyhedron,
+        )
+        verts = self._big_tet_verts()
+        faces = self._tet_faces()
+        centroid = Vec3(ZPhi(1, 0), ZPhi(1, 0), ZPhi(1, 0))
+        assert _point_in_convex_polyhedron(
+            centroid, verts, faces,
+        ) is True
+
+    def test_vertex_is_on_boundary(self) -> None:
+        # A vertex of the polyhedron is on the boundary; sign-check
+        # is ≤ 0 on every face → returns True (boundary counts).
+        from apeiron.track_b.realisation import (
+            _point_in_convex_polyhedron,
+        )
+        verts = self._big_tet_verts()
+        faces = self._tet_faces()
+        for v in verts:
+            assert _point_in_convex_polyhedron(v, verts, faces) is True
+
+    def test_far_outside_is_outside(self) -> None:
+        from apeiron.track_b.realisation import (
+            _point_in_convex_polyhedron,
+        )
+        verts = self._big_tet_verts()
+        faces = self._tet_faces()
+        far = Vec3(ZPhi(100, 0), ZPhi(100, 0), ZPhi(100, 0))
+        assert _point_in_convex_polyhedron(
+            far, verts, faces,
+        ) is False
+
+    def test_point_just_outside_face(self) -> None:
+        # Face (1, 2, 3) is the triangle x + y + z = 4 (real), i.e.
+        # x + y + z = 4 in ×2-stored coords. A point with sum > 4 is
+        # outside that face.
+        from apeiron.track_b.realisation import (
+            _point_in_convex_polyhedron,
+        )
+        verts = self._big_tet_verts()
+        faces = self._tet_faces()
+        outside_pt = Vec3(ZPhi(2, 0), ZPhi(2, 0), ZPhi(2, 0))  # sum=6
+        assert _point_in_convex_polyhedron(
+            outside_pt, verts, faces,
+        ) is False
+
+
 class TestSatOverlap:
     """Per-pair separating-axis-theorem tests on tetrahedral
     prototiles."""

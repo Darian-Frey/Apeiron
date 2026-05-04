@@ -575,6 +575,65 @@ def _convex_polyhedra_interior_disjoint(
     return False  # no separating axis → polyhedra overlap
 
 
+def _point_in_convex_polyhedron(
+    p: Vec3,
+    polyhedron_verts: Sequence[Vec3],
+    polyhedron_faces: Sequence[Sequence[int]],
+) -> bool:
+    """True iff ``p`` is on the inside or boundary of the convex
+    polyhedron.
+
+    Winding-agnostic: for each face, derive the *interior side* by
+    comparing the face's normal against the polytope's centroid
+    direction. The cross product
+    ``(v_1 - v_0) × (v_2 - v_0)`` is computed; whichever sign the
+    centroid lies on relative to ``v_0`` is the interior. ``p`` is
+    inside iff for every face it lies on the same side as the
+    centroid (or on the face plane = boundary).
+
+    Pure ZPhi; no floats. The centroid is represented as
+    ``n_verts × centroid_real = Σ verts`` to avoid dividing.
+
+    The centroid-relative formulation handles both face-winding
+    conventions (CW or CCW from outside) without requiring the
+    caller to ensure outward winding — necessary because
+    ``apeiron.polyhedron.Polyhedron`` does not enforce a winding
+    convention (per its from_raw docstring).
+    """
+    n = len(polyhedron_verts)
+    if n < 4:
+        return False  # ill-defined for degenerate "polyhedra"
+    # n × centroid = component-wise sum of vertices.
+    sum_x = sum_y = sum_z = ZPhi(0, 0)
+    for v in polyhedron_verts:
+        sum_x = sum_x + v.x
+        sum_y = sum_y + v.y
+        sum_z = sum_z + v.z
+    n_centroid = Vec3(sum_x, sum_y, sum_z)
+    for face in polyhedron_faces:
+        if len(face) < 3:
+            continue
+        v_i = polyhedron_verts[face[0]]
+        v_j = polyhedron_verts[face[1]]
+        v_k = polyhedron_verts[face[2]]
+        normal = _cross(v_j - v_i, v_k - v_i)
+        # n × (centroid - v_i) = n_centroid - n × v_i. Sign matches
+        # (centroid - v_i)'s sign on the dot product.
+        n_v_i = Vec3(n * v_i.x, n * v_i.y, n * v_i.z)
+        centroid_offset = n_centroid - n_v_i
+        d_centroid = centroid_offset.dot(normal)
+        if d_centroid._sign() == 0:
+            continue  # face plane through centroid — degenerate; skip
+        d_p = (p - v_i).dot(normal)
+        # p is inside (relative to this face) iff d_p has same sign
+        # as d_centroid, or d_p == 0 (boundary).
+        if d_p._sign() == 0:
+            continue
+        if d_p._sign() != d_centroid._sign():
+            return False
+    return True
+
+
 def _vertex_in_box(v: Vec3, lo: Vec3, hi: Vec3) -> bool:
     """Component-wise ``lo ≤ v ≤ hi`` in real-number ZPhi order."""
     return (
@@ -587,7 +646,8 @@ def _vertex_in_box(v: Vec3, lo: Vec3, hi: Vec3) -> bool:
 def _search_realisation_for_parent(
     children_types: Sequence[int],
     prototile_shapes: Sequence[Polyhedron],
-    inflated_parent_bbox: tuple[Vec3, Vec3],
+    inflated_parent_verts: Sequence[Vec3],
+    inflated_parent_faces: Sequence[Sequence[int]],
     *,
     rotation_pool: Sequence[Rotation],
     deadline: float,
@@ -660,13 +720,19 @@ def _search_realisation_for_parent(
         if child_vol_sum_x6 != expected_volume_x6:
             return None
 
+    inflated_parent_bbox = _bounding_box(inflated_parent_verts)
+
     # Special case: k=1. One child, placed at identity/origin. Just
-    # check vertex containment.
+    # check polytope containment of the placed vertices.
     if k == 1:
         proto = prototile_shapes[children_types[0]]
         placed = [identity.apply(v) + origin for v in proto.vertices]
-        lo, hi = inflated_parent_bbox
-        if all(_vertex_in_box(v, lo, hi) for v in placed):
+        if all(
+            _point_in_convex_polyhedron(
+                v, inflated_parent_verts, inflated_parent_faces,
+            )
+            for v in placed
+        ):
             return (ChildPlacement(
                 prototile_index=children_types[0],
                 translation=origin, rotation=identity,
@@ -721,7 +787,8 @@ def _search_realisation_for_parent(
                 )
                 if translations is None:
                     continue
-                # Bounding-box validation.
+                # Bounding-box validation (cheap pre-filter), then
+                # strict polytope containment.
                 lo, hi = inflated_parent_bbox
                 ok = True
                 for child_idx in range(k):
@@ -731,6 +798,12 @@ def _search_realisation_for_parent(
                     for v in proto.vertices:
                         placed = rot.apply(v) + t
                         if not _vertex_in_box(placed, lo, hi):
+                            ok = False
+                            break
+                        if not _point_in_convex_polyhedron(
+                            placed, inflated_parent_verts,
+                            inflated_parent_faces,
+                        ):
                             ok = False
                             break
                     if not ok:
@@ -1036,7 +1109,7 @@ def realise(
                 pf_target * v.x, pf_target * v.y, pf_target * v.z,
             ) for v in parent_proto.vertices
         ]
-        bbox = _bounding_box(inflated_verts)
+        inflated_faces = parent_proto.faces  # combinatorics unchanged
         # Volume-sum constraint: total child volume must equal
         # det(Λ) × parent volume. For substitution rules,
         # pf_target IS det(Λ) (the PF eigenvalue of M equals the
@@ -1056,7 +1129,8 @@ def realise(
         result = _search_realisation_for_parent(
             children_types=children_types,
             prototile_shapes=prototile_shapes,
-            inflated_parent_bbox=bbox,
+            inflated_parent_verts=inflated_verts,
+            inflated_parent_faces=inflated_faces,
             rotation_pool=rotation_pool,
             deadline=deadline,
             k_max=3,
