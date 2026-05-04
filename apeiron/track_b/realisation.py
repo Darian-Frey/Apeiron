@@ -37,10 +37,12 @@ from apeiron.zphi import ZPhi
 
 __all__ = [
     "ChildPlacement",
+    "FaceMatchEdge",
     "Inconclusive",
     "NoRealisation",
     "Realised",
     "SearchProgress",
+    "propagate_translations_along_tree",
     "realise",
     "translation_offset_from_face_match",
 ]
@@ -211,6 +213,155 @@ def translation_offset_from_face_match(
         if consistent:
             return offset_candidate
     return None
+
+
+@dataclass(frozen=True, slots=True)
+class FaceMatchEdge:
+    """One edge in a face-adjacency tree across the children of σ(P).
+
+    Identifies a triangular face shared by two children. The
+    ``parent`` is the child placed earlier (translation already
+    known); ``new`` is the child whose translation gets propagated
+    via this edge. Both face-index tuples are the 3 vertex indices
+    of the shared face in the respective prototile's local frame.
+
+    Used by ``propagate_translations_along_tree`` to walk a fixed
+    tree topology and recover translations from face-match
+    constraints, given fixed per-child rotations.
+    """
+
+    parent: int
+    new: int
+    face_indices_parent: tuple[int, int, int]
+    face_indices_new: tuple[int, int, int]
+
+    def __post_init__(self) -> None:
+        if self.parent == self.new:
+            raise ValueError(
+                f"FaceMatchEdge.parent must differ from .new; "
+                f"got both = {self.parent}."
+            )
+        if len(self.face_indices_parent) != 3:
+            raise ValueError(
+                "Triangular face requires 3 vertex indices on parent; "
+                f"got {self.face_indices_parent}."
+            )
+        if len(self.face_indices_new) != 3:
+            raise ValueError(
+                "Triangular face requires 3 vertex indices on new; "
+                f"got {self.face_indices_new}."
+            )
+
+
+def propagate_translations_along_tree(
+    rotations: Sequence[Rotation | ImproperRotation],
+    edges: Sequence[FaceMatchEdge],
+    prototile_indices: Sequence[int],
+    prototile_vertices: Sequence[Sequence[Vec3]],
+) -> tuple[Vec3, ...] | None:
+    """Walk a face-match tree and recover one translation per child.
+
+    The next layer above ``translation_offset_from_face_match`` per
+    Q8a 2026-04-29: given fixed rotations and a fixed tree topology
+    of face-match edges, propagate translations by tree DFS. Each
+    edge contributes one offset via the per-edge solver; if any
+    edge is infeasible (no permutation match), the whole tree is
+    rejected.
+
+    Convention: child 0 is the root. Its translation is fixed to
+    ``Vec3(0, 0, 0)`` (×2-stored zero), eliminating the global
+    translation degree of freedom — WLOG since any uniform shift of
+    all children is also a valid placement.
+
+    Per Q8 meta-1: combined with fixing child 0's *rotation* to
+    identity (handled by the outer search loop, not here), this
+    eliminates both the rotation and translation global symmetries.
+
+    Parameters
+    ----------
+    rotations
+        Per-child rotations (length k). ``rotations[0]`` is the
+        root child's rotation.
+    edges
+        Tree edges in DFS order — every edge's ``parent`` must
+        appear in some earlier edge's ``new`` (or be 0 for the
+        first edge). The tree must cover all k children
+        (length-(k−1) edges spanning {0, ..., k−1}).
+    prototile_indices
+        Per-child prototile-type assignment (length k).
+    prototile_vertices
+        ``prototile_vertices[t]`` is the local-frame vertex tuple
+        for prototile-type t.
+
+    Returns
+    -------
+    tuple of Vec3
+        Per-child translations (length k); ``[0]`` is always
+        ``Vec3(0, 0, 0)``. Each subsequent child's translation is
+        computed by adding the per-edge offset to the parent's
+        translation.
+    None
+        If any edge's face-match is infeasible under the given
+        rotations (no consistent permutation).
+
+    Raises
+    ------
+    ValueError
+        On length mismatch between ``rotations`` and
+        ``prototile_indices`` or on edges that don't form a valid
+        tree covering all children.
+    """
+    k = len(rotations)
+    if len(prototile_indices) != k:
+        raise ValueError(
+            f"prototile_indices length {len(prototile_indices)} != "
+            f"rotations length {k}."
+        )
+    if len(edges) != k - 1:
+        raise ValueError(
+            f"Tree on {k} children needs {k - 1} edges; got "
+            f"{len(edges)}."
+        )
+
+    zero = Vec3(_ZERO_ZPHI, _ZERO_ZPHI, _ZERO_ZPHI)
+    translations: list[Vec3 | None] = [None] * k
+    translations[0] = zero
+    for edge in edges:
+        if not 0 <= edge.parent < k or not 0 <= edge.new < k:
+            raise ValueError(
+                f"Edge {edge} references out-of-range child."
+            )
+        if translations[edge.parent] is None:
+            raise ValueError(
+                f"Edge {edge}: parent child {edge.parent} not yet "
+                "placed. Edges must be in DFS order from root 0."
+            )
+        if translations[edge.new] is not None:
+            raise ValueError(
+                f"Edge {edge}: child {edge.new} already placed; "
+                "tree must visit each non-root child exactly once."
+            )
+        offset = translation_offset_from_face_match(
+            rotation_a=rotations[edge.parent],
+            rotation_b=rotations[edge.new],
+            face_indices_a=edge.face_indices_parent,
+            face_indices_b=edge.face_indices_new,
+            vertices_a=prototile_vertices[prototile_indices[edge.parent]],
+            vertices_b=prototile_vertices[prototile_indices[edge.new]],
+        )
+        if offset is None:
+            return None
+        parent_t = translations[edge.parent]
+        # parent_t known non-None per check above.
+        assert parent_t is not None
+        translations[edge.new] = parent_t + offset
+
+    if any(t is None for t in translations):
+        raise ValueError(
+            f"Tree of {len(edges)} edges did not cover all {k} "
+            "children — non-spanning?"
+        )
+    return tuple(t for t in translations if t is not None)
 
 
 def _is_fibonacci_oracle(

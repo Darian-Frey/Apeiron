@@ -16,11 +16,13 @@ from apeiron.polyhedron import Polyhedron
 from apeiron.symmetry import Rotation, Vec3
 from apeiron.track_b import (
     ChildPlacement,
+    FaceMatchEdge,
     Inconclusive,
     NoRealisation,
     Realised,
     SearchProgress,
     enumerate_primitive_matrices,
+    propagate_translations_along_tree,
     realise,
     translation_offset_from_face_match,
 )
@@ -308,6 +310,233 @@ class TestTranslationOffsetFromFaceMatch:
                 face_indices_a=(0, 1, 2, 3),  # type: ignore[arg-type]
                 face_indices_b=(1, 2, 3),
                 vertices_a=verts, vertices_b=verts,
+            )
+
+
+class TestFaceMatchEdge:
+    def test_rejects_self_loop(self) -> None:
+        with pytest.raises(ValueError, match="differ from"):
+            FaceMatchEdge(
+                parent=0, new=0,
+                face_indices_parent=(0, 1, 2),
+                face_indices_new=(0, 1, 2),
+            )
+
+    def test_rejects_non_triangular_parent_face(self) -> None:
+        with pytest.raises(ValueError, match="3 vertex indices on parent"):
+            FaceMatchEdge(
+                parent=0, new=1,
+                face_indices_parent=(0, 1, 2, 3),  # type: ignore[arg-type]
+                face_indices_new=(0, 1, 2),
+            )
+
+    def test_rejects_non_triangular_new_face(self) -> None:
+        with pytest.raises(ValueError, match="3 vertex indices on new"):
+            FaceMatchEdge(
+                parent=0, new=1,
+                face_indices_parent=(0, 1, 2),
+                face_indices_new=(0, 1),  # type: ignore[arg-type]
+            )
+
+
+class TestPropagateTranslationsAlongTree:
+    """Per Q8a 2026-04-29: tree-DFS translation propagation. Composes
+    translation_offset_from_face_match over a fixed tree topology.
+    """
+
+    def _unit_tetrahedron(self) -> tuple[Vec3, ...]:
+        z = ZPhi(0, 0)
+        two = ZPhi(2, 0)
+        return (
+            Vec3(z, z, z),
+            Vec3(two, z, z),
+            Vec3(z, two, z),
+            Vec3(z, z, two),
+        )
+
+    def test_two_child_identity_gluing(self) -> None:
+        # Two identical tetrahedra glued at face (1, 2, 3) ↔ (1, 2, 3),
+        # both at identity rotation. Translations: child 0 at origin,
+        # child 1 also at origin (trivial overlap, OK for unit test).
+        verts = self._unit_tetrahedron()
+        edges = [FaceMatchEdge(
+            parent=0, new=1,
+            face_indices_parent=(1, 2, 3),
+            face_indices_new=(1, 2, 3),
+        )]
+        result = propagate_translations_along_tree(
+            rotations=[Rotation.identity(), Rotation.identity()],
+            edges=edges,
+            prototile_indices=[0, 0],
+            prototile_vertices=[verts],
+        )
+        assert result is not None
+        assert result == (
+            Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),
+            Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0)),
+        )
+
+    def test_child_zero_at_origin(self) -> None:
+        # Convention: child 0 always at (0, 0, 0).
+        verts = self._unit_tetrahedron()
+        edges = [FaceMatchEdge(
+            parent=0, new=1,
+            face_indices_parent=(1, 2, 3),
+            face_indices_new=(1, 2, 3),
+        )]
+        result = propagate_translations_along_tree(
+            rotations=[Rotation.identity(), Rotation.identity()],
+            edges=edges,
+            prototile_indices=[0, 0],
+            prototile_vertices=[verts],
+        )
+        assert result is not None
+        assert result[0] == Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0))
+
+    def test_incompatible_face_returns_none(self) -> None:
+        # Incongruent face pair → propagate returns None.
+        verts = self._unit_tetrahedron()
+        edges = [FaceMatchEdge(
+            parent=0, new=1,
+            face_indices_parent=(0, 1, 2),
+            face_indices_new=(0, 1, 3),
+        )]
+        result = propagate_translations_along_tree(
+            rotations=[Rotation.identity(), Rotation.identity()],
+            edges=edges,
+            prototile_indices=[0, 0],
+            prototile_vertices=[verts],
+        )
+        assert result is None
+
+    def test_real_paolini_sigma_k(self) -> None:
+        # Cross-check on Paolini's σ(K) dissection. Tree: B-child → K-child.
+        # Propagated translations match cj.translation − ci.translation.
+        import json
+        from pathlib import Path
+        from apeiron.deformation import face_adjacent_pairs, placed_vertices
+        from apeiron.symmetry import ICOSAHEDRAL, ImproperRotation, Mat3
+        from apeiron.substitution import PositionedTile, SubstitutionRule
+        from apeiron.util import load_candidate
+
+        DANZER = Path("candidates/danzer")
+        prototiles = [load_candidate(DANZER / f"{x}.json") for x in "ABCK"]
+        z = ZPhi(0, 0)
+        phi = ZPhi(0, 1)
+        inflation = Mat3(
+            Vec3(phi, z, z), Vec3(z, phi, z), Vec3(z, z, phi),
+        )
+        data = json.loads((DANZER / "paolini_dissection.json").read_text())
+        type_to_idx = {"A": 0, "B": 1, "C": 2, "K": 3}
+        by_parent: dict[str, list] = {p: [] for p in "ABCK"}
+        for r in data["children"]:
+            by_parent[r["parent"]].append(r)
+        dissections = []
+        for parent in "ABCK":
+            children = []
+            for r in sorted(
+                by_parent[parent], key=lambda r: r["child_index"],
+            ):
+                t = r["translation_x2"]
+                translation = Vec3(
+                    ZPhi(*t[0]), ZPhi(*t[1]), ZPhi(*t[2]),
+                )
+                proper = ICOSAHEDRAL[r["icosahedral_index"]]
+                rotation = (
+                    proper if r["is_proper"] else ImproperRotation(proper)
+                )
+                children.append(PositionedTile(
+                    prototile_index=type_to_idx[r["child_type"]],
+                    translation=translation, rotation=rotation,
+                ))
+            dissections.append(tuple(children))
+        rule = SubstitutionRule(
+            n_prototiles=4, inflation=inflation,
+            dissections=tuple(dissections),
+        )
+
+        pair = face_adjacent_pairs(rule, 3, prototiles)[0]
+        ci = rule.dissections[3][pair.i]
+        cj = rule.dissections[3][pair.j]
+        placed_a = placed_vertices(
+            prototiles[ci.prototile_index], (ci.translation, ci.rotation),
+        )
+        placed_b = placed_vertices(
+            prototiles[cj.prototile_index], (cj.translation, cj.rotation),
+        )
+        face_a = tuple(
+            i for i, v in enumerate(placed_a) if v in pair.shared_vertices
+        )
+        face_b = tuple(
+            j for j, v in enumerate(placed_b) if v in pair.shared_vertices
+        )
+
+        edges = [FaceMatchEdge(
+            parent=0, new=1,
+            face_indices_parent=face_a,
+            face_indices_new=face_b,
+        )]
+        result = propagate_translations_along_tree(
+            rotations=[ci.rotation, cj.rotation],
+            edges=edges,
+            prototile_indices=[ci.prototile_index, cj.prototile_index],
+            prototile_vertices=[tuple(p.vertices) for p in prototiles],
+        )
+        assert result is not None
+        assert result[0] == Vec3(ZPhi(0, 0), ZPhi(0, 0), ZPhi(0, 0))
+        # Relative offset should equal cj.translation − ci.translation.
+        assert result[1] == cj.translation - ci.translation
+
+    def test_rejects_length_mismatch(self) -> None:
+        verts = self._unit_tetrahedron()
+        with pytest.raises(ValueError, match="prototile_indices length"):
+            propagate_translations_along_tree(
+                rotations=[Rotation.identity(), Rotation.identity()],
+                edges=[],
+                prototile_indices=[0],  # length 1 vs rotations length 2
+                prototile_vertices=[verts],
+            )
+
+    def test_rejects_wrong_edge_count(self) -> None:
+        verts = self._unit_tetrahedron()
+        # 3 children but only 1 edge — tree needs 2 edges.
+        with pytest.raises(ValueError, match="needs"):
+            propagate_translations_along_tree(
+                rotations=[
+                    Rotation.identity(),
+                    Rotation.identity(),
+                    Rotation.identity(),
+                ],
+                edges=[FaceMatchEdge(
+                    parent=0, new=1,
+                    face_indices_parent=(1, 2, 3),
+                    face_indices_new=(1, 2, 3),
+                )],
+                prototile_indices=[0, 0, 0],
+                prototile_vertices=[verts],
+            )
+
+    def test_rejects_disordered_edges(self) -> None:
+        # Edges must be in DFS order — first edge's parent must be 0.
+        verts = self._unit_tetrahedron()
+        with pytest.raises(ValueError, match="not yet"):
+            propagate_translations_along_tree(
+                rotations=[Rotation.identity()] * 3,
+                edges=[
+                    # Edge with parent=2 before 2 has been placed.
+                    FaceMatchEdge(
+                        parent=2, new=1,
+                        face_indices_parent=(1, 2, 3),
+                        face_indices_new=(1, 2, 3),
+                    ),
+                    FaceMatchEdge(
+                        parent=0, new=2,
+                        face_indices_parent=(1, 2, 3),
+                        face_indices_new=(1, 2, 3),
+                    ),
+                ],
+                prototile_indices=[0, 0, 0],
+                prototile_vertices=[verts],
             )
 
 

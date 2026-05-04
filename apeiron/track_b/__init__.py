@@ -32,16 +32,19 @@ from apeiron.track_b.geometric_prefilter import (
 from apeiron.track_b.matrix_search import enumerate_primitive_matrices
 from apeiron.track_b.realisation import (
     ChildPlacement,
+    FaceMatchEdge,
     Inconclusive,
     NoRealisation,
     Realised,
     SearchProgress,
+    propagate_translations_along_tree,
     realise,
     translation_offset_from_face_match,
 )
 
 __all__ = [
     "ChildPlacement",
+    "FaceMatchEdge",
     "Inconclusive",
     "NoRealisation",
     "PrefilterResult",
@@ -50,6 +53,7 @@ __all__ = [
     "enumerate_primitive_matrices",
     "pf_eigenvector_in_zphi",
     "prefilter",
+    "propagate_translations_along_tree",
     "realise",
     "translation_offset_from_face_match",
     "vertex_class_consistent",
