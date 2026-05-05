@@ -340,3 +340,127 @@ the meantime, the conjecture is sharper and better-bounded.
 
 **No code or pivot action lands from this update.** The
 sequencing commitment carries forward.
+
+---
+
+## §8 Update post-Hammock 2018 + H₃ shape-rigidity argument (2026-05-05)
+
+The Hammock-Fang-Irwin 2018 read (literature_notes.md §10) added
+a third independent piece of empirical evidence to the conjecture:
+
+> **All 36 vertex configurations of the canonical D₆ projection
+> have multi-prototile empires.** Hammock Table 1 enumerates
+> every vertex configuration of T*(2F) and computes its empire
+> (set of forced tiles). 880 tile types, 4230 sectors, 36
+> H₃-equivalence classes. Cross-validated against Kramer-
+> Papadopolos-Zeidler 1991. **None of the 36 empires reduces to
+> a single-prototile region.**
+
+Per Q17a's ruling, the gate verdict shifts from C to **Gate
+B-minus**: the conjecture is strongly supported but not closed.
+The remaining gap is precise: Hammock's empire check is over the
+*canonical* Voronoi window. Whether other windows produce
+single-prototile empires is the closed-access 1994 paper's
+domain.
+
+### §8.1 H₃ shape-rigidity argument (per Q17a)
+
+The remaining window-deformation gap can be argued (but not
+proven) shut as follows.
+
+**Argument.** Prototile shapes in any D₆ icosahedral cut-and-
+project tiling are determined by the H₃ root system, not by the
+window. This is established by:
+
+1. **Papadopolos Q15a confirmation:** windows pick vertex classes,
+   not tile shapes. The H₃ tetrahedral fundamental-region
+   structure determines tile shapes independently of window
+   choice (Frettlöh §1.3, Theorem 1.3; Al-Siyabi-Koca-Koca §3).
+2. **Moody §4.1:** D₆ root + weight + intermediate lattices
+   essentially exhaust the icosahedral CPS framework.
+3. **Papadopolos 1999 §1.2:** the canonical T*(2F) projection
+   requires 6 prototiles. ABCK is a 6 → 4 local reduction.
+4. **Hammock Table 1:** the 36 vertex configurations of the
+   canonical projection have multi-prototile empires.
+
+If (1) holds across all D₆ windows (not just the canonical one),
+then no non-canonical window can introduce *new* tile types
+absent from the canonical projection. An empire is a set of
+tiles, and if the tiles available are constrained by H₃
+regardless of window, then the *space* of possible single-
+prototile empires across all D₆ windows is constrained by what's
+available in the canonical case. Hammock's exhaustive check
+covers that case and finds none. **Therefore — modulo what's
+proved in the next paragraph — the conjecture extends to all D₆
+windows, not just the canonical Voronoi window.**
+
+**This is an argument, not a proof.** The missing piece is
+whether vertex-configuration *structure* (not tile shape) varies
+enough across windows to produce a single-prototile empire. A
+non-canonical window might present a vertex configuration with
+fewer adjacent tile types, forcing fewer types and possibly
+admitting a single-prototile empire — even though the available
+tile shapes are H₃-rigid. The argument bounds the *set* of
+possible tile shapes; it does not bound the *combinatorics* of
+how they are allowed to meet under a non-canonical window.
+
+That structural-versus-combinatorial distinction is the precise
+residual gap. Closing it requires either:
+
+- Kramer-Papadopolos 1994's "all windows" result (settles
+  whether non-canonical windows produce different vertex
+  configurations than the canonical 36), or
+- A direct combinatorial argument that any window assigning a
+  single-prototile empire to *some* vertex configuration would
+  contradict the H₃ Voronoi structure of D₆.
+
+The argument-not-proof flag should be carried forward to the
+no-go draft (Q17b authorisation). The claim there is "no
+single-prototile empire exists in the canonical D₆ projection,
+plus a strong but informal extension argument across all D₆
+windows" — not "no D₆ icosahedral monotile exists."
+
+### §8.2 Gate verdict
+
+**Gate B-minus activated.** The conjecture is strongly
+supported by:
+
+| Source                | Finding                                                           |
+|-----------------------|-------------------------------------------------------------------|
+| Track A (Apeiron)     | M_ABCK has no positive integer eigenvalue (closed-form no-go)     |
+| Track B (Apeiron)     | 78 candidates exhaustive NoRealisation across 9-class slice       |
+| Moody §4.1 (2000)     | D₆ root + weight + intermediates exhaust framework                |
+| Papadopolos 1999 §1.2 | Canonical projection requires 6 prototiles; ABCK is 6→4 reduction |
+| Hammock 2018 Table 1  | 36 empires, none single-prototile                                 |
+| H₃ shape-rigidity     | Tile shapes window-independent (argument, not proof)              |
+
+The ABCK-specific window remains the open question, addressable
+by the 1994 ILL.
+
+### §8.3 Branch B4 authorisation (per Q17b)
+
+Authorised conditionally. Scope must be exactly what is
+established. Title:
+
+> Computational evidence against 3D icosahedral Einstein tiles
+> in the D₆ cut-and-project framework.
+
+NOT "no 3D icosahedral Einstein exists" (overclaims).
+
+Deliverable: `docs/no_go_draft.md` with four sections per Q17b:
+(i) face-merge algebraic no-go, (ii) Track B computational
+survey, (iii) Hammock empire-exhaustion, (iv) open gap.
+
+Target venues: *Discrete and Computational Geometry* or
+*Experimental Mathematics*.
+
+### §8.4 Pre-draft test (per Q17c(i))
+
+Before drafting, encode the T*(2F) 8×8 substitution matrix from
+Papadopolos eq. (8) and verify M_ABCK eigenvalues are a subset
+of M_T*(2F)'s spectrum. This is a few hours of test-only code
+that establishes algebraically that ABCK's eigenvalue structure
+is a strict restriction of T*(2F)'s — the precise statement
+needed in `no_go_draft.md §(i)` to explain why the face-merge
+no-go is structural rather than coincidental. Implement as
+`tests/integration/test_t2f_embedding.py`.
