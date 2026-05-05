@@ -43,7 +43,7 @@ the broader D₆ cut-and-project framework is provided by Frettlöh
 (*Icosahedral tilings in R³*, Theorem 1.3): D₆-projected
 icosahedral tilings have prototile shapes determined by the H₃
 root system. We provide the algebraic eigenvalue embedding
-M_ABCK ⊂ M_T*(2F) (Papadopolos-Hohneker-Kramer 1999, eq. 13)
+M_ABCK ⊂ M_T*(2F) (Papadopolos-Hohneker-Kramer 2000, eq. 13)
 that explains why ABCK's substitution-matrix structure is a
 strict restriction of the canonical projection. **We do not
 establish that no 3D icosahedral Einstein tile exists; our
@@ -138,7 +138,7 @@ verifies the M_ABCK eigenvalues.
 The face-merge no-go is structural rather than coincidental.
 M_ABCK is a 4×4 matrix; its eigenvalues are a strict subset of
 the eigenvalues of the canonical T*(2F) volume inflation matrix
-M_T*(2F) (8×8, ℤ[τ] entries, Papadopolos-Hohneker-Kramer 1999
+M_T*(2F) (8×8, ℤ[τ] entries, Papadopolos-Hohneker-Kramer 2000
 eq. 9):
 
 ```text
@@ -194,6 +194,11 @@ the entire 9-class slice.** Logs at
 [notebooks/n3_phi3_exhaustive_2026-04-29.log](../notebooks/n3_phi3_exhaustive_2026-04-29.log)
 and
 [notebooks/n3_phi3_max_entry_3_2026-05-04.log](../notebooks/n3_phi3_max_entry_3_2026-05-04.log).
+The zero-Realised result is stable across the two entry bounds
+(13/13 at max_entry = 2 and 65/65 at max_entry = 3 both
+returned NoRealisation), suggesting that further increases in
+max_entry would not alter the conclusion within this shape
+slice.
 
 A further 153 candidates (9 + 144 across the two entry bounds)
 were skipped as `SKIPPED_TAXONOMY_GAP`: their left-eigenvector
@@ -202,11 +207,31 @@ is the separate question that the 15-class extension would
 address. We do not claim anything about these 153 candidates
 beyond the 9-class scope.
 
+**Scope limitation: the H₃ tetrahedral taxonomy.** Frettlöh
+(*Icosahedral tilings in R³*, §1.1) reports that there are
+exactly 15 H₃-compatible tetrahedral similarity classes —
+tetrahedra whose face normals lie in the H₃ root system. The
+Apeiron 9-class taxonomy is derived from the 10-vertex Paolini
+ABCK vertex pool (4 ABCK shapes plus 5 additional similarity
+classes obtainable by 4-vertex subset enumeration over that
+pool); the remaining 6 of Frettlöh's 15 require a richer vertex
+pool and explicit coordinates that are deferred in Frettlöh's
+publication to the privately-published Danzer-Sonneborn-van
+Ophuysen 1993 ABCK-Book ("contains several errors" per
+Frettlöh's own warning), which we have not been able to
+verify independently. Therefore §(ii)'s computational survey
+covers 9 of the 15 H₃-fundamental-region similarity classes;
+the remaining 6 are an explicit limitation of the present
+result. The 153 SKIPPED_TAXONOMY_GAP candidates noted above are
+candidates whose realisation might require precisely those
+missing 6 classes.
+
 **Scope statement for §(ii).** The result is "no realisable
 candidate among 78 specific matrix-shape-triple combinations
 within the 9-class H₃ slice"; not "no realisable candidate
 exists for n ≤ 3 with PF eigenvalue φ³." The scope is precisely
-defined by the four bullet conditions above.
+defined by the four bullet conditions above plus the 9-of-15
+class restriction.
 
 Code:
 [apeiron/track_b/](../apeiron/track_b/)
@@ -229,8 +254,8 @@ projection framework,
 E(p) = { t ∈ T : Γ(p) ⊂ t*_⊥ }
 ```
 
-where Γ(p) := ⋂_{t ∈ p} t*_⊥ is the *shift-window* (a convex
-polytope in internal space E_⊥).
+where Γ(p) := ⋂(t in p) t\*\_⊥ is the *shift-window* (a convex
+polytope in internal space E\_⊥).
 
 The decomposition of the canonical Voronoi cut-window W ⊂ E_⊥
 yields 880 tile types (regions), 4230 sectors (region
@@ -314,8 +339,9 @@ do not settle the all-windows question:
 - Kramer-Papadopolos (1994b), *Can. J. Phys.* 72, 408: derives
   Mosseri-Sadoc tilings from D₆ via a methodological parallel
   to the 1994 Danzer paper. Closed-access; ILL-pending.
-- Papadopolos-Hohneker-Kramer (1999/2000), *Discrete Math.*
-  221, 101 (arXiv:math-ph/9909012): inflation rules for T*(2F)
+- Papadopolos, Hohneker & Kramer (2000), *Discrete Math.* 221,
+  101–112 (arXiv preprint math-ph/9909012, 1999): inflation
+  rules for T*(2F)
   with explicit 8×8 substitution matrix. Open-access; read in
   full and used as the basis for the eigenvalue embedding in
   §(i.1).
@@ -338,10 +364,27 @@ Schlottmann-Zeidler result. Two outcomes:
   the new candidate would proceed through Apeiron's existing
   pipeline.
 - *Outcome B:* The 1994 paper exhibits no single-prototile
-  window. The H₃ shape-rigidity extension upgrades to a proof
-  (via the explicit window enumeration); §(iv) closes; the
-  conjecture moves from "strongly-supported, unproven" to a
-  full theorem within the D₆ framework.
+  window. The §(iii.1) H₃ shape-rigidity extension upgrades
+  from informal argument to proof, via the following finite
+  computation:
+
+  1. Read off from the 1994 paper which subset of D₆
+     acceptance windows corresponds to ABCK-derivable tilings.
+  2. For each such window, identify the subset of the 36
+     Hammock vertex configurations realised in the resulting
+     tiling. (This subset must lie within Hammock's 36, since
+     ABCK is locally derivable from T*(2F) and tile shapes are
+     H₃-rigid.)
+  3. For each such configuration, look up its empire from
+     Hammock 2018 Table 1 and verify it contains ≥ 2 tile
+     types — i.e., none of the realised configurations admits
+     a single-prototile empire.
+
+  Steps 2 and 3 are a finite computation on Hammock Table 1,
+  executable in hours once step 1's window enumeration is in
+  hand. §(iv) closes; the conjecture moves from "strongly-
+  supported, unproven" to a full theorem within the
+  H₃-fundamental-region D₆ framework.
 
 ---
 
