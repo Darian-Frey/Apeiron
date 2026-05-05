@@ -1,4 +1,4 @@
-# Computational Evidence Against 3D Icosahedral Einstein Tiles in the D₆ Cut-and-Project Framework
+# Computational Evidence Against 3D Icosahedral Einstein Tiles Among H₃-Fundamental-Region Substitution Candidates
 
 **Status.** Draft. Per Q17b authorisation (Claude (web), 2026-05-05),
 this is the Branch B4 deliverable from
@@ -24,29 +24,35 @@ Target venues per Q17b: *Discrete and Computational Geometry* or
 ## Abstract
 
 We present three independent lines of computational evidence
-supporting the conjecture that no single-prototile (monotile)
-icosahedral substitution tiling of ℝ³ exists within the D₆
-cut-and-project framework. (i) The face-merge approach to
-Danzer's ABCK 4-tile substitution is closed by an algebraic
+against the existence of a single-prototile (monotile)
+icosahedral substitution tiling of ℝ³ on the H₃-tetrahedral
+fundamental-region shape family. (i) The face-merge approach
+to Danzer's ABCK 4-tile substitution is closed by an algebraic
 no-go: M_ABCK has no positive integer eigenvalue, so no
-positive-integer linear combination of the prototiles inflates
-to a single combined tile. (ii) An exhaustive computational
-survey of n ≤ 3 prototile substitution rules with PF eigenvalue
-φ³, integer entries ≤ 3, and prototile shapes drawn from the 9
-H₃-compatible tetrahedral classes of the Paolini ABCK pool
-yields zero realisable rules across 78 attempted candidates.
-(iii) Hammock, Fang & Irwin (2018) computed the empires (forced
-tiles) of all 36 vertex configurations of the canonical D₆ →
-ℝ³ projection T*(2F); none reduces to a single-prototile
-region. We provide the algebraic eigenvalue embedding
+positive-integer linear combination of the ABCK prototiles
+inflates by a positive-integer factor to a single combined tile.
+(ii) An exhaustive computational survey of n ≤ 3 prototile
+substitution rules with PF eigenvalue φ³, integer entries ≤ 3,
+and prototile shapes drawn from the 9 H₃-compatible tetrahedral
+classes of the Paolini ABCK pool yields zero realisable rules
+across 78 attempted candidates. (iii) Hammock, Fang & Irwin
+(2018) computed the empires (forced tiles) of all 36 vertex
+configurations of the canonical D₆ → ℝ³ projection T*(2F);
+none reduces to a single-prototile region. The connection to
+the broader D₆ cut-and-project framework is provided by Frettlöh
+(*Icosahedral tilings in R³*, Theorem 1.3): D₆-projected
+icosahedral tilings have prototile shapes determined by the H₃
+root system. We provide the algebraic eigenvalue embedding
 M_ABCK ⊂ M_T*(2F) (Papadopolos-Hohneker-Kramer 1999, eq. 13)
 that explains why ABCK's substitution-matrix structure is a
-strict restriction of the canonical projection. The remaining
-open question is whether non-canonical D₆ acceptance windows
-admit different vertex configurations whose empires might be
-single-prototile; settling this requires the closed-access
-"all windows" result of Kramer-Papadopolos-Schlottmann-Zeidler
-(1994).
+strict restriction of the canonical projection. **We do not
+establish that no 3D icosahedral Einstein tile exists; our
+result is scoped to substitution rules on H₃-tetrahedral
+fundamental-region shapes within the D₆ framework, with one
+explicit residual gap (configuration-multiplicity variation
+across non-canonical D₆ windows).** The gap is settled by the
+closed-access "all windows" result of Kramer-Papadopolos-
+Schlottmann-Zeidler (1994), pending inter-library loan.
 
 ---
 
@@ -90,28 +96,40 @@ M_ABCK (4×4, integer entries) with characteristic polynomial:
 char(M_ABCK)(λ) = λ⁴ - 5λ³ + 2λ² + 5λ + 1
 ```
 
-Roots of this polynomial: {τ³, τ, −τ⁻¹, −τ⁻³} where τ = φ. None
-is a positive integer.
+Roots of this polynomial: {τ³, τ, −τ⁻¹, −τ⁻³} where τ = φ.
 
-**Theorem (face-merge no-go).** For any non-negative-integer
-linear combination of A, B, C, K prototiles, no scalar inflation
-of that combination produces a single combined tile under the
-ABCK substitution rule.
+For a face-merge of the ABCK prototile set into a single
+combined tile P to yield a valid 1-prototile substitution rule
+σ in which σ(P) decomposes into exactly k copies of P, the
+integer k must be a positive-integer eigenvalue of M_ABCK with
+a non-negative-integer eigenvector (the composition vector
+giving how many of each ABCK type makes up P).
 
-*Proof sketch.* A face-merge of the ABCK prototile set into a
-single combined tile would correspond to a rational-coefficient
-left eigenvector of M_ABCK with positive integer eigenvalue
-(the inflation factor on the merged tile). The integer-
-eigenvalue constraint follows from the rational root theorem on
-the integer characteristic polynomial: any rational root of
-char(M_ABCK) is in fact an integer. The roots of M_ABCK lie in
-ℤ[φ] but none is in ℤ. ∎
+**Theorem 1 (face-merge no-go).** No face-merge of the ABCK
+prototile set produces a 1-prototile substitution rule with
+positive-integer inflation factor.
 
-This rules out the deformation-first approach to a 3D Einstein
-candidate via merging Danzer ABCK tiles. The no-go is
-closed-form and reproducible:
+*Proof.* Suppose P = k_A · A + k_B · B + k_C · C + k_K · K
+with k_A, k_B, k_C, k_K ∈ ℤ_{≥0}, not all zero, is a valid
+face-merged combined tile. For σ(P) to decompose into exactly
+k copies of P, the vector v = (k_A, k_B, k_C, k_K) must satisfy
+M_ABCK · v = k · v with k ∈ ℤ_{>0}. By the rational root theorem
+applied to the integer characteristic polynomial of M_ABCK, any
+rational eigenvalue of M_ABCK is an integer. The eigenvalues of
+M_ABCK are {τ³, τ, −τ⁻¹, −τ⁻³} ⊂ ℤ[φ] \ ℤ; none is in ℤ_{>0}.
+Therefore no such P exists. ∎
+
+**Remark 1 (scope of Theorem 1).** The theorem rules out
+monotile substitution rules *derivable from ABCK by face-merge*.
+It does not constrain substitution rules on single-tile alphabets
+that are not locally related to ABCK. The broader question — of
+1-prototile substitution rules on H₃-tetrahedral fundamental-
+region shapes more generally — is the subject of §(ii).
+
+The no-go is closed-form and reproducible:
 [apeiron/deformation.py](../apeiron/deformation.py)
-implements the eigenvalue feasibility check;
+implements the eigenvalue feasibility check via rational-root
+extraction from the integer characteristic polynomial;
 [tests/test_deformation.py](../tests/test_deformation.py)
 verifies the M_ABCK eigenvalues.
 
@@ -235,32 +253,41 @@ conjecture exists at the canonical-projection level.
 
 Hammock 2018's exhaustive check covers the canonical Voronoi
 window. Whether non-canonical windows could produce single-
-prototile empires is the residual question (§(iv)). However,
-the H₃ shape-rigidity argument (per Q17a, 2026-05-05) shows the
-gap is bounded:
+prototile empires is the residual question (§(iv)). The H₃
+shape-rigidity argument bounds this gap precisely.
 
 **Argument (informal).** Prototile shapes in any D₆ icosahedral
 cut-and-project tiling are determined by the H₃ root system,
 not by the window. (Source: Frettlöh "Icosahedral tilings in
 R³" Theorem 1.3; Al-Siyabi-Koca-Koca 2020 §3.) Varying the
-window changes which vertex configurations appear but not what
-the tiles look like. An empire is a set of tiles. If the tiles
-available are constrained by H₃ regardless of window, then no
-non-canonical window can introduce *new* tile types absent from
-the canonical projection. Hammock's exhaustive check therefore
-constrains the space of possible single-prototile empires
-across all D₆ windows, not just the canonical one.
+window changes which vertex configurations appear, and at what
+multiplicity, but not what the tiles look like. An empire is a
+set of tiles. If the tiles available are constrained by H₃
+regardless of window, then no non-canonical window can introduce
+*new* tile types absent from the canonical projection. Hammock's
+exhaustive check therefore constrains the space of possible
+single-prototile empires across all D₆ windows, not just the
+canonical one.
 
-**This is an argument, not a proof.** The missing piece is
-whether vertex-configuration *combinatorics* (not tile shape)
-varies enough across windows to produce a single-prototile
-empire. A non-canonical window might present a vertex
-configuration with fewer adjacent tile types, forcing fewer
-types and potentially admitting a single-prototile empire —
-even though the available tile *shapes* are H₃-rigid. The
-argument bounds the *set* of possible tile shapes; it does not
-bound the *combinatorics* of how they meet under a non-
-canonical window.
+**Precise residual gap.** A non-canonical D₆ window could in
+principle yield a tiling in which only a strict subset of the
+36 vertex configurations appears, and that subset might admit a
+single-prototile empire structure not visible in the full
+36-configuration enumeration. Concretely: the canonical Voronoi
+window realises all 36 configurations (each at a specific
+multiplicity given by Hammock 2018 Table 1's ℤ[√5] frequencies);
+a non-canonical window might exclude some configurations or
+shift the frequencies in a way that changes which tile types
+co-occur. The available tile *shapes* are H₃-rigid; the
+*combinatorics* of how they meet — which subset of the 36
+configurations is present, and at what multiplicity — is not.
+
+This is the precise statement of what Hammock's exhaustive
+canonical-window check leaves open and what the closed-access
+Kramer-Papadopolos-Schlottmann-Zeidler (1994) "all windows"
+result resolves. Until that result is in hand, §(iii) plus the
+H₃ shape-rigidity argument is computational evidence for the
+conjecture, not a proof.
 
 The structural-versus-combinatorial distinction is the precise
 residual gap addressed in §(iv).
